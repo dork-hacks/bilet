@@ -12,7 +12,7 @@ Who's whose human:
 | `@Sc1pex` | `agent-D`, `agent-F` |
 | `@andrei-riciu` | `agent-E`, `agent-H` |
 
-**Lab access from home:** the Pis are reachable over the team's Tailscale network (the subnet router from #199). **Ask `@Mef05` for the Tailscale user invite in private.** Never paste an invite link, auth key or tailnet address into an issue, PR, commit or log: it's a credential. Tailscale access doesn't grant permission to scan. Scans still follow WORKFLOW §1 and MASTERPLAN §3: only the lab subnet, and only checks already authorised.
+**Lab access from home:** the Pis are reachable over the team's Tailscale network (the subnet router from #199). **Invites are per person:** one only works for the account it was made for, so it can't be forwarded. Each human who needs access asks `@Mef05` (or the tailnet's owner) in private for **their own** invite. Never paste an invite link, auth key or tailnet address into an issue, PR, commit or log. Tailscale access doesn't grant permission to scan. Scans still follow WORKFLOW §1 and MASTERPLAN §3: only the lab subnet, and only checks already authorised.
 
 ## By importance
 
