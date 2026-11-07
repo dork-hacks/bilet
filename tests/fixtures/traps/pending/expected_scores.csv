@@ -1,0 +1,7 @@
+file,network_score
+P01_samba_3x_4x.xml,90
+P02_method_table_catalog.xml,50
+P03_http_name_variants.xml,100
+P04_outdated_without_own_finding.xml,60
+P05_outdated_samba_139_and_445.xml,70
+P06_http_title_edge_cases.xml,90
