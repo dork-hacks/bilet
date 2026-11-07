@@ -489,6 +489,13 @@ GENERIC_FILE_ERROR: dict[str, str] = {
     "en": "This file can't be read.",
 }
 
+# Shown when a scan's results are written but the local history can't be updated
+# (a locked, corrupt or newer database, or a folder that can't be written; #132).
+HISTORY_FAILED: dict[str, str] = {
+    "ro": "Rezultatele sunt salvate, dar istoricul nu a putut fi actualizat.",
+    "en": "Your results are saved, but the history couldn't be updated.",
+}
+
 # Guardrail refusals (FR-02). These codes are proposed to the guardrail owner in #18;
 # rename them here if #18 settles on others. `{target}` is filled in by the caller.
 REFUSALS: dict[str, dict[str, str]] = {

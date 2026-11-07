@@ -1,8 +1,9 @@
 """Shared code for `lab/verify` and `lab/sanitize` (#34).
 
-`lab/verify` checks that nmap -sV names every simulated weak service on the three lab Pis
-with the catalog's service name. `lab/sanitize` turns a raw capture into a test fixture
-with the device half of every MAC and every real hostname replaced.
+`lab/verify` checks that nmap -sV names every simulated weak service on the lab Pis (two by
+default, camera and hub, plus an optional server; #128) with the catalog's service name.
+`lab/sanitize` turns a raw capture into a test fixture with the device half of every MAC and
+every real hostname replaced.
 
 Stdlib only, Python 3.11+, so it runs with the scanner laptop's plain `python3 -I`, with or
 without the project's virtualenv:
@@ -800,12 +801,25 @@ def expected_score(rows: Iterable[tuple[str, ...]]) -> int:
     return max(0, 100 - sum(CODES[r[3]][1] for r in rows))
 
 
-def format_expected(rows: list[tuple[str, ...]], roles: dict[str, str]) -> str:
+def missing_points(
+    roles: dict[str, str], toggles: dict[str, bool], services: Iterable[Service]
+) -> dict[str, int]:
+    """Roles with no IP given that still have points switched on. A role whose services
+    are all off (the optional third device in the default lab, #128) isn't missing."""
+    missing: dict[str, int] = {}
+    for svc in services:
+        if svc.role not in roles and svc.points and is_on(svc, toggles):
+            missing[svc.role] = missing.get(svc.role, 0) + svc.points
+    return missing
+
+
+def format_expected(rows: list[tuple[str, ...]], missing: dict[str, int] | None = None) -> str:
     codes = sorted({r[3] for r in rows})
+    gaps = ", ".join(f"{role} ({pts} points switched on)" for role, pts in (missing or {}).items())
     lines = [
         f"Expected from services.tsv and the toggles: {len(rows)} findings, "
         f"{len(codes)} finding types, score {expected_score(rows)}"
-        + ("" if len(roles) == len(ROLES) else f" (only {', '.join(roles)} given)"),
+        + (f". Not counted, no IP given: {gaps}" if gaps else ""),
         "Draft findings.csv rows (hand-check them; they don't come from the engine):",
         *(",".join(r) for r in rows),
     ]
@@ -1032,7 +1046,7 @@ def verify_main(
 ) -> int:
     parser = argparse.ArgumentParser(
         prog="lab/verify",
-        description="Scan the three lab Pis and check that nmap -sV names every weak "
+        description="Scan the lab Pis and check that nmap -sV names every weak "
         "service with the catalog's service name (#34). Only our own hotspot.",
     )
     _common_args(parser)
@@ -1050,7 +1064,7 @@ def verify_main(
         if args.xml:
             _check_roles_format(roles)
             if not roles:
-                raise UsageError("give the Pis' IPs: --camera IP --server IP --hub IP")
+                raise UsageError("give the Pis' IPs: --camera IP --hub IP [--server IP]")
             scanner_ip = args.scanner_ip
             if scanner_ip is None:
                 try:
@@ -1116,7 +1130,8 @@ def _check_file(
     print(format_rows(rows))
     print(f"\nNote: {TABLE_NOTE}")
     print()
-    print(format_expected(expected_rows(path.name, roles, toggles, services), roles))
+    rows_expected = expected_rows(path.name, roles, toggles, services)
+    print(format_expected(rows_expected, missing_points(roles, toggles, services)))
     fails = sum(r.result == FAIL for r in rows)
     warns = sum(r.result == WARN for r in rows)
     print(f"\n{'FAIL' if fails else 'PASS'}: {fails} failed, {warns} warnings, {len(rows)} checks")
@@ -1148,7 +1163,7 @@ def sanitize_main(argv: list[str] | None = None) -> int:
         roles = _roles(args)
         _check_roles_format(roles)
         if not roles:
-            raise UsageError("give the Pis' IPs: --camera IP --server IP --hub IP")
+            raise UsageError("give the Pis' IPs: --camera IP --hub IP [--server IP]")
         toggles = _toggles(args, services)
         target = args.out_dir / args.name
         if target.exists() and not args.force:
@@ -1166,7 +1181,7 @@ def sanitize_main(argv: list[str] | None = None) -> int:
         print(f"note: {note}")
     print(f"Wrote {target}\n{status}\n")
     rows = expected_rows(args.name, roles, toggles, services)
-    print(format_expected(rows, roles))
+    print(format_expected(rows, missing_points(roles, toggles, services)))
     if args.expected:
         merge_expected(args.out_dir, args.name, rows, expected_score(rows))
         print(f"\nUpdated {args.out_dir / 'expected_findings.csv'} and expected_scores.csv")

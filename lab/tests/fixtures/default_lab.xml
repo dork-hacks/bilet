@@ -22,6 +22,7 @@
 <ports><extraports state="closed" count="6">
 <extrareasons reason="reset" count="6" proto="tcp" ports="21,139,445,1883,6379,9100"/>
 </extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:2.3.4</cpe></service></port>
 <port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.2p1 Debian 2+deb12u3" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.2p1</cpe></service></port>
 <port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" version="1.4.59" method="probed" conf="10"><cpe>cpe:/a:lighttpd:lighttpd:1.4.59</cpe></service><script id="http-title" output="Camera Login"><elem key="title">Camera Login</elem></script></port>
 <port protocol="tcp" portid="554"><state state="closed" reason="reset" reason_ttl="64"/><service name="rtsp" method="table" conf="3"/></port>
@@ -40,7 +41,6 @@
 <ports><extraports state="closed" count="7">
 <extrareasons reason="reset" count="7" proto="tcp" ports="80,139,445,554,1883,2323,9100"/>
 </extraports>
-<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:2.3.4</cpe></service></port>
 <port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.2p1 Debian 2+deb12u3" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.2p1</cpe></service></port>
 <port protocol="tcp" portid="6379"><state state="closed" reason="reset" reason_ttl="64"/><service name="redis" method="table" conf="3"/></port>
 <port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="snmp" method="table" conf="3"/></port>

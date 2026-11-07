@@ -91,6 +91,29 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(len({r[3] for r in rows}), 7)
         self.assertEqual(rows[6], ("f.xml", "10.42.0.13", "", "UNKNOWN_DEVICE", "low"))
 
+    def test_two_pi_default_lab_camera_and_hub_is_score_25_with_7_types(self):
+        # #128: the default lab is two Pis; the server is an optional third device.
+        two = {"camera": ROLES["camera"], "hub": ROLES["hub"]}
+        toggles = labcheck.resolve_toggles(SERVICES)
+        rows = labcheck.expected_rows("f.xml", two, toggles, SERVICES)
+        self.assertEqual(labcheck.expected_score(rows), 25)
+        self.assertEqual(len({r[3] for r in rows}), 7)
+        self.assertEqual(labcheck.missing_points(two, toggles, SERVICES), {})
+        self.assertNotIn("Not counted", labcheck.format_expected(rows))
+
+    def test_optional_server_adds_0_points_by_default_but_has_toggles(self):
+        server = [s for s in SERVICES if s.role == "server"]
+        toggles = labcheck.resolve_toggles(SERVICES)
+        self.assertEqual(sum(s.points for s in server if labcheck.is_on(s, toggles)), 0)
+        self.assertTrue(any(s.port is not None and s.points for s in server))
+        rows = labcheck.expected_rows("f.xml", {"server": "10.42.0.12"}, toggles, SERVICES)
+        self.assertEqual([r[3] for r in rows], ["SSH_OPEN"])
+        on = labcheck.resolve_toggles(SERVICES, on=["redis"])
+        missing = labcheck.missing_points({"camera": "10.42.0.11"}, on, SERVICES)
+        self.assertEqual(missing, {"server": 20, "hub": 15})
+        text = labcheck.format_expected([], missing)
+        self.assertIn("Not counted, no IP given: server (20 points", text)
+
     def test_fixing_telnet_and_http_gives_55(self):
         toggles = labcheck.resolve_toggles(SERVICES, off=["telnet,http"])
         rows = labcheck.expected_rows("f.xml", ROLES, toggles, SERVICES)
@@ -169,7 +192,7 @@ class CheckTests(unittest.TestCase):
             ('version="2.3.4" ostype', 'version="3.0.5" ostype'),
             ('<elem key="title">Camera Login</elem>', '<elem key="title">Welcome</elem>'),
         )
-        self.assertEqual(failures(check(text)), [("camera", "80/tcp"), ("server", "21/tcp")])
+        self.assertEqual(failures(check(text)), [("camera", "21/tcp"), ("camera", "80/tcp")])
 
     def test_extra_open_port(self):
         text = insert_port("10.42.0.12", _port("tcp", 8080, "open", "http-proxy"))

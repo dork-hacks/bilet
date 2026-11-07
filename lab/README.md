@@ -1,7 +1,8 @@
 # Hotspot lab: "house in a box"
 
-Three Raspberry Pi 4s on the team hotspot, each playing a household device with
-**simulated** weak services (MASTERPLAN §4.1). The scanner is still a laptop (the brief
+Two Raspberry Pi 4s on the team hotspot, each playing a household device with
+**simulated** weak services, plus an optional third device that joins later (MASTERPLAN §4.1,
+#128). The scanner is still a laptop (the brief
 requires it); only the targets are Pis.
 
 **Simulate, do not expose.** Every weak service is a fake banner (`fakes/fakesvc.py`) or a
@@ -15,20 +16,21 @@ hotspot.
 
 | Pi | Role | Weak services (default **on**, others are toggles) | Catalog codes |
 |---|---|---|---|
-| Pi 4 #1 | `camera` (IP camera) | **telnet** on 2323 (BusyBox), **http** "Camera Login" on 80, rtsp on 554 | TELNET_OPEN, HTTP_ADMIN_CLEARTEXT, CAMERA_STREAM_EXPOSED |
-| Pi 4 #2 | `server` (old office server) | **ftp** `vsFTPd 2.3.4` on 21, redis on 6379, smb (Samba, no shares) | FTP_CLEARTEXT + OUTDATED_SERVICE, DB_EXPOSED, SMB_EXPOSED |
-| Pi 4 #3 | `hub` ("mystery" smart hub) | **mqtt** on 1883, **random MAC + no hostname**, ssdp on UDP 1900, snmp on UDP 161, jetdirect on 9100 | MQTT_EXPOSED, UNKNOWN_DEVICE, UPNP_EXPOSED, SNMP_EXPOSED, PRINTER_RAW_EXPOSED |
+| pi2 | `camera` (IP camera that uploads clips over FTP) | **telnet** on 2323 (BusyBox), **http** "Camera Login" on 80, **ftp** `vsFTPd 2.3.4` on 21, rtsp on 554 | TELNET_OPEN, HTTP_ADMIN_CLEARTEXT, FTP_CLEARTEXT + OUTDATED_SERVICE, CAMERA_STREAM_EXPOSED |
+| pi3 | `hub` ("mystery" smart hub) | **mqtt** on 1883, **random MAC + no hostname**, ssdp on UDP 1900, snmp on UDP 161, jetdirect on 9100 | MQTT_EXPOSED, UNKNOWN_DEVICE, UPNP_EXPOSED, SNMP_EXPOSED, PRINTER_RAW_EXPOSED |
+| optional third device | `server` (old office server) | nothing on by default; redis on 6379, smb (Samba, no shares) | DB_EXPOSED, SMB_EXPOSED |
 
 Every Pi also runs key-only SSH for administration: `SSH_OPEN`, 0 points.
 `services.tsv` is the single source of truth for this table.
 
-**Default lab = 75 points, score 25, 7 finding types** (MASTERPLAN §4.1):
+**Default lab = two Pis, 75 points, score 25, 7 finding types** (MASTERPLAN §4.1). The
+optional `server` adds 0 points until one of its toggles is switched on:
 
 | Device | Expected findings |
 |---|---|
-| camera | TELNET_OPEN 2323 (20), HTTP_ADMIN_CLEARTEXT 80 (10), SSH_OPEN 22 (0) |
-| server | FTP_CLEARTEXT 21 (10), OUTDATED_SERVICE 21 (20), SSH_OPEN 22 (0) |
+| camera | FTP_CLEARTEXT 21 (10), OUTDATED_SERVICE 21 (20), SSH_OPEN 22 (0), HTTP_ADMIN_CLEARTEXT 80 (10), TELNET_OPEN 2323 (20) |
 | hub | MQTT_EXPOSED 1883 (10), UNKNOWN_DEVICE, empty port (5), SSH_OPEN 22 (0) |
+| server (optional) | SSH_OPEN 22 (0) |
 
 ## Minimum lab (brief, ready by hour 3)
 
@@ -36,7 +38,7 @@ Every Pi also runs key-only SSH for administration: `SSH_OPEN`, 0 points.
 |---|---|---|
 | 1 | Gateway: a team phone hotspot `RSH-<team>`, WPA2/WPA3, strong password, data limit | `RSH-dork_unit` on 2.4 GHz. The Pi 5 serves it (mentors said a phone isn't required, #64); a team phone hotspot is the fallback. |
 | 2 | Scanner: one laptop on the hotspot and **nothing else** | Ethernet unplugged, venue Wi-Fi forgotten, VPNs (Tailscale too) off. `tool detect` shows one network. |
-| 3 | At least 3 team-owned targets | The three Pi 4s below. |
+| 3 | At least 3 target devices or services | Two Pi 4s with 7 weak services between them, plus the optional third device. |
 | 4 | At least 5 finding types | The default lab has 7 (table below); capture 3 adds the other 6 Pi codes. |
 | 5 | Every scan saved as nmap XML | `nmap -sS -sU -sV -oX`, via `lab/verify` (#34) or `tool scan` (#20). |
 | 6 | Before/after: fix at least 2 findings, rescan, keep both files | `labctl fix telnet` + `labctl fix http` on the camera: score 25 → 55. |
@@ -64,9 +66,9 @@ with the SD card in a reader; the scripts refuse anything that isn't a removable
 
 ```bash
 git clone <repo> && cd <repo>
-sudo lab/setup.sh camera                   # Pi 4 #1
-sudo lab/setup.sh server --with-packages   # Pi 4 #2 (installs samba for the smb toggle)
-sudo lab/setup.sh hub --with-packages      # Pi 4 #3 (installs snmpd for the snmp toggle)
+sudo lab/setup.sh camera                   # pi2
+sudo lab/setup.sh hub --with-packages      # pi3 (installs snmpd for the snmp toggle)
+sudo lab/setup.sh server --with-packages   # optional third device (samba for the smb toggle)
 ```
 
 For the hub, reboot afterwards so the random MAC and "no hostname" take effect. Its IP may
@@ -79,7 +81,7 @@ the hotspot, and the hub reboots once more for its new identity:
 
 ```bash
 lab/card_role.sh /dev/sdX hub --on ssdp,jetdirect   # pi3: default hub + SSDP and JetDirect
-lab/card_role.sh /dev/sdX server                    # pi2
+lab/card_role.sh /dev/sdX camera                    # pi2
 ```
 
 `--on` turns on extra toggles from `services.tsv` (`sudo labctl reset` on the Pi goes back
@@ -102,8 +104,9 @@ The on-board LEDs show the state: **blinking red** = at least one weak service i
 back to the system.
 
 Demo (MASTERPLAN §4.3): scan (score 25) → `sudo labctl fix telnet` and `sudo labctl fix http`
-on the camera, its LED turns green → rescan (score 55). Then power on another Pi for the
-"new device" alert (FR-13).
+on the camera → rescan (score 55). `sudo labctl fix ftp` too and its LED turns green (85).
+Then power on the optional third device for the "new device" alert (FR-13): no score change,
+and `sudo labctl break redis` on it gives "new open port".
 
 ### From the device's own settings page (#144)
 
@@ -212,6 +215,8 @@ python3 -m unittest discover -s lab/tests
 - On a real Raspberry Pi: `setup.sh`, `labctl`, the LEDs, Samba, snmpd and the hub identity
   (random MAC, no DHCP hostname) are written for Raspberry Pi OS bookworm but haven't run on
   one yet. `flash_pi.sh` installs trixie (the current Lite image), so check them there.
+  Seen on pi2 (trixie, 7 Nov, before #128): `card_role.sh` installed a role, `labctl status`
+  works, the `lab-fake@ftp` fake listens on 21 and the PWR LED blinks.
   The systemd units pass `systemd-analyze verify`.
 - The settings page switches (#144): offline tests only (`lab/tests/test_settings_page.py`,
   `test_switchd.py`). The socket unit, the `lab-web` group and the drop-in still need a run on
@@ -220,5 +225,5 @@ python3 -m unittest discover -s lab/tests
   engine-discovery reply) still needs a scan. `lab/verify` fails it with a hint if nmap
   says `open|filtered`.
 - The scanner laptop scanning itself shows up without a MAC. `lab/verify` scans only the
-  three Pis and warns when a capture holds the laptop with open ports and no MAC, but the
+  lab Pis and warns when a capture holds the laptop with open ports and no MAC, but the
   analyser must still not turn that into a false UNKNOWN_DEVICE in a whole-subnet scan (#34).
