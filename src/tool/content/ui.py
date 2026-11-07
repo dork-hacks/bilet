@@ -35,6 +35,87 @@ MAP_LEVELS = {
 }
 
 UI = {
+    "scan_no_live_hosts": {
+        "ro": (
+            "Niciun dispozitiv nu a răspuns. Verifică legătura cu hotspot-ul tău "
+            "și încearcă din nou."
+        ),
+        "en": "No device answered. Check your connection to your own hotspot and try again.",
+    },
+    "scan_unexpected": {
+        "ro": (
+            "Verificarea nu s-a încheiat. Încearcă din nou sau folosește "
+            "bilet scan --confirm într-un terminal."
+        ),
+        "en": "The check did not finish. Try again or use bilet scan --confirm in a terminal.",
+    },
+    "scan_refused": {
+        "ro": (
+            "Verificarea a fost refuzată: rețeaua detectată nu respectă limitele permise. "
+            "Conectează calculatorul numai la hotspot-ul tău și încearcă din nou."
+        ),
+        "en": (
+            "The check was refused: the detected network is outside the allowed limits. "
+            "Connect this computer only to your own hotspot and try again."
+        ),
+    },
+    "scan_check_again": {"ro": "Verifică din nou", "en": "Check again"},
+    "scan_title": {"ro": "Verificarea rețelei", "en": "Network check"},
+    "scan_ready": {
+        "ro": "Poți verifica din nou rețeaua ta.",
+        "en": "You can check your network again.",
+    },
+    "scan_complete": {
+        "ro": "Verificarea s-a încheiat. Noul rezultat este salvat în istoric.",
+        "en": "The check is complete. Your new result is saved in history.",
+    },
+    "scan_cancel": {"ro": "Oprește verificarea", "en": "Stop checking"},
+    "scan_cancelled": {
+        "ro": "Verificarea a fost oprită. Poți încerca din nou.",
+        "en": "The check was stopped. You can try again.",
+    },
+    "scan_auth_cancelled": {
+        "ro": (
+            "Fereastra de autorizare a fost închisă. Rețeaua nu a fost verificată. Poți "
+            "încerca din nou."
+        ),
+        "en": "The password window was closed. Your network was not checked. You can try again.",
+    },
+    "scan_no_auth_dialog": {
+        "ro": (
+            "Fereastra de autorizare nu este disponibilă. Folosește bilet scan --confirm "
+            "într-un terminal."
+        ),
+        "en": "No password window is available. Use bilet scan --confirm in a terminal.",
+    },
+    "scan_unavailable": {
+        "ro": (
+            "Verificarea din browser nu este disponibilă. Folosește bilet scan --confirm "
+            "într-un terminal."
+        ),
+        "en": "Browser checking is unavailable. Use bilet scan --confirm in a terminal.",
+    },
+    "scan_auth_hint": {
+        "ro": (
+            "Verificarea poate dura câteva minute. Dacă sistemul cere autorizare, caută "
+            "fereastra de parolă în bara de activități sau în Dock. Parola se introduce "
+            "numai în fereastra sistemului, niciodată în această pagină."
+        ),
+        "en": (
+            "Checking can take a few minutes. If your system asks for permission, look for "
+            "its password window in the taskbar or Dock. Enter your password only in the "
+            "system window, never on this page."
+        ),
+    },
+    "scan_see_score": {"ro": "Vezi noul scor", "en": "See your new score"},
+    "scan_refresh": {"ro": "Actualizează starea", "en": "Refresh status"},
+    "scan_refresh_error": {
+        "ro": (
+            "Starea nu a putut fi actualizată. Folosește „Actualizează starea” pentru a "
+            "încerca din nou."
+        ),
+        "en": "The status could not be refreshed. Use “Refresh status” to try again.",
+    },
     "report_link": {"ro": "Raport de tipărit", "en": "Printable report"},
     "report_title": {"ro": "Rezumatul verificării", "en": "Check summary"},
     "report_print": {"ro": "Tipărește / salvează PDF", "en": "Print / save PDF"},

@@ -41,6 +41,7 @@ from tool.web.history_view import HistoryView, history_view
 from tool.web.map_view import network_map
 from tool.web.report import report_view
 from tool.web.risks_view import risks_view
+from tool.web.scan_view import ScanRunner, local_scan_client, scan_status
 from tool.web.view import HomeView, home_view, pick_lang
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -200,9 +201,11 @@ def create_app(
     load_result: ResultLoader,
     explainer: Explainer | None = None,
     history: History | None = None,
+    scan_runner: ScanRunner | None = None,
 ) -> FastAPI:
     """`explainer` is the optional AI layer. It is used only when the user turns AI on.
     `history` is the local scan history (#21) behind the history screen; None turns it off.
+    `scan_runner` is supplied by the scan owner; None hides browser scan controls.
     The home screen shows `load_result()` when it has a scan (`serve --result`), otherwise
     the newest readable scan in the history (#87).
     """
@@ -256,6 +259,7 @@ def create_app(
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
                 "report_token": report_token,
+                "can_scan": scan_runner is not None and local_scan_client(request),
                 **context(view.lang),
             },
             status_code=status,
@@ -263,8 +267,68 @@ def create_app(
 
     def render_history(request: Request, view: HistoryView, status: int = 200) -> HTMLResponse:
         return templates.TemplateResponse(
-            request, "history.html", {"view": view, **context(view.lang)}, status_code=status
+            request,
+            "history.html",
+            {
+                "view": view,
+                "can_scan": scan_runner is not None and local_scan_client(request),
+                **context(view.lang),
+            },
+            status_code=status,
         )
+
+    @app.get("/scan", response_class=HTMLResponse)
+    def scan_page(request: Request, lang: str | None = None) -> Response:
+        if not local_scan_client(request):
+            return PlainTextResponse("Forbidden", status_code=403)
+        lang = pick_lang(lang)
+        return templates.TemplateResponse(
+            request,
+            "scan.html",
+            {
+                "view": {"lang": lang},
+                "status": scan_status(scan_runner, lang),
+                "can_scan": scan_runner is not None,
+                **context(lang),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/scan/status")
+    def scan_status_page(request: Request, lang: str | None = None) -> Response:
+        if not local_scan_client(request):
+            return PlainTextResponse("Forbidden", status_code=403)
+        return JSONResponse(
+            scan_status(scan_runner, pick_lang(lang)), headers={"Cache-Control": "no-store"}
+        )
+
+    async def scan_action(request: Request, cancel: bool = False) -> Response:
+        if not local_scan_client(request) or not same_origin(request):
+            return PlainTextResponse("Forbidden", status_code=403)
+        try:
+            form = await read_form(request)
+        except ValueError:
+            return PlainTextResponse("Invalid form", status_code=400)
+        if form is None:
+            return PlainTextResponse("Request too large", status_code=413)
+        if set(form) - {"lang"} or set(request.query_params) - {"lang"}:
+            return PlainTextResponse("Invalid form", status_code=400)
+        if scan_runner is None:
+            return PlainTextResponse(UI["scan_unavailable"][pick_lang(form.get("lang"))], 503)
+        lang = pick_lang(form.get("lang"))
+        if cancel:
+            await run_in_threadpool(scan_runner.cancel)
+        else:
+            await run_in_threadpool(scan_runner.start_scan, lang)
+        return RedirectResponse(f"/scan?lang={lang}", status_code=303)
+
+    @app.post("/scan")
+    async def start_scan_page(request: Request) -> Response:
+        return await scan_action(request)
+
+    @app.post("/scan/cancel")
+    async def cancel_scan_page(request: Request) -> Response:
+        return await scan_action(request, cancel=True)
 
     @app.get("/risks", response_class=HTMLResponse)
     def risks_page(request: Request, lang: str | None = None) -> HTMLResponse:

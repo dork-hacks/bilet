@@ -24,6 +24,7 @@
      <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
 
   <main id="main">
+  {% include "_scan_button.html" %}
   {% if view.message %}<p class="notice" role="status">{{ view.message }}</p>{% endif %}
 
   {% if not view.enabled %}
