@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 11:40:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T16_iis_versions.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: Microsoft IIS 7.5 or older is outdated, 10.0 is not (10.0 sorts before 7.5 as a string) -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T16_iis_versions.xml 192.168.1.0/24" start="1794051600" startstr="Sat Nov  7 11:40:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794051602" endtime="1794051697"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.40" addrtype="ipv4"/>
+<address addr="00:15:5D:00:00:28" addrtype="mac" vendor="Microsoft"/>
+<hostnames>
+<hostname name="WIN-SRV2008.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Microsoft IIS httpd" version="7.5" ostype="Windows" method="probed" conf="10"><cpe>cpe:/a:microsoft:internet_information_services:7.5</cpe></service><script id="http-title" output="Login"><elem key="title">Login</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794051602" endtime="1794051697"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.41" addrtype="ipv4"/>
+<address addr="00:14:22:00:00:29" addrtype="mac" vendor="Dell"/>
+<hostnames>
+<hostname name="WIN-SRV2019.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Microsoft IIS httpd" version="10.0" ostype="Windows" method="probed" conf="10"><cpe>cpe:/a:microsoft:internet_information_services:10.0</cpe></service><script id="http-title" output="Admin Portal"><elem key="title">Admin Portal</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794051602" endtime="1794051697"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.42" addrtype="ipv4"/>
+<address addr="00:0C:29:00:00:2A" addrtype="mac" vendor="VMware"/>
+<hostnames>
+<hostname name="WIN-SRV2003.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Microsoft IIS httpd" version="6.0" ostype="Windows" method="probed" conf="10"><cpe>cpe:/a:microsoft:internet_information_services:6.0</cpe></service><script id="http-title" output="Setup"><elem key="title">Setup</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794051900" timestr="Sat Nov  7 11:45:00 2026" summary="Nmap done at Sat Nov  7 11:45:00 2026; 256 IP addresses (3 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="3" down="253" total="256"/>
+</runstats>
+</nmaprun>

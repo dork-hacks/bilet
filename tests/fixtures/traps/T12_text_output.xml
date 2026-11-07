@@ -1,0 +1,12 @@
+# Nmap 7.94SVN scan initiated Sat Nov  7 11:00:00 2026 as: nmap -sS -sV -oN T12_text_output.xml 192.168.1.0/24
+# Hand-written trap file for issue #23. Trap: nmap's normal text output saved with an .xml name. Must give ERROR.
+Nmap scan report for router.lan (192.168.1.1)
+Host is up (0.0031s latency).
+Not shown: 997 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+23/tcp open  telnet  BusyBox telnetd
+53/tcp open  domain  dnsmasq 2.85
+80/tcp open  http    lighttpd
+MAC Address: 50:C7:BF:00:00:01 (Tp-link Technologies)
+
+# Nmap done at Sat Nov  7 11:05:00 2026 -- 256 IP addresses (1 host up) scanned in 298.41 seconds
