@@ -10,7 +10,6 @@ The expected results were worked out by hand from the brief's catalog and detect
 | `expected_findings.csv` | `file,ip,port,finding_code,severity`. The port is empty for `UNKNOWN_DEVICE`. |
 | `expected_scores.csv` | `file,network_score`, with `ERROR` for unreadable files. |
 | `make_oversized.py` | Writes the oversized trap. That file is never committed. |
-| `pending/` | Cases whose answer depends on an open question (#8 or a new one). Their own expected CSVs use our current default. Keep them out of the golden test until each question is answered. |
 
 **Row order:** file, then IP (numeric, IPv4 before IPv6), then port (numeric, empty first), then code. This is the default from #8 question 4 and the contract in #26. If the mentors say order doesn't matter, compare the rows as sets.
 
@@ -36,7 +35,7 @@ The error codes in brackets are the ones the parser in PR #35 gives for each bro
 | `T14_openssh_versions.xml` | OpenSSH 7.2p2 and 6.6.1p1 (on port 2222) are outdated. 7.4p1, 8.9p1, 10.0p2 (string comparison would get this wrong) and Dropbear are not | 6 × SSH_OPEN + 2 × OUTDATED_SERVICE, 60 |
 | `T15_apache_versions.xml` | Apache httpd 2.2.22 and 2.0.52 are outdated, 2.4.7 isn't. All three have admin titles | 3 × HTTP_ADMIN + 2 × OUTDATED, 30 |
 | `T16_iis_versions.xml` | IIS 7.5 and 6.0 are outdated, 10.0 isn't (`"10.0" < "7.5"` as strings). All three have admin titles | 3 × HTTP_ADMIN + 2 × OUTDATED, 30 |
-| `T17_ftp_samba_versions.xml` | vsftpd 2.3.4 and Samba 3.0.20 each add OUTDATED_SERVICE on the same port. vsftpd 3.0.3 and Samba 4.6.2 don't. Samba 3.0.20 is only open on 445 (the 139 + 445 case is in `pending/`) | 2 × FTP, 2 × SMB, 2 × OUTDATED, 20 |
+| `T17_ftp_samba_versions.xml` | vsftpd 2.3.4 and Samba 3.0.20 each add OUTDATED_SERVICE on the same port. vsftpd 3.0.3 and Samba 4.6.2 don't. Samba 3.0.20 is only open on 445 (the 139 + 445 case is T31) | 2 × FTP, 2 × SMB, 2 × OUTDATED, 20 |
 | `T18_host_down.xml` | A host with `status="down"` is skipped, even though the file lists open telnet and mysql ports for it | Only .71:22 SSH_OPEN, 100 |
 | `T19_unknown_device.xml` | UNKNOWN_DEVICE needs no vendor, no hostname and an open port. Only-a-hostname and only-a-vendor hosts don't count. A host with no MAC at all (like the scanning machine itself) does. No open port means not unknown | UNKNOWN on .80 and .83 (empty port), PRINTER, MQTT, TELNET, 55 |
 | `T20_upnp_snmp_tcp_udp.xml` | `upnp` and `snmp` count only on UDP and only when `open`. TCP 1900, 5000 and 161 don't count, and neither do `snmptrap`, `smux` or `open\|filtered` UDP. UDP 1900 and TCP 1900 must not give two rows | UPNP on .1:1900, SNMP on .2:161, 80 |
@@ -46,6 +45,12 @@ The error codes in brackets are the ones the parser in PR #35 gives for each bro
 | `T24_service_name_lookalikes.xml` | Exact service names only: `tcpwrapped` on 23, `printer`, `ipp`, `ms-sql-s`, `oracle-tns`, `vnc-http`, `secure-mqtt` and `memcache` aren't findings. Catalog names on odd ports are (telnet 2323, postgresql 5433, rtsp 8554, mongodb 27017) | 4 findings on .51, 20 |
 | `T25_ip_sort_order.xml` | Hosts out of order in the file. Rows sort numerically (.2 < .9 < .10 < .100, port 1883 < 10883), with UNKNOWN_DEVICE's empty port first. Two `mqtt` ports on one device give two rows | 6 findings, 50 |
 | `T26_oversized.xml` | **Not committed.** Run `make_oversized.py`. Just over 21 MiB, above the 20 MiB limit from #10 / #26. Otherwise a valid file with a telnet finding, so an engine that skips the size check reports TELNET_OPEN instead | ERROR (`TOO_LARGE`) |
+| `T27_samba_3x_4x.xml` | Is `Samba smbd 3.X - 4.X` outdated? **Settled on #8: no, because the upper bound is 4.** | SMB_EXPOSED on 445 only, 90 |
+| `T28_method_table_catalog.xml` | Do catalog services that nmap only guessed from the port (`method="table"`) count? Telnet 23, RDP 3389, SNMP UDP 161. **Settled on #8: yes, count them.** | TELNET, SNMP, RDP, 50 |
+| `T29_http_name_variants.xml` | Do `http-proxy` (8080), `http-alt` (8000) and `https` without a tunnel (443) count as `http`? All have admin titles. **Settled on #8: no, only exactly `http`.** | No findings, 100 |
+| `T30_outdated_without_own_finding.xml` | Is OUTDATED_SERVICE reported when the port has no finding of its own? (Apache 2.2.22 with the title "It works!", and Apache 2.2.22 over SSL) **Settled on #8: yes. The catalog says "report when the version is on the outdated list".** | 2 × OUTDATED_SERVICE, 60 |
+| `T31_outdated_samba_139_and_445.xml` | Samba 3.0.20 on both 139 and 445. One OUTDATED_SERVICE (with SMB on 445) or two? **Settled on #8: one, on 445.** | SMB + OUTDATED on 445, 70 |
+| `T32_http_title_edge_cases.xml` | nmap's "Did not follow redirect to http://…/login.htm" contains "login", and "Log in" (with a space) doesn't. Is a redirect message a title, and is the title matched literally? **Settled on #8: a redirect message is not a title (item 7), and a title is matched as a literal, case-insensitive substring (item 10).** | No finding, 100 |
 
 `T26_oversized.xml` has no row in `expected_scores.csv`, because the file isn't in the folder. When #17 wires the traps in, it should copy the folder to a temp dir, run `make_oversized.py --out <that dir>`, and expect the row `T26_oversized.xml,ERROR`.
 
@@ -57,18 +62,3 @@ These aren't open questions in #8, but a reviewer should know about them:
 - `http` on port 443 without `tunnel="ssl"` is cleartext. The rule looks at the service and the tunnel, not the port (T02).
 - An IPv6-only host is reported by its IPv6 address, and a dual-stack host by its IPv4 address (contract #26).
 - Internal entities give ERROR because our contract (#26) says so. The brief only names external entities (T08).
-
-## Pending cases (`pending/`)
-
-`pending/expected_*.csv` use the default shown, and `tests/test_traps_pending.py` checks that the engine still gives exactly those rows (#147). Move a file into the main set once its question is answered, and update the CSVs if the answer differs from the default.
-
-| File | Question | Default used | Expected with the default |
-|---|---|---|---|
-| `P01_samba_3x_4x.xml` | #8 Q1: is `Samba smbd 3.X - 4.X` outdated? | No, because the upper bound is 4 | SMB_EXPOSED on 445 only, 90 |
-| `P02_method_table_catalog.xml` | #8 Q2: do catalog services that nmap only guessed from the port (`method="table"`) count? Telnet 23, RDP 3389, SNMP UDP 161 | Yes, count them | TELNET, SNMP, RDP, 50 |
-| `P03_http_name_variants.xml` | #8 Q3: do `http-proxy` (8080), `http-alt` (8000) and `https` without a tunnel (443) count as `http`? All have admin titles | No, only exactly `http` | No findings, 100 |
-| `P04_outdated_without_own_finding.xml` | Not in #8 yet: is OUTDATED_SERVICE reported when the port has no finding of its own? (Apache 2.2.22 with the title "It works!", and Apache 2.2.22 over SSL) | Yes. The catalog says "report when the version is on the outdated list" | 2 × OUTDATED_SERVICE, 60 |
-| `P05_outdated_samba_139_and_445.xml` | Not in #8 yet: Samba 3.0.20 on both 139 and 445. One OUTDATED_SERVICE (with SMB on 445) or two? | One, on 445 | SMB + OUTDATED on 445, 70 |
-| `P06_http_title_edge_cases.xml` | #8 items 7 and 10: nmap's "Did not follow redirect to http://…/login.htm" contains "login", and "Log in" (with a space) doesn't. Is a redirect message a title, and is the title matched literally? | A redirect message is **not** a title (the engine since #37, item 7); a title is matched as a literal case-insensitive substring (item 10) | No finding, 100 |
-
-Row order (#8 Q4) affects every expected CSV here; see "Row order" above.

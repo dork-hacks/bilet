@@ -24,3 +24,9 @@ T22_no_hosts_up.xml,100
 T23_score_floor.xml,0
 T24_service_name_lookalikes.xml,20
 T25_ip_sort_order.xml,50
+T27_samba_3x_4x.xml,90
+T28_method_table_catalog.xml,50
+T29_http_name_variants.xml,100
+T30_outdated_without_own_finding.xml,60
+T31_outdated_samba_139_and_445.xml,70
+T32_http_title_edge_cases.xml,100
