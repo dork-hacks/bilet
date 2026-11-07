@@ -1,8 +1,10 @@
 """Command-line entry point. Each subcommand is filled in by its own issue."""
 
 import argparse
+import json
 import os
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 from tool import __version__
@@ -31,7 +33,59 @@ def build_parser() -> argparse.ArgumentParser:
             )
             cmd.add_argument("--host", default="127.0.0.1", help="default: this computer only")
             cmd.add_argument("--port", type=int, default=8000)
+        if name == "detect":
+            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
+            cmd.add_argument("--json", action="store_true", help="machine-readable output")
     return parser
+
+
+# Until area:content adds these to tool.content (asked on #18), so the CLI is usable now.
+_DETECT_ERRORS = {
+    "NO_NETWORK": {
+        "ro": (
+            "Calculatorul nu pare conectat la nicio rețea. "
+            "Conectați-l la hotspot și încercați din nou."
+        ),
+        "en": "This computer doesn't seem to be on any network. Join the hotspot and try again.",
+    },
+    "SEVERAL_NETWORKS": {
+        "ro": "Calculatorul este conectat la mai multe rețele deodată. Lăsați-l doar pe hotspot.",
+        "en": "This computer is on several networks at once. Leave it on the hotspot only.",
+    },
+    "DETECT_FAILED": {
+        "ro": "Nu am putut afla la ce rețea este conectat calculatorul.",
+        "en": "Couldn't work out which network this computer is on.",
+    },
+}
+_DETECT_LABELS = {
+    "ro": ("Interfață", "Adresa acestui calculator", "Rețea", "Router (gateway)"),
+    "en": ("Interface", "This computer's address", "Network", "Router (gateway)"),
+}
+
+
+def detect_command(args: argparse.Namespace) -> int:
+    from tool.network import DetectError, detect
+
+    try:
+        net = detect()
+    except DetectError as exc:
+        message = _DETECT_ERRORS.get(exc.code, _DETECT_ERRORS["DETECT_FAILED"])[args.lang]
+        if args.json:
+            print(json.dumps({"error": {"code": exc.code, "detail": exc.detail}}))
+        else:
+            print(message, file=sys.stderr)
+            if exc.detail:
+                print(f"({exc.code}: {exc.detail})", file=sys.stderr)
+        return 1
+    if args.json:
+        print(json.dumps(asdict(net)))
+        return 0
+    labels = _DETECT_LABELS[args.lang]
+    for label, value in zip(
+        labels, (net.interface, net.address, net.subnet, net.gateway), strict=True
+    ):
+        print(f"{label}: {value}")
+    return 0
 
 
 def serve(args: argparse.Namespace) -> int:
@@ -72,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "serve":
         return serve(args)
+    if args.command == "detect":
+        return detect_command(args)
     _help, issue = COMMANDS[args.command]
     where = f" (see issue #{issue})" if issue else ""
     print(f"'{args.command}' is not implemented yet{where}.", file=sys.stderr)

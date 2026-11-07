@@ -4,6 +4,7 @@ import pytest
 
 from tool.content import (
     LANGS,
+    detect_error_message,
     device_type_label,
     file_error_message,
     finding_text,
@@ -11,6 +12,7 @@ from tool.content import (
     severity_label,
 )
 from tool.content.texts import (
+    DETECT_ERRORS,
     DEVICE_TYPES,
     FILE_ERRORS,
     FINDINGS,
@@ -184,3 +186,35 @@ def test_refusal_target_is_shown_not_interpreted():
     assert "\x1b" not in message
     assert "{0}" in message  # braces stay plain text
     assert len(message) < len(REFUSALS["PUBLIC_ADDRESS"]["en"]) + 80
+
+
+# --- network detect errors (#52, used by `tool detect` in #19) -------------------------
+
+DETECT_CODES = ("NO_NETWORK", "SEVERAL_NETWORKS", "DETECT_FAILED")
+
+
+@pytest.mark.parametrize("code", DETECT_CODES)
+@pytest.mark.parametrize("lang", LANGS)
+def test_detect_errors_exist_in_both_languages(code, lang):
+    assert set(DETECT_ERRORS) == set(DETECT_CODES)
+    message = detect_error_message(code, lang)
+    assert message == DETECT_ERRORS[code][lang]
+    assert message.strip() and len(message) < 300
+
+
+def test_detect_errors_tell_the_user_what_to_do():
+    for lang in LANGS:
+        assert "hotspot" in detect_error_message("NO_NETWORK", lang)
+        assert "hotspot" in detect_error_message("SEVERAL_NETWORKS", lang)
+        assert "VPN" in detect_error_message("SEVERAL_NETWORKS", lang)
+
+
+def test_detect_errors_use_comma_below_diacritics():
+    for texts in DETECT_ERRORS.values():
+        assert not re.search("[şţŞŢ]", texts["ro"])
+
+
+def test_unknown_detect_code_or_language_falls_back():
+    assert detect_error_message("SOMETHING_NEW", "en") == DETECT_ERRORS["DETECT_FAILED"]["en"]
+    assert detect_error_message("NO_NETWORK", "de") == DETECT_ERRORS["NO_NETWORK"]["ro"]
+    assert detect_error_message("NO_NETWORK", None) == DETECT_ERRORS["NO_NETWORK"]["ro"]
