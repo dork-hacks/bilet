@@ -96,6 +96,7 @@ TOOLS=(
   "Bash(git restore:*)" "Bash(git stash:*)" "Bash(git rev-parse:*)"
   "Bash(python:*)" "Bash(python3:*)" "Bash(pip:*)" "Bash(pip3:*)" "Bash(uv:*)"
   "Bash(pytest:*)" "Bash(make:*)" "Bash(gitleaks:*)" "Bash(ls:*)" "Bash(mkdir:*)" "Bash(date:*)"
+  "Bash(gh api repos/{owner}/{repo}/issues/comments -X GET:*)"
   "Read" "Edit" "Write" "Grep" "Glob" "Skill"
 )
 DENY_TOOLS=(
@@ -106,6 +107,8 @@ DENY_TOOLS=(
   "Bash(git push -u origin --force:*)" "Bash(git push -u origin -f:*)" "Bash(git push -u origin --no-verify:*)"
   "Bash(git push * --force*)" "Bash(git push * --no-verify*)" "Bash(git push * --delete*)" "Bash(git push *:main*)"
   "Bash(git branch -D:*)" "Bash(git config:*)"
+  "Bash(gh api * -X DELETE*)" "Bash(gh api * -X PATCH*)" "Bash(gh api * -X POST*)" "Bash(gh api * -X PUT*)"
+  "Bash(gh api * --method*)" "Bash(gh api * --input*)"
 )
 # The lists above only cover direct commands. They are NOT a sandbox: an allowed
 # interpreter (python, make) can still run anything. The real guards are the

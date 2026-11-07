@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""lab/verify: check what nmap -sV makes of the lab Pis (#34). See lab/CHECKLIST.md.
+
+  lab/verify --camera IP --server IP --hub IP --confirm     scan (sudo nmap), then check
+  lab/verify --camera IP --server IP --hub IP --print-only  show the nmap command only
+  lab/verify --camera IP --server IP --hub IP --xml FILE    check a capture, no scan
+
+Toggles default to services.tsv; change them with --on/--off SVC[,SVC] or --status-file.
+Exit 0 = every check passed, 1 = a check failed, 2 = refused or unreadable.
+Runs unprivileged; only the nmap subprocess gets sudo. Python 3.11+, stdlib only.
+"""
+
+import sys
+from pathlib import Path
+
+if sys.version_info < (3, 11):  # noqa: UP036 - the laptop may run an older python3
+    sys.exit("lab/verify needs Python 3.11 or newer")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # works under python3 -I too
+import labcheck  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(labcheck.verify_main())

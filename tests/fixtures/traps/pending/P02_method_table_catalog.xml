@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 16:00:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX P02_method_table_catalog.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: catalog services only guessed from the port (method="table") (#8 Q2) -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX P02_method_table_catalog.xml 192.168.1.0/24" start="1794067200" startstr="Sat Nov  7 16:00:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794067202" endtime="1794067297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.30" addrtype="ipv4"/>
+<address addr="50:C7:BF:00:00:1E" addrtype="mac" vendor="Tp-link Technologies"/>
+<hostnames>
+<hostname name="old-router.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ms-wbt-server" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open" reason="udp-response" reason_ttl="64"/><service name="snmp" method="table" conf="3"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794067500" timestr="Sat Nov  7 16:05:00 2026" summary="Nmap done at Sat Nov  7 16:05:00 2026; 256 IP addresses (1 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="1" down="255" total="256"/>
+</runstats>
+</nmaprun>

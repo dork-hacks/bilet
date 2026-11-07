@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written trap file for issue #23. Trap: internal entity expansion (a tiny billion-laughs, 1,000 copies). Our contract (#26) treats any entity declaration as UNSAFE_XML, so ERROR. -->
+<!DOCTYPE nmaprun [
+  <!ENTITY lol "lol">
+  <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+  <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T08_entity_expansion.xml 192.168.1.0/24" start="1794046800" startstr="Sat Nov  7 10:20:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794046802" endtime="1794046897"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:C7:BF:00:00:01" addrtype="mac" vendor="Tp-link Technologies"/>
+<hostnames>
+<hostname name="router.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="Router Login"><elem key="title">&lol3;</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794047100" timestr="Sat Nov  7 10:25:00 2026" summary="Nmap done at Sat Nov  7 10:25:00 2026; 256 IP addresses (1 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="1" down="255" total="256"/>
+</runstats>
+</nmaprun>

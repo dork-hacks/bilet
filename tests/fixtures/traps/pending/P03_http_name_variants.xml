@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 16:10:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX P03_http_name_variants.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: http-proxy / http-alt / https without tunnel, with admin titles (#8 Q3) -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX P03_http_name_variants.xml 192.168.1.0/24" start="1794067800" startstr="Sat Nov  7 16:10:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794067802" endtime="1794067897"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.40" addrtype="ipv4"/>
+<address addr="24:A4:3C:00:00:28" addrtype="mac" vendor="Ubiquiti Networks"/>
+<hostnames>
+<hostname name="cloudkey.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/><script id="http-title" output="Login"><elem key="title">Login</elem></script></port>
+<port protocol="tcp" portid="8000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http-alt" method="table" conf="3"/><script id="http-title" output="Router Settings"><elem key="title">Router Settings</elem></script></port>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http-proxy" method="table" conf="3"/><script id="http-title" output="Admin Login"><elem key="title">Admin Login</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794068100" timestr="Sat Nov  7 16:15:00 2026" summary="Nmap done at Sat Nov  7 16:15:00 2026; 256 IP addresses (1 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="1" down="255" total="256"/>
+</runstats>
+</nmaprun>
