@@ -46,6 +46,8 @@ class Evidence:
     device_refs: dict[str, str] = field(default_factory=dict)  # pseudonym -> device_key
     finding_refs: dict[str, str] = field(default_factory=dict)  # evidence id -> finding id
     device_ips: dict[str, str] = field(default_factory=dict)  # pseudonym -> IP, local only
+    # pseudonym -> hostname, local only: used to swap names out of the owner's question.
+    device_hostnames: dict[str, str] = field(default_factory=dict)
 
     @property
     def digest(self) -> str:
@@ -66,12 +68,15 @@ def build_evidence(result: dict) -> Evidence:
     device_refs: dict[str, str] = {}
     finding_refs: dict[str, str] = {}
     device_ips: dict[str, str] = {}
+    device_hostnames: dict[str, str] = {}
     counter = 0
     for index, device in enumerate(devices):
         ref = pseudonym(index)
         device_refs[ref] = device.get("device_key")
         if isinstance(device.get("ip"), str) and device["ip"]:
             device_ips[ref] = device["ip"]
+        if isinstance(device.get("hostname"), str) and device["hostname"].strip():
+            device_hostnames[ref] = device["hostname"].strip()
         items = []
         for finding in by_device.get(device.get("device_key"), []):
             counter += 1
@@ -101,7 +106,11 @@ def build_evidence(result: dict) -> Evidence:
 
     payload = {"score": result.get("score"), "devices": out_devices}
     return Evidence(
-        payload=payload, device_refs=device_refs, finding_refs=finding_refs, device_ips=device_ips
+        payload=payload,
+        device_refs=device_refs,
+        finding_refs=finding_refs,
+        device_ips=device_ips,
+        device_hostnames=device_hostnames,
     )
 
 
@@ -115,18 +124,55 @@ _ANY_IP = re.compile(
 _PSEUDONYM = re.compile(r"\b((?:[Dd]evice|[Dd]ispozitiv\w*)\s+)([A-Z]{1,2})\b(?!\s*\()")
 
 
-def localise_question(question: str, evidence: Evidence) -> str:
-    """Replace every IP in the owner's question before it leaves the computer (#150).
+# A hostname label shorter than this ("tv", "pc") is too likely to be an ordinary word.
+_MIN_HOST_LABEL = 3
 
-    A scanned device's IP becomes its pseudonym ("Device C"), so the AI knows which
-    device is meant. Any other IP becomes UNKNOWN_ADDRESS. No IP is ever sent.
+
+def _hostname_names(evidence: Evidence) -> dict[str, str]:
+    """Lower-case name -> pseudonym: each full hostname and its first label.
+
+    A name shared by two devices is dropped, because it can't say which one is meant.
+    """
+    names: dict[str, str] = {}
+    shared: set[str] = set()
+    for ref, hostname in evidence.device_hostnames.items():
+        full = hostname.lower().rstrip(".")
+        candidates = {full}
+        label = full.split(".", 1)[0]
+        if len(label) >= _MIN_HOST_LABEL:
+            candidates.add(label)
+        for name in candidates:
+            if name in names and names[name] != ref:
+                shared.add(name)
+            names[name] = ref
+    return {name: ref for name, ref in names.items() if name not in shared}
+
+
+def localise_question(question: str, evidence: Evidence) -> str:
+    """Replace every IP and device hostname in the owner's question before it leaves
+    the computer (#150, #233).
+
+    A scanned device's IP or hostname becomes its pseudonym ("Device C"), so the AI
+    knows which device is meant. Any other IP becomes UNKNOWN_ADDRESS. No IP and no
+    scanned hostname is ever sent.
     """
     by_ip = {ip.lower(): ref for ref, ip in evidence.device_ips.items()}
 
     def swap(match: re.Match) -> str:
         return by_ip.get(match.group(0).lower(), UNKNOWN_ADDRESS)
 
-    return _ANY_IP.sub(swap, question)
+    question = _ANY_IP.sub(swap, question)
+    names = _hostname_names(evidence)
+    if not names:
+        return question
+    # Longest name first, so "tv.lan" wins over "tv"; never inside a longer word.
+    pattern = re.compile(
+        r"(?<![\w.-])("
+        + "|".join(re.escape(name) for name in sorted(names, key=lambda n: (-len(n), n)))
+        + r")(?![\w-]|\.\w)",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda m: names[m.group(1).lower()], question)
 
 
 def restore_ips(text: str, evidence: Evidence) -> str:

@@ -328,11 +328,15 @@ UI = {
         "ro": (
             "Dacă le pornești, trimitem unui serviciu AI doar tipul problemelor, numerele "
             "porturilor, numele și versiunea programelor și tipul dispozitivului. "
+            "Dacă pui o întrebare, o trimitem și pe ea, dar adresele IP și numele "
+            "dispozitivelor din ea devin „Dispozitivul A”, „Dispozitivul B”. "
             "Nu trimitem niciodată adrese MAC, adrese IP sau numele dispozitivelor."
         ),
         "en": (
             "If you turn them on, we send an AI service only the problem types, port "
             "numbers, program names and versions, and the device type. "
+            "If you ask a question, we send it too, with its IP addresses and device "
+            'names replaced by "Device A", "Device B". '
             "We never send MAC addresses, IP addresses or device names."
         ),
     },

@@ -349,3 +349,63 @@ def test_reference_numbers_do_not_widen_explanations(evidence):
     reply = {"en": "Use 12 characters.", "ro": "Folosiți 12 caractere.", "cites": ["E3"]}
     explanation = Explainer(FakeProvider(reply)).explain_finding(evidence, "E3")
     assert explanation.source == SOURCE_TEMPLATE
+
+
+# --- #233: hostnames in the owner's question never leave the computer ---------------
+
+
+def _named_evidence(*hostnames):
+    result = copy.deepcopy(RESULT)
+    for device, hostname in zip(result["devices"], hostnames, strict=False):
+        device["hostname"] = hostname
+    return build_evidence(result)
+
+
+def test_hostname_in_the_question_becomes_the_pseudonym():
+    evidence = _named_evidence("office-printer.lan", "Living-Room-Cam")
+    text = localise_question("Is living-room-cam safe? And OFFICE-PRINTER.lan?", evidence)
+    assert text == "Is Device B safe? And Device A?"
+
+
+def test_first_label_of_a_hostname_is_replaced_too():
+    evidence = _named_evidence("office-printer.lan")
+    assert localise_question("what about office-printer", evidence) == "what about Device A"
+
+
+def test_hostname_inside_a_longer_word_is_left_alone():
+    evidence = _named_evidence("cam1")
+    assert localise_question("cam1x and my-cam1 and cam1.", evidence) == (
+        "cam1x and my-cam1 and Device A."
+    )
+
+
+def test_short_first_label_is_not_replaced_on_its_own():
+    # "tv" is an ordinary word; only the full name is swapped.
+    evidence = _named_evidence("tv.home")
+    assert localise_question("is my tv ok? tv.home", evidence) == "is my tv ok? Device A"
+
+
+def test_name_shared_by_two_devices_is_not_guessed():
+    # Both first labels are "cam", so "cam" alone can't say which device is meant.
+    evidence = _named_evidence("cam.lan", "cam.home")
+    assert localise_question("cam and cam.home", evidence) == "cam and Device B"
+
+
+def test_hostnames_are_local_only_and_keep_the_digest(evidence):
+    named = _named_evidence("office-printer.lan", "living-room-cam")
+    assert named.digest == evidence.digest
+    assert "office-printer" not in json.dumps(named.payload)
+
+
+def test_hostname_in_the_question_never_reaches_the_provider():
+    evidence = _named_evidence("office-printer.lan", "living-room-cam")
+    provider = FakeProvider({"covered": False})
+    Explainer(provider).answer(evidence, "Is living-room-cam safe?")
+    _system, prompt = provider.calls[0]
+    assert "living-room-cam" not in prompt.lower()
+    assert json.loads(prompt)["untrusted_question"] == "Is Device B safe?"
+
+
+def test_ai_data_note_says_the_question_is_sent():
+    assert "question" in UI["ai_data_note"]["en"].lower()
+    assert "întreb" in UI["ai_data_note"]["ro"].lower()
