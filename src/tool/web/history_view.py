@@ -5,14 +5,25 @@ tool.content; RAW scan fields (file names, hostnames) are passed through as data
 escaped by the template, never here.
 """
 
+import sqlite3
 from dataclasses import dataclass
 
 from tool.content import device_type_label, finding_text
-from tool.history import Diff, History, ScanSummary
+from tool.history import Diff, History, HistoryError, ScanSummary
 from tool.web.view import Band, pick_lang, score_band, t
 
 # The trend chart's drawing area, in SVG user units (it scales with the page width).
 CHART_W, CHART_H, CHART_PAD = 600, 220, 30
+HISTORY_READ_ERRORS = (
+    HistoryError,
+    sqlite3.Error,
+    OSError,
+    ValueError,
+    KeyError,
+    TypeError,
+    AttributeError,
+    OverflowError,
+)
 
 
 @dataclass(frozen=True)
@@ -80,6 +91,7 @@ class HistoryView:
     comparison: Comparison | None = None
     message: str | None = None  # "pick two different scans", "history deleted", …
     confirm_delete: bool = False  # show the "are you sure?" step
+    unavailable: bool = False  # a read/comparison failed; never claim the history is empty
 
 
 def when_label(summary: ScanSummary, lang: str) -> str:
@@ -205,7 +217,16 @@ def history_view(
     message = t(message_key, lang) if message_key else None
     if history is None:
         return HistoryView(lang=lang, enabled=False, message=message)
-    rows = [scan_row(s, lang) for s in history.scans()]
+    try:
+        rows = [scan_row(s, lang) for s in history.scans()]
+    except HISTORY_READ_ERRORS:
+        return HistoryView(
+            lang=lang,
+            enabled=True,
+            message=message or t("history_read_failed", lang),
+            confirm_delete=confirm_delete,
+            unavailable=True,
+        )
     choices = [r for r in rows if r.ok]
     base = {
         "lang": lang,
@@ -226,11 +247,21 @@ def history_view(
     new_id = new_id if new_id in ids else ids[-1]
     if old_id == new_id:
         return HistoryView(old_id=old_id, new_id=new_id, message=t("compare_same", lang), **base)
-    diff = history.diff(old_id, new_id)
+    try:
+        diff = history.diff(old_id, new_id)
+        changes = comparison(history, diff, lang)
+    except HISTORY_READ_ERRORS:
+        return HistoryView(
+            old_id=old_id,
+            new_id=new_id,
+            message=message or t("history_read_failed", lang),
+            unavailable=True,
+            **base,
+        )
     return HistoryView(
         old_id=old_id,
         new_id=new_id,
-        comparison=comparison(history, diff, lang),
+        comparison=changes,
         message=message,
         **base,
     )
