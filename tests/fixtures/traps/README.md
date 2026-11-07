@@ -60,7 +60,7 @@ These aren't open questions in #8, but a reviewer should know about them:
 
 ## Pending cases (`pending/`)
 
-`pending/expected_*.csv` use the default shown. Move a file into the main set once its question is answered, and update the CSVs if the answer differs from the default.
+`pending/expected_*.csv` use the default shown, and `tests/test_traps_pending.py` checks that the engine still gives exactly those rows (#147). Move a file into the main set once its question is answered, and update the CSVs if the answer differs from the default.
 
 | File | Question | Default used | Expected with the default |
 |---|---|---|---|
@@ -69,6 +69,6 @@ These aren't open questions in #8, but a reviewer should know about them:
 | `P03_http_name_variants.xml` | #8 Q3: do `http-proxy` (8080), `http-alt` (8000) and `https` without a tunnel (443) count as `http`? All have admin titles | No, only exactly `http` | No findings, 100 |
 | `P04_outdated_without_own_finding.xml` | Not in #8 yet: is OUTDATED_SERVICE reported when the port has no finding of its own? (Apache 2.2.22 with the title "It works!", and Apache 2.2.22 over SSL) | Yes. The catalog says "report when the version is on the outdated list" | 2 × OUTDATED_SERVICE, 60 |
 | `P05_outdated_samba_139_and_445.xml` | Not in #8 yet: Samba 3.0.20 on both 139 and 445. One OUTDATED_SERVICE (with SMB on 445) or two? | One, on 445 | SMB + OUTDATED on 445, 70 |
-| `P06_http_title_edge_cases.xml` | Not in #8 yet: nmap's "Did not follow redirect to http://…/login.htm" contains "login", and "Log in" (with a space) doesn't. Is the http-title output matched literally? | Yes, a literal case-insensitive substring match | HTTP_ADMIN on .1 only, 90 |
+| `P06_http_title_edge_cases.xml` | #8 items 7 and 10: nmap's "Did not follow redirect to http://…/login.htm" contains "login", and "Log in" (with a space) doesn't. Is a redirect message a title, and is the title matched literally? | A redirect message is **not** a title (the engine since #37, item 7); a title is matched as a literal case-insensitive substring (item 10) | No finding, 100 |
 
 Row order (#8 Q4) affects every expected CSV here; see "Row order" above.

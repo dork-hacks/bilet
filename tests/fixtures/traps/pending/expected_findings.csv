@@ -7,4 +7,3 @@ P04_outdated_without_own_finding.xml,192.168.1.50,80,OUTDATED_SERVICE,high
 P04_outdated_without_own_finding.xml,192.168.1.51,443,OUTDATED_SERVICE,high
 P05_outdated_samba_139_and_445.xml,192.168.1.62,445,OUTDATED_SERVICE,high
 P05_outdated_samba_139_and_445.xml,192.168.1.62,445,SMB_EXPOSED,medium
-P06_http_title_edge_cases.xml,192.168.1.1,80,HTTP_ADMIN_CLEARTEXT,medium
