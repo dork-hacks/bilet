@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets: copy .env.example to .env and fill it in locally (NFR-01)
+.env
+.env.*
+!.env.example
+
+# Private local data: scan history, the device-key salt (NFR-02)
+data/
+
+# Tool output and raw live scans. Lab scans meant for the repo go in tests/fixtures/ on purpose.
+out/
+scans/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
