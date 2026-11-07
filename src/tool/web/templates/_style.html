@@ -114,6 +114,30 @@
                      border: 2px solid #8c7d6f; border-radius: .75rem; background: #ffffff;
                      color: #2b2420; }
     .changes h3 { font-size: 1.1rem; margin: 1rem 0 .25rem; }
+    /* Resolved findings in history get a check mark (#162). The text says "resolved" too. */
+    .done-mark { display: inline-flex; align-items: center; justify-content: center;
+                 width: 1.5rem; height: 1.5rem; margin-right: .4rem; border-radius: 50%;
+                 background: #2e6b34; color: #ffffff; font-weight: 700; font-size: .9rem; }
+    /* Gentle motion (#162 part 2). Only when the visitor has not asked for less motion:
+       with prefers-reduced-motion the page is shown as is, with nothing moving. */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes rise { from { opacity: 0; transform: translateY(.75rem); }
+                        to { opacity: 1; transform: none; } }
+      @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.25); }
+                       100% { transform: scale(1); } }
+      .score, .first, .alerts, .plan, .device, .safe, .changes, .chart {
+        animation: rise .5s ease-out both; }
+      .first { animation-delay: .1s; } .alerts, .plan { animation-delay: .15s; }
+      .device { animation-delay: .2s; } .device + .device { animation-delay: .28s; }
+      .device + .device + .device { animation-delay: .36s; }
+      .done-mark { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both .3s; }
+      .device, .button, .ask button, .history button, nav a {
+        transition: transform .15s ease-out, box-shadow .15s ease-out, background .15s; }
+      .device:hover { transform: translateY(-2px);
+                      box-shadow: 0 8px 22px rgba(80, 55, 30, .1); }
+      .button:hover, .ask button:hover, .history button:hover { transform: translateY(-1px); }
+      .button:active, .ask button:active, .history button:active { transform: none; }
+    }
     /* Phones: less padding, the score stacks, wide tables scroll instead of overflowing. */
     @media (max-width: 32rem) {
       body { padding: .75rem .75rem 2rem; }
