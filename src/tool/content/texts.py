@@ -569,3 +569,46 @@ GENERIC_REFUSAL: dict[str, str] = {
     "ro": "Programul a refuzat să verifice {target}. Verifică doar rețeaua dumneavoastră.",
     "en": "The tool refused to check {target}. It only checks your own network.",
 }
+
+# Live scan messages (`tool scan`, #20 and #94). RUN_AS_ROOT, START, SELF_SKIPPED and
+# DONE are printed by the CLI; the other codes come from tool.scan.ScanError. An unknown
+# code is shown as NMAP_FAILED. {targets}, {address}, {path}, {score} and {findings}
+# are filled in as plain text.
+SCAN_MESSAGES: dict[str, dict[str, str]] = {
+    "RUN_AS_ROOT": {
+        "ro": "Nu porniți scanarea ca administrator (root). Porniți-o ca utilizator obișnuit: programul cere parola doar pentru nmap.",
+        "en": "Don't start the scan as administrator (root). Start it as a normal user: the tool asks for the password for nmap only.",
+    },
+    "START": {
+        "ro": "Se verifică {targets}. nmap are nevoie de drepturi de administrator, așa că este posibil să vi se ceară parola.",
+        "en": "Checking {targets}. nmap needs admin rights, so you may be asked for your password.",
+    },
+    "SELF_SKIPPED": {
+        "ro": "Acest calculator ({address}) nu este verificat: o scanare a lui însuși nu vede ce vede restul rețelei.",
+        "en": "This computer ({address}) isn't checked: a scan of itself doesn't see what the rest of the network sees.",
+    },
+    "DONE": {
+        "ro": "Scanare salvată: {path}. Scor: {score}/100. Probleme găsite: {findings}. Vedeți rezultatele cu comanda: tool serve",
+        "en": "Scan saved: {path}. Score: {score}/100. Findings: {findings}. See the results with the command: tool serve",
+    },
+    "NMAP_NOT_FOUND": {
+        "ro": "nmap nu este instalat. Instalați-l (de exemplu sudo apt install nmap sau brew install nmap) și încercați din nou.",
+        "en": "nmap isn't installed. Install it (for example sudo apt install nmap or brew install nmap) and try again.",
+    },
+    "NMAP_DATA_NOT_FOUND": {
+        "ro": "Programul nu găsește lista de porturi a lui nmap (nmap-services). Setați TOOL_NMAP_SERVICES cu calea către fișier.",
+        "en": "The tool can't find nmap's port list (nmap-services). Set TOOL_NMAP_SERVICES to the file's path.",
+    },
+    "NMAP_FAILED": {
+        "ro": "Scanarea nu a reușit. Verificați parola de administrator și că sunteți conectat la rețeaua dumneavoastră, apoi încercați din nou.",
+        "en": "The scan didn't work. Check the admin password and that you're on your own network, then try again.",
+    },
+    "NO_LIVE_HOSTS": {
+        "ro": "Niciun dispozitiv nu a răspuns în {targets}.",
+        "en": "No device answered in {targets}.",
+    },
+    "IPV6_NOT_SUPPORTED": {
+        "ro": "Deocamdată scanarea funcționează doar pentru rețele IPv4.",
+        "en": "For now the scan only works on IPv4 networks.",
+    },
+}

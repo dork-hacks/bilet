@@ -11,7 +11,8 @@
 #   lab/card_role.sh /dev/sdb hub --on ssdp,jetdirect     # pi3
 #   lab/card_role.sh /dev/sdb server                      # pi2
 # Options:
-#   --on SVC[,SVC]     also turn on these toggles of the role (see lab/services.tsv)
+#   --on SVC[,SVC]     also turn on these toggles of the role (see lab/services.tsv);
+#                      smb and snmp are real daemons and also need --with-packages
 #   --with-packages    let setup.sh apt-install samba/snmpd (needs internet; hotspot data is limited)
 # Tests only: lab/card_role.sh --to-dir DIR <role> [options] writes into a plain folder that stands
 # in for the boot partition (no disk checks, no mount), see lab/tests/test_card_role.py.
@@ -36,8 +37,11 @@ done
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 for svc in "${ON[@]}"; do
-  awk -F'\t' -v s="$svc" -v r="$ROLE" '!/^#/ && $1 == s && $2 == r { f = 1 } END { exit !f }' \
-    "$HERE/services.tsv" || die "'$svc' is not a service of the $ROLE role (see lab/services.tsv)"
+  kind=$(awk -F'\t' -v s="$svc" -v r="$ROLE" '!/^#/ && $1 == s && $2 == r { print $3 }' "$HERE/services.tsv")
+  [[ -n $kind ]] || die "'$svc' is not a service of the $ROLE role (see lab/services.tsv)"
+  # A real daemon (samba, snmpd) only exists if setup.sh installed it; without it the
+  # install on the Pi would fail on every boot.
+  [[ $kind != real || -n $ARGS ]] || die "'$svc' needs a real daemon: add --with-packages"
 done
 if [[ -n $TO_DIR ]]; then
   [[ -d $TO_DIR ]] || die "$TO_DIR is not a folder"
@@ -84,11 +88,14 @@ if [[ $ROLE == hub ]]; then
 fi
 EOF
 
+# Not After=cloud-final.service: that one runs after multi-user.target, which waits for this
+# unit, so systemd would break the cycle by dropping a job. cloud-init.service (users, SSH
+# keys) runs before network-online.target.
 cat > "$MNT/lab/lab-install.service" <<'EOF'
 [Unit]
 Description=Install the lab role (lab/card_role.sh)
 Wants=network-online.target
-After=network-online.target cloud-final.service ssh.service
+After=network-online.target cloud-init.service ssh.service
 
 [Service]
 Type=oneshot

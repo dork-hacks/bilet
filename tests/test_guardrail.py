@@ -165,9 +165,18 @@ def test_scan_refuses_public_ip_and_venue_network(on_hotspot, capsys, target, co
     assert code in err and target in err
 
 
-def test_scan_allowed_target_stops_before_scanning(on_hotspot, capsys):
-    assert main(["scan", "--confirm", "--lang", "en"]) == 2
-    assert "Allowed: 172.20.10.0/28" in capsys.readouterr().out
+def test_scan_allowed_target_reaches_nmap_with_only_that_range(on_hotspot, monkeypatch):
+    calls = []
+
+    def runner(args):  # stands in for nmap: records the call, scans nothing
+        calls.append(args)
+        raise SystemExit(0)
+
+    monkeypatch.setattr("tool.scan.run_nmap", runner)
+    monkeypatch.setenv("TOOL_NMAP_SERVICES", __file__)  # any readable file will do here
+    with pytest.raises(SystemExit):
+        main(["scan", "--confirm", "--lang", "en"])
+    assert calls[0][0] == "-sn" and calls[0][-1] == HOTSPOT
 
 
 def test_scan_refuses_when_the_network_is_unclear(monkeypatch, capsys):

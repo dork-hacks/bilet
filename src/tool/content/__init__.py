@@ -20,6 +20,7 @@ from tool.content.texts import (
     GENERIC_REFUSAL,
     LANGS,
     REFUSALS,
+    SCAN_MESSAGES,
     SEVERITIES,
 )
 from tool.content.ui import UI
@@ -37,6 +38,7 @@ __all__ = [
     "file_error_message",
     "finding_text",
     "refusal_message",
+    "scan_message",
     "severity_label",
     "standards_line",
 ]
@@ -154,3 +156,26 @@ def alert_message(
         "protocol": "?" if protocol is None else _clean_target(protocol),
     }
     return _ALERT_FIELD.sub(lambda m: values[m.group(1)], template)
+
+
+_SCAN_FIELD = re.compile(r"\{(targets|address|path|score|findings)\}")
+_MAX_SCAN_VALUE_CHARS = 300  # a saved scan path is longer than a target, so not 64
+
+
+def _clean_value(value: object) -> str:
+    cleaned = "".join(ch for ch in str(value) if ch.isprintable())
+    if len(cleaned) > _MAX_SCAN_VALUE_CHARS:
+        cleaned = cleaned[: _MAX_SCAN_VALUE_CHARS - 1] + "…"
+    return cleaned
+
+
+def scan_message(code: str, lang: str | None = DEFAULT_LANG, **values: object) -> str:
+    """Plain-language text for a `tool scan` message or error (FR-04). Never raises.
+
+    An unknown code is shown as NMAP_FAILED. One pass fills every placeholder, so a
+    value that looks like a placeholder is never expanded, and a missing value is "?".
+    """
+    lang = _lang(lang)
+    template = SCAN_MESSAGES.get(code, SCAN_MESSAGES["NMAP_FAILED"])[lang]
+    filled = {name: _clean_value(value) for name, value in values.items()}
+    return _SCAN_FIELD.sub(lambda m: filled.get(m.group(1), "?"), template)

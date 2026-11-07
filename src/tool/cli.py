@@ -41,6 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
                 "--confirm", action="store_true", help="confirm this is your own network"
             )
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
+            cmd.add_argument(
+                "--scans-dir",
+                type=Path,
+                default=Path("scans"),
+                help="where to save the nmap XML (default: scans/, git-ignored)",
+            )
         if name == "analyze":
             cmd.add_argument("folder", type=Path, help="folder with nmap XML files")
             cmd.add_argument(
@@ -67,10 +73,21 @@ _DETECT_LABELS = {
 
 def scan_command(args: argparse.Namespace) -> int:
     """Guardrail first (FR-02): nothing is scanned unless every check passes."""
-    from tool.content import detect_error_message, refusal_message
+    from tool import scan as live
+    from tool.content import (
+        detect_error_message,
+        file_error_message,
+        refusal_message,
+        scan_message,
+    )
+    from tool.engine import analyze_file
     from tool.guardrail import Refused, authorize, build_allowlist, extra_ranges_from_env
     from tool.network import DetectError, detect
 
+    # Least privilege (MASTERPLAN §3.7): only the nmap subprocess gets admin rights.
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        print(scan_message("RUN_AS_ROOT", args.lang), file=sys.stderr)
+        return 2
     try:
         net = detect()
     except DetectError as exc:
@@ -83,9 +100,30 @@ def scan_command(args: argparse.Namespace) -> int:
         print(refusal_message(exc.code, exc.target, args.lang), file=sys.stderr)
         print(f"({exc.code})", file=sys.stderr)
         return 3
-    allowed = ", ".join(str(n) for n in networks)
-    print(f"Allowed: {allowed}. The live scan itself is not implemented yet (see issue #20).")
-    return 2
+    targets = ", ".join(str(n) for n in networks)
+    print(scan_message("START", args.lang, targets=targets), flush=True)
+    print(scan_message("SELF_SKIPPED", args.lang, address=net.address), flush=True)
+    try:
+        path = live.run_scan(
+            networks, runner=live.run_nmap, scans_dir=args.scans_dir, exclude=[net.address]
+        )
+    except live.ScanError as exc:
+        print(scan_message(exc.code, args.lang, targets=targets), file=sys.stderr)
+        print(f"({exc.code}{': ' + exc.detail if exc.detail else ''})", file=sys.stderr)
+        return 4
+    result = analyze_file(path)  # unprivileged, the same engine as `tool analyze`
+    if result.status != "ok":
+        code = result.error["code"]
+        print(f"{path}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
+        save_and_alert([result], args.lang)
+        return 1
+    print(
+        scan_message(
+            "DONE", args.lang, path=path, score=result.score, findings=len(result.findings)
+        )
+    )
+    save_and_alert([result], args.lang)
+    return 0
 
 
 def analyze_command(args: argparse.Namespace) -> int:
@@ -112,22 +150,10 @@ def analyze_command(args: argparse.Namespace) -> int:
     return 0
 
 
-# Until area:content adds alert texts to tool.content (asked on #22).
-_ALERT_TEXT = {
-    "NEW_DEVICE": {
-        "ro": "Un dispozitiv nou a apărut în rețea: {ip}",
-        "en": "A new device joined your network: {ip}",
-    },
-    "NEW_OPEN_PORT": {
-        "ro": "Un serviciu nou este deschis pe {ip}, portul {port}/{protocol}",
-        "en": "A new service is open on {ip}, port {port}/{protocol}",
-    },
-}
-
-
 def save_and_alert(results: list, lang: str) -> None:
     """Store every result in the history (unreadable ones as error rows, which are never
     compared) and print what appeared since the previous readable scan."""
+    from tool.content import alert_message
     from tool.history import History
 
     history = History()
@@ -138,8 +164,8 @@ def save_and_alert(results: list, lang: str) -> None:
         return
     newest = max(readable, key=[s.id for s in history.scans()].index)
     for alert in history.alerts_for(newest):
-        text = _ALERT_TEXT[alert.code][lang]
-        print(text.format(ip=alert.ip, port=alert.port, protocol=alert.protocol), f"({alert.code})")
+        text = alert_message(alert.code, alert.ip, alert.port, alert.protocol, lang)
+        print(text, f"({alert.code})")
 
 
 def detect_command(args: argparse.Namespace) -> int:
