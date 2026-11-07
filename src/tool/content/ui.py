@@ -122,6 +122,24 @@ UI = {
         "ro": "De exemplu: E sigur că imprimanta mea are portul 9100 deschis?",
         "en": "For example: Is it safe that my printer has port 9100 open?",
     },
+    "chat_welcome": {
+        "ro": "Sunt aici să te ajut să înțelegi verificarea rețelei tale.",
+        "en": "I'm here to help you understand your network check.",
+    },
+    "chat_off": {
+        "ro": "Asistentul AI este oprit. Îți arăt pașii standard, fără să trimit date.",
+        "en": "The AI assistant is off. Here are the standard steps, without sending data.",
+    },
+    "chat_first": {"ro": "Ce să repar prima dată?", "en": "What should I fix first?"},
+    "chat_device": {
+        "ro": "Care este cel mai periculos dispozitiv?",
+        "en": "Which device needs the most attention?",
+    },
+    "chat_wait": {"ro": "Pregătesc răspunsul…", "en": "Preparing your answer…"},
+    "chat_error": {
+        "ro": "Răspunsul nu a ajuns. Încearcă din nou.",
+        "en": "The answer didn't arrive. Please try again.",
+    },
     "ask_button": {"ro": "Întreabă", "en": "Ask"},
     "ask_you_asked": {"ro": "Ai întrebat:", "en": "You asked:"},
     "ask_answer": {"ro": "Răspuns:", "en": "Answer:"},
