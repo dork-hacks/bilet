@@ -25,6 +25,15 @@ SCORE_BANDS = {
     },
 }
 
+# Device levels on the network map (#170): the worst problem a device has. The icon and
+# the label are always drawn with the colour, so colour is never the only signal.
+MAP_LEVELS = {
+    "high": {"icon": "✕", "ro": "Risc ridicat", "en": "High risk"},
+    "medium": {"icon": "!", "ro": "Risc mediu", "en": "Medium risk"},
+    "low": {"icon": "↓", "ro": "Risc scăzut", "en": "Low risk"},
+    "none": {"icon": "✓", "ro": "Nicio problemă", "en": "No problems"},
+}
+
 UI = {
     "page_title": {"ro": "Siguranța rețelei de acasă", "en": "Home network safety"},
     "score_heading": {"ro": "Scorul rețelei tale", "en": "Your network score"},
@@ -47,6 +56,63 @@ UI = {
     "language": {"ro": "Limba", "en": "Language"},
     "device_at": {"ro": "{device} la adresa {ip}", "en": "{device} at {ip}"},
     "points": {"ro": "{n} puncte de risc", "en": "{n} risk points"},
+    # Network map on the home screen (#170).
+    "map_heading": {"ro": "Harta rețelei tale", "en": "Your network map"},
+    "map_intro": {
+        "ro": (
+            "Fiecare cutie este un dispozitiv din casa ta. Liniile arată cum se leagă de "
+            "router. Culoarea, semnul și textul arată cât de grav este."
+        ),
+        "en": (
+            "Each box is a device in your home. The lines show how it links to your router. "
+            "The colour, the sign and the words show how serious it is."
+        ),
+    },
+    "map_how": {
+        "ro": (
+            "Trage cu mouse-ul sau cu degetul ca să rotești harta. Folosește rotița sau "
+            "două degete ca să o mărești. Apasă pe un dispozitiv ca să vezi ce are."
+        ),
+        "en": (
+            "Drag with the mouse or a finger to turn the map. Use the wheel or two fingers "
+            "to zoom. Press a device to see what is wrong with it."
+        ),
+    },
+    "map_keys": {
+        "ro": "Cu tastatura: săgețile rotesc harta, iar + și - o măresc sau o micșorează.",
+        "en": "With the keyboard: the arrow keys turn the map, and + and - zoom in and out.",
+    },
+    "map_canvas_label": {
+        "ro": "Harta 3D a rețelei tale. Alege un dispozitiv din butoanele de pe hartă.",
+        "en": "3D map of your network. Pick a device from the buttons on the map.",
+    },
+    "map_legend": {"ro": "Ce înseamnă culorile", "en": "What the colours mean"},
+    "map_view_3d": {"ro": "Hartă 3D", "en": "3D map"},
+    "map_view_list": {"ro": "Listă simplă", "en": "Simple list"},
+    "map_view_label": {"ro": "Cum vezi harta", "en": "How to show the map"},
+    "map_hub": {"ro": "În mijloc:", "en": "In the middle:"},
+    "map_hub_virtual": {"ro": "Wi-Fi-ul tău de acasă", "en": "Your home Wi-Fi"},
+    "map_linked": {"ro": "Legate de el:", "en": "Linked to it:"},
+    "map_most_dangerous": {"ro": "Cel mai periculos", "en": "Most dangerous"},
+    "map_ip": {"ro": "Adresa în rețea:", "en": "Network address:"},
+    "map_mac": {"ro": "Adresă hardware:", "en": "Hardware address:"},
+    "map_name": {"ro": "Nume:", "en": "Name:"},
+    "map_no_findings": {
+        "ro": "Nu am găsit probleme la acest dispozitiv.",
+        "en": "We found no problems on this device.",
+    },
+    "map_go_problems": {
+        "ro": "Vezi problemele și cum le rezolvi",
+        "en": "See the problems and how to fix them",
+    },
+    "map_go_device": {"ro": "Vezi dispozitivul în listă", "en": "See this device in the list"},
+    "map_reset": {"ro": "Pune harta la loc", "en": "Reset the map"},
+    "map_zoom_in": {"ro": "Mărește harta", "en": "Zoom in"},
+    "map_zoom_out": {"ro": "Micșorează harta", "en": "Zoom out"},
+    "map_pick": {
+        "ro": "Apasă pe un dispozitiv de pe hartă ca să vezi detaliile aici.",
+        "en": "Press a device on the map to see its details here.",
+    },
     # Devices and findings list (#55)
     "devices_heading": {"ro": "Dispozitivele tale", "en": "Your devices"},
     "devices_intro": {

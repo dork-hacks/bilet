@@ -114,6 +114,73 @@
                      border: 2px solid #8c7d6f; border-radius: .75rem; background: #ffffff;
                      color: #2b2420; }
     .changes h3 { font-size: 1.1rem; margin: 1rem 0 .25rem; }
+    /* Network map (#170). Each level is a chip with a sign and a word, never colour alone.
+       The 3D stage is drawn by static/netmap.js; the list is the map without JS/WebGL. */
+    .netmap { background: #ffffff; border: 1px solid #eadfce; border-radius: 1.25rem;
+              padding: .25rem 1.25rem 1rem; margin: 1.5rem 0;
+              box-shadow: 0 3px 12px rgba(80, 55, 30, .06); }
+    .lvl { font-weight: 700; padding: .05rem .6rem; border-radius: 999px; color: #ffffff;
+           background: #5b5048; white-space: nowrap; display: inline-block; }
+    .lvl-high { background: #a8322a; } .lvl-medium { background: #8a5300; }
+    .lvl-low { background: #1d5a8a; } .lvl-none { background: #2e6b34; }
+    .worst { font-weight: 700; border: 2px solid #a8322a; color: #a8322a; border-radius: 999px;
+             padding: 0 .55rem; white-space: nowrap; display: inline-block; }
+    .netmap-list ul, .netmap-legend ul { list-style: none; padding: 0; margin: .25rem 0; }
+    .netmap-list li { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
+                      padding: .4rem 0; border-bottom: 1px solid #eadfce; }
+    .netmap-list p .dev-icon, .netmap-list .dev-icon { width: 2rem; height: 2rem;
+                      padding: .3rem; vertical-align: middle; }
+    .netmap-legend ul { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .netmap-legend p { margin: .75rem 0 .25rem; }
+    .netmap-switch { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
+    .netmap-switch button, .netmap-tools button, .nm-label { font-family: inherit; }
+    .netmap-switch button { font-size: 1rem; font-weight: 700; min-height: 2.75rem;
+           padding: .4rem 1.1rem; border: 2px solid #0f5c57; border-radius: 999px;
+           background: #ffffff; color: #0f5c57; cursor: pointer; }
+    .netmap-switch button[aria-pressed="true"] { background: #0f5c57; color: #ffffff; }
+    .netmap-stage { position: relative; height: clamp(20rem, 60vw, 30rem); overflow: hidden;
+           border-radius: 1rem; border: 1px solid #eadfce; touch-action: pan-y;
+           background: #f6efe4;
+           background-image: radial-gradient(circle at 50% 40%, #fdfaf5 0%, #efe5d6 100%); }
+    .netmap-stage:focus-visible { outline: 3px solid #0f5c57; outline-offset: 3px; }
+    .netmap-stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+    .netmap-stage canvas:active { cursor: grabbing; }
+    .netmap-tools { position: absolute; right: .5rem; bottom: .5rem; z-index: 2000; display: flex;
+           gap: .35rem; }
+    .netmap-tools button { min-width: 2.75rem; font-size: 1rem; font-weight: 700; min-height: 2.5rem;
+           padding: .3rem .9rem; border: 2px solid #0f5c57; border-radius: 999px;
+           background: #ffffff; color: #0f5c57; cursor: pointer; }
+    /* One button per device on the map: the keyboard and screen-reader way in. */
+    .nm-label { position: absolute; left: 0; top: 0; z-index: 2; display: flex;
+           align-items: center; gap: .35rem; font-size: 1rem; line-height: 1.25;
+           padding: .25rem .55rem .25rem .3rem; border-radius: .9rem; cursor: pointer;
+           border: 2px solid #8c7d6f; background: #ffffff; color: #2b2420;
+           box-shadow: 0 3px 10px rgba(80, 55, 30, .18); max-width: 14rem; text-align: left;
+           will-change: transform; }
+    .nm-label .dev-icon { width: 1.9rem; height: 1.9rem; padding: .2rem; }
+    .nm-label .nm-text { display: flex; flex-direction: column; align-items: flex-start;
+           gap: .15rem; }
+    .nm-label .nm-type { font-weight: 700; }
+    .nm-label .lvl { font-size: 1rem; padding: 0 .45rem; }
+    .nm-label.lvl-high-b { border-color: #a8322a; } .nm-label.lvl-medium-b { border-color: #8a5300; }
+    .nm-label.lvl-low-b { border-color: #1d5a8a; } .nm-label.lvl-none-b { border-color: #2e6b34; }
+    .netmap-stage.compact .nm-type, .netmap-stage.compact .nm-label .lvl-word { display: none; }
+    .netmap-stage.compact .nm-label .dev-icon { width: 1.6rem; height: 1.6rem; }
+    .nm-label[aria-pressed="true"] { outline: 3px solid #0f5c57; outline-offset: 2px; }
+    .nm-label:focus-visible { outline: 4px solid #0f5c57; outline-offset: 3px; }
+    .nm-label[data-behind="true"] { opacity: .55; }
+    .netmap-detail { margin-top: .75rem; border-left: 6px solid #0f5c57; border-radius: .75rem;
+           padding: .25rem 1.25rem; background: #fdfaf5; }
+    .netmap-detail h3 { font-size: 1.25rem; display: flex; align-items: center; flex-wrap: wrap;
+           gap: .5rem; margin: .6rem 0 .4rem; }
+    .netmap-detail dl { display: grid; grid-template-columns: auto 1fr; gap: .1rem .75rem;
+           margin: .4rem 0; }
+    .netmap-detail dt { font-weight: 700; } .netmap-detail dd { margin: 0; word-break: break-all; }
+    .netmap-detail ul { padding-left: 1.25rem; margin: .4rem 0; }
+    .netmap-detail li { margin: .3rem 0; }
+    @media (prefers-reduced-motion: reduce) {
+      .nm-label { will-change: auto; }
+    }
     /* Phones: less padding, the score stacks, wide tables scroll instead of overflowing. */
     @media (max-width: 32rem) {
       body { padding: .75rem .75rem 2rem; }
@@ -121,5 +188,8 @@
       .score .number { font-size: 2.8rem; }
       .device, .first { padding: .85rem 1rem; }
       table { display: block; overflow-x: auto; }
+      .netmap { padding: .25rem .85rem .85rem; }
+      .netmap-keys { display: none; }
+      .netmap-stage { height: 24rem; }
     }
   </style>

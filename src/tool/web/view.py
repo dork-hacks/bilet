@@ -184,6 +184,11 @@ def most_dangerous(result: dict) -> tuple[dict, dict] | None:
     return (best_device, best_finding) if best_device else None
 
 
+def device_anchor(ip: str) -> str:
+    """The id of a device's card, such as "device-192-168-1-40", for links and the map."""
+    return "device-" + ip.replace(".", "-").replace(":", "-")
+
+
 def _finding_item(finding: dict, lang: str) -> FindingItem:
     text = finding_text(finding["code"], lang)
     port, protocol = finding.get("port"), finding.get("protocol")
@@ -213,7 +218,7 @@ def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[
         own = [findings[i] for i in device.get("finding_ids", []) if i in findings]
         own.sort(key=lambda f: -int(f.get("points", 0)))
         item = DeviceItem(
-            anchor="device-" + device["ip"].replace(".", "-").replace(":", "-"),
+            anchor=device_anchor(device["ip"]),
             label=device_type_label(device.get("device_type_guess", "unknown"), lang),
             ip=device["ip"],
             mac_masked=device.get("mac_masked"),
