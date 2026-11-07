@@ -12,4 +12,6 @@ DISPLAY_NAME = "the tool"
 
 def data_dir() -> Path:
     """Local folder for history, the device-key salt and other private data (NFR-02)."""
-    return Path(os.environ.get("TOOL_DATA_DIR", "data")).expanduser()
+    # `or`, not a get() default: an empty TOOL_DATA_DIR= (as in .env.example) means "unset",
+    # not "the current directory", which isn't git-ignored.
+    return Path(os.environ.get("TOOL_DATA_DIR") or "data").expanduser()
