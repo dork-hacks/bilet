@@ -12,6 +12,7 @@ from tool.content.ui import UI
 from tool.engine import analyze_file
 from tool.history import History
 from tool.web.app import MAX_FORM_BYTES, create_app
+from tool.web.history_view import history_view
 
 
 @dataclass(frozen=True)
@@ -230,3 +231,56 @@ def test_completed_fake_scan_is_read_from_history_on_the_home_page(tmp_path):
     html = browser.get(status["result_url"]).text
     assert f'<span class="number">{result["score"]}</span>' in html
     assert browser.get("/scan?lang=en").headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_each_finding_offers_verification_after_its_fix_steps(tmp_path, lang):
+    history = History(tmp_path / "data")
+    fixture = Path(__file__).parent / "fixtures/validation/V6a_before.xml"
+    history.add(analyze_file(fixture, salt=b"test-salt").to_dict())
+    runner = FakeRunner()
+    html = client(runner, history=history).get("/", params={"lang": lang}).text
+    findings = html.split('<div class="finding ')[1:]
+    assert len(findings) == 3
+    for finding in findings:
+        assert finding.index("</ol>") < finding.index('class="fix-verification"')
+        assert str(escape(UI["fix_verify"][lang])) in finding
+        assert '<form method="post" action="/scan">' in finding
+        assert f'name="lang" value="{lang}"' in finding
+        assert f'href="/history?lang={lang}"' in finding
+        assert 'name="target"' not in finding
+    assert runner.starts == []
+
+    for browser in (client(history=history), client(runner, history=history, peer="192.0.2.8")):
+        assert 'class="fix-verification"' not in browser.get("/").text
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_check_again_links_to_real_lab_fixture_comparison_without_false_resolutions(tmp_path, lang):
+    history = History(tmp_path / "data")
+    fixtures = Path(__file__).parent / "fixtures/lab"
+    before_id = history.add(analyze_file(fixtures / "L1_default.xml", salt=b"test-salt").to_dict())
+    runner = FakeRunner()
+    browser = client(runner, history=history)
+    response = browser.post("/scan", data={"lang": lang}, follow_redirects=False)
+    assert response.status_code == 303
+    assert runner.starts == [lang]
+    # Simulate completion by saving the whole-network capture; no scan is launched.
+    after_id = history.add(analyze_file(fixtures / "L2_after_fix.xml", salt=b"test-salt").to_dict())
+    runner.current = State(outcome="DONE", scan_id=after_id)
+    completed = browser.get(f"/scan?lang={lang}").text
+    result_links = completed.split('<p id="scan-result">', 1)[1].split("</p>", 1)[0]
+    assert f'href="/history?lang={lang}"' in result_links
+    assert str(escape(UI["fix_compare"][lang])) in result_links
+
+    diff = history.diff(before_id, after_id)
+    assert (diff.score_before, diff.score_after) == (25, 55)
+    assert {finding["code"] for finding in diff.resolved_findings} == {
+        "TELNET_OPEN",
+        "HTTP_ADMIN_CLEARTEXT",
+    }
+    assert diff.removed_devices == []
+    comparison = history_view(history, lang).comparison
+    assert (comparison.old.id, comparison.new.id) == (before_id, after_id)
+    assert len(dict(comparison.sections)[UI["diff_resolved"][lang]]) == 2
+    assert comparison.score_line in browser.get(f"/history?lang={lang}").text

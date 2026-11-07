@@ -26,7 +26,10 @@
       <input type="hidden" name="lang" value="{{ view.lang }}">
       <button class="button" type="submit">{{ ui.scan_cancel }}</button>
     </form>
-    <p id="scan-result"{% if not status.done %} hidden{% endif %}><a class="button" href="{{ status.result_url }}">{{ ui.scan_see_score }}</a></p>
+    <p id="scan-result"{% if not status.done %} hidden{% endif %}>
+      <a class="button" href="{{ status.result_url }}">{{ ui.scan_see_score }}</a>
+      <a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a>
+    </p>
     <div id="scan-retry"{% if status.running %} hidden{% endif %}>{% include "_scan_button.html" %}</div>
     <p><a href="/scan?lang={{ view.lang }}">{{ ui.scan_refresh }}</a></p>
     <p id="scan-refresh-error" role="status" hidden>{{ ui.scan_refresh_error }}</p>
