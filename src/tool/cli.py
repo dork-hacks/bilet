@@ -33,43 +33,54 @@ def build_parser() -> argparse.ArgumentParser:
             )
             cmd.add_argument("--host", default="127.0.0.1", help="default: this computer only")
             cmd.add_argument("--port", type=int, default=8000)
+        if name == "analyze":
+            cmd.add_argument("folder", type=Path, help="folder with nmap XML files")
+            cmd.add_argument(
+                "--out", type=Path, default=Path("out"), help="where to write the CSVs"
+            )
+            cmd.add_argument(
+                "--json", action="store_true", help="also write one ScanResult JSON per file"
+            )
+            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
         if name == "detect":
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
             cmd.add_argument("--json", action="store_true", help="machine-readable output")
     return parser
 
 
-# Until area:content adds these to tool.content (asked on #18), so the CLI is usable now.
-_DETECT_ERRORS = {
-    "NO_NETWORK": {
-        "ro": (
-            "Calculatorul nu pare conectat la nicio rețea. "
-            "Conectați-l la hotspot și încercați din nou."
-        ),
-        "en": "This computer doesn't seem to be on any network. Join the hotspot and try again.",
-    },
-    "SEVERAL_NETWORKS": {
-        "ro": "Calculatorul este conectat la mai multe rețele deodată. Lăsați-l doar pe hotspot.",
-        "en": "This computer is on several networks at once. Leave it on the hotspot only.",
-    },
-    "DETECT_FAILED": {
-        "ro": "Nu am putut afla la ce rețea este conectat calculatorul.",
-        "en": "Couldn't work out which network this computer is on.",
-    },
-}
 _DETECT_LABELS = {
     "ro": ("Interfață", "Adresa acestui calculator", "Rețea", "Router (gateway)"),
     "en": ("Interface", "This computer's address", "Network", "Router (gateway)"),
 }
 
 
+def analyze_command(args: argparse.Namespace) -> int:
+    from tool.content import file_error_message
+    from tool.export import analyze_folder
+
+    folder: Path = args.folder
+    if not folder.is_dir():
+        print(f"{folder}: not a folder", file=sys.stderr)
+        return 2
+    json_dir = args.out / "json" if args.json else None
+    report = analyze_folder(folder, args.out, json_dir=json_dir)
+    for file, code in report.errors:  # a broken file is reported, never fatal
+        print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
+    print(
+        f"{report.files} files, {report.findings} findings, {len(report.errors)} unreadable"
+        f" -> {args.out / 'findings.csv'}, {args.out / 'scores.csv'}"
+    )
+    return 0
+
+
 def detect_command(args: argparse.Namespace) -> int:
+    from tool.content import detect_error_message
     from tool.network import DetectError, detect
 
     try:
         net = detect()
     except DetectError as exc:
-        message = _DETECT_ERRORS.get(exc.code, _DETECT_ERRORS["DETECT_FAILED"])[args.lang]
+        message = detect_error_message(exc.code, args.lang)
         if args.json:
             print(json.dumps({"error": {"code": exc.code, "detail": exc.detail}}))
         else:
@@ -126,6 +137,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "serve":
         return serve(args)
+    if args.command == "analyze":
+        return analyze_command(args)
     if args.command == "detect":
         return detect_command(args)
     _help, issue = COMMANDS[args.command]

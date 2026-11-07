@@ -20,7 +20,7 @@ This creates `.venv/` and installs the pinned dependencies. Then either activate
 tool analyze path/to/folder --out out/
 ```
 
-Writes `out/findings.csv` and `out/scores.csv` for every nmap XML file in the folder. Unreadable files get `ERROR` and the run continues. *(Coming in #16.)*
+Writes `out/findings.csv` and `out/scores.csv` for every nmap XML file in the folder, in the organizers' exact format (on the Validation Set the output is byte-identical to their answer key). Unreadable files get `ERROR`, are named on the screen, and the run continues. Add `--json` for one full result per file in `out/json/`, and `--lang en` for English messages (Romanian is the default).
 
 ## Live scan (your own network only)
 
