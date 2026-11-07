@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Run one autonomous agent loop (WORKFLOW.md §10).
+# Run one autonomous worker loop (WORKFLOW.md §10).
 #
-#   agents/run-loop.sh orchestrator orchestrator ~/bilet-agents/orchestrator
-#   agents/run-loop.sh worker       agent-C      ~/bilet-agents/agent-C
+#   agents/run-loop.sh agent-C ~/bilet-agents/agent-C
 #
 # <workdir> is this agent's OWN clone of the repo. It is created if missing.
 # Never point it at a checkout someone works in by hand.
@@ -19,21 +18,14 @@
 #     idle ticks in a row.
 set -uo pipefail
 
-usage() { echo "usage: $0 <orchestrator|worker> <tag> <workdir>" >&2; exit 2; }
-[[ $# -eq 3 ]] || usage
-ROLE="$1"; TAG="$2"; WORKDIR="$3"
-case "$ROLE" in orchestrator|worker) ;; *) usage ;; esac
-[[ "$TAG" =~ ^(orchestrator|agent-[A-Z])$ ]] || { echo "tag must be 'orchestrator' or 'agent-<LETTER>'" >&2; exit 2; }
-
-if [[ "$ROLE" == orchestrator ]]; then
-  IDLE_STOP_DEFAULT=12
-else
-  IDLE_STOP_DEFAULT=8
-fi
+usage() { echo "usage: $0 <agent-tag> <workdir>   e.g. $0 agent-C ~/bilet-agents/agent-C" >&2; exit 2; }
+[[ $# -eq 2 ]] || usage
+TAG="$1"; WORKDIR="$2"
+[[ "$TAG" =~ ^agent-[A-Z]$ ]] || { echo "tag must be 'agent-<LETTER>', e.g. agent-C" >&2; exit 2; }
 SYNC_ISSUE="${SYNC_ISSUE:-1}"
 INTERVAL_MIN="${INTERVAL_MIN:-300}"            # seconds between ticks while active
 INTERVAL_MAX="${INTERVAL_MAX:-1800}"           # idle backoff cap
-IDLE_STOP_TICKS="${IDLE_STOP_TICKS:-$IDLE_STOP_DEFAULT}"
+IDLE_STOP_TICKS="${IDLE_STOP_TICKS:-8}"           # stop after this many idle ticks in a row
 MAX_HOURS="${MAX_HOURS:-12}"
 TICK_TIMEOUT="${TICK_TIMEOUT:-1500}"           # seconds before a tick is killed
 AGENT_MODEL="${AGENT_MODEL:-}"                 # optional: --model
@@ -58,7 +50,7 @@ if [[ "${RUN_LOOP_SNAPSHOT:-}" != 1 ]]; then
   # Run from a snapshot, so switching branches in the source checkout can't
   # change or delete this script while bash is still reading it.
   SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
-  cp "$SRC_DIR/run-loop.sh" "$SRC_DIR/orchestrator.md" "$SRC_DIR/worker.md" "$STATE/bin/"
+  cp "$SRC_DIR/run-loop.sh" "$SRC_DIR/worker.md" "$STATE/bin/"
   ORIGIN_URL="$(git -C "$SRC_DIR" remote get-url origin 2>/dev/null || true)" \
     RUN_LOOP_SNAPSHOT=1 exec bash "$STATE/bin/run-loop.sh" "$@"
 fi
@@ -76,23 +68,17 @@ fi
 WORKDIR="$(cd "$WORKDIR" && pwd)"
 REPO="$(cd "$WORKDIR" && gh repo view --json nameWithOwner --jq .nameWithOwner)" || { echo "gh can't see the repo; run gh auth login" >&2; exit 1; }
 
-COMMON_TOOLS=(
+TOOLS=(
   "Bash(gh issue:*)" "Bash(gh pr:*)" "Bash(gh run list:*)" "Bash(gh run view:*)"
   "Bash(gh label list:*)" "Bash(gh search:*)" "Bash(gh repo view:*)"
-  "Bash(git log:*)" "Bash(git show:*)" "Bash(git diff:*)" "Bash(git status:*)" "Bash(git fetch:*)"
-  "Bash(date:*)" "Read" "Grep" "Glob" "Skill"
-)
-WORKER_TOOLS=(
   "Bash(git:*)" "Bash(python:*)" "Bash(python3:*)" "Bash(pip:*)" "Bash(pip3:*)" "Bash(uv:*)"
-  "Bash(pytest:*)" "Bash(make:*)" "Bash(gitleaks:*)" "Bash(ls:*)" "Bash(mkdir:*)"
-  "Edit" "Write"
+  "Bash(pytest:*)" "Bash(make:*)" "Bash(gitleaks:*)" "Bash(ls:*)" "Bash(mkdir:*)" "Bash(date:*)"
+  "Read" "Edit" "Write" "Grep" "Glob" "Skill"
 )
 DENY_TOOLS=(
   "Bash(nmap:*)" "Bash(sudo:*)" "Bash(gh issue delete:*)" "Bash(gh issue transfer:*)"
   "Bash(gh repo delete:*)" "Bash(git push --force:*)" "Bash(git push -f:*)" "Bash(git push origin main:*)"
 )
-TOOLS=("${COMMON_TOOLS[@]}")
-[[ "$ROLE" == worker ]] && TOOLS+=("${WORKER_TOOLS[@]}")
 if [[ -n "$AGENT_EXTRA_TOOLS" ]]; then
   IFS=',' read -r -a extra <<< "$AGENT_EXTRA_TOOLS"
   TOOLS+=("${extra[@]}")
@@ -100,9 +86,9 @@ fi
 
 load_prompt() {
   # The latest merged prompt wins, so improvements reach every laptop.
-  # Before the prompts are merged, use the snapshot taken at start.
+  # Before the prompt is merged, use the snapshot taken at start.
   local text
-  text="$(git -C "$WORKDIR" show "origin/main:agents/$ROLE.md" 2>/dev/null)" || text="$(cat "$STATE/bin/$ROLE.md")"
+  text="$(git -C "$WORKDIR" show "origin/main:agents/worker.md" 2>/dev/null)" || text="$(cat "$STATE/bin/worker.md")"
   printf '%s' "${text//\{\{TAG\}\}/$TAG}"
 }
 
@@ -114,7 +100,7 @@ paused() {  # prints yes / no / unknown
 
 deadline=$(( $(date +%s) + MAX_HOURS * 3600 ))
 sleep_s="$INTERVAL_MIN"; idle=0; errors=0
-log "start role=$ROLE repo=$REPO workdir=$WORKDIR max_hours=$MAX_HOURS"
+log "start repo=$REPO workdir=$WORKDIR max_hours=$MAX_HOURS"
 
 while :; do
   [[ -f "$STATE/STOP" ]] && { log "STOP file found, exiting"; break; }
@@ -126,21 +112,29 @@ while :; do
   esac
 
   git -C "$WORKDIR" fetch -q origin 2>/dev/null || log "git fetch failed"
-  if [[ "$ROLE" == orchestrator ]] && [[ -z "$(git -C "$WORKDIR" status --porcelain)" ]]; then
-    git -C "$WORKDIR" checkout -q --detach origin/main 2>/dev/null || true
-  fi
 
   tick_log="$STATE/logs/$(date -u +%Y%m%dT%H%M%SZ).log"
-  args=(-p "$(load_prompt)" --output-format text)
+  args=(-p "$(load_prompt)" --output-format json)
   [[ -n "$AGENT_MODEL" ]] && args+=(--model "$AGENT_MODEL")
   [[ -n "$TICK_BUDGET_USD" ]] && args+=(--max-budget-usd "$TICK_BUDGET_USD")
   args+=(--disallowedTools "${DENY_TOOLS[@]}" --allowedTools "${TOOLS[@]}")
 
   log "tick start"
-  ( cd "$WORKDIR" && perl -e 'alarm shift; exec @ARGV' "$TICK_TIMEOUT" claude "${args[@]}" ) > "$tick_log" 2>&1
+  ( cd "$WORKDIR" && perl -e 'alarm shift; exec @ARGV' "$TICK_TIMEOUT" claude "${args[@]}" ) > "$tick_log.json" 2> "$tick_log.err"
   rc=$?
-  result="$(grep -Eo 'TICK-RESULT: (ACTIVE|IDLE)' "$tick_log" | tail -1 | cut -d' ' -f2)"
-  log "tick end rc=$rc result=${result:-NONE} log=$tick_log"
+  # Keep the readable report in the .log file. Print cost and turns for loop.log.
+  usage="$(python3 - "$tick_log.json" "$tick_log" <<'PY' 2>/dev/null
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+open(sys.argv[2], "w").write(str(d.get("result") or "") + "\n")
+print(f"cost_usd={d.get('total_cost_usd', 0):.2f} turns={d.get('num_turns', '?')}")
+PY
+)" || usage="unparsed"
+  result="$(grep -Eo 'TICK-RESULT: (ACTIVE|IDLE)' "$tick_log" 2>/dev/null | tail -1 | cut -d' ' -f2)"
+  log "tick end rc=$rc result=${result:-NONE} $usage log=$tick_log"
   [[ "${ONE_TICK:-}" == 1 ]] && { log "ONE_TICK=1, exiting after one tick"; break; }
 
   if [[ -z "$result" ]]; then
@@ -154,6 +148,6 @@ while :; do
     sleep_s=$(( sleep_s * 2 )); (( sleep_s > INTERVAL_MAX )) && sleep_s="$INTERVAL_MAX"
   fi
 
-  ls -1t "$STATE/logs" | tail -n +51 | while read -r old; do rm -f "$STATE/logs/$old"; done
+  ls -1t "$STATE/logs" | tail -n +151 | while read -r old; do rm -f "$STATE/logs/$old"; done
   sleep "$sleep_s"
 done
