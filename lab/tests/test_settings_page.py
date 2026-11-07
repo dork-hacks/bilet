@@ -130,6 +130,15 @@ class SettingsPageTests(unittest.IsolatedAsyncioTestCase):
         _, cookie = await self.login()
         self.assertIn(b"<title>Camera Login</title>", await self.request("GET", "/", cookie=cookie))
 
+    async def test_other_methods_get_the_old_401_login_page(self):
+        # nmap's HTTPOptions probe saw this reply before #144; keep it the same.
+        for method in ("OPTIONS", "PUT", "DELETE"):
+            response = await self.request(method, "/")
+            self.assertTrue(response.startswith(b"HTTP/1.1 401"), method)
+            self.assertIn(b"Server: lighttpd/1.4.59", response)
+            self.assertIn(b"<title>Camera Login</title>", response)
+        self.assertEqual(self.helper.requests, [])
+
     async def test_the_label_device_id_signs_in(self):
         response, cookie = await self.login()
         self.assertTrue(response.startswith(b"HTTP/1.1 303"))

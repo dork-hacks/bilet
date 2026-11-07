@@ -363,6 +363,13 @@ def make_http(title: str, device_id: str | None = None, switch_socket: str | Non
             await s.send(reply if method == b"HEAD" else reply + body)
             return
 
+        if method not in (b"GET", b"HEAD", b"POST"):
+            # Any other method (nmap's OPTIONS probe, for one) gets the 401 login page the
+            # old fake always sent, so nmap -sV sees the same service as before (#144).
+            body = login_page("Wrong user name or password.")
+            await s.send(_headers(b"401 Unauthorized", PAGE_HEADERS[:1], len(body)) + body)
+            return
+
         form: dict[str, str] = {}
         if method == b"POST":
             try:

@@ -34,6 +34,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 LABCTL = "/usr/local/sbin/labctl"
+# The environment overrides are for the tests only. Under socket activation systemd gives
+# this script a clean environment; don't add Environment= lines to lab-switch@.service.
 LAB_DIR = Path(os.environ.get("LAB_DIR", "/opt/lab"))
 SERVICES = Path(os.environ.get("LAB_SERVICES", LAB_DIR / "services.tsv"))
 PRESETS = Path(os.environ.get("LAB_PRESETS", LAB_DIR / "presets.tsv"))
