@@ -1,0 +1,183 @@
+bilet: work order after the brief audit (7 Nov 2026, 22:20 UTC, main at 368d9a8)
+==============================================================================
+
+Five read-only auditors compared main with the brief and with every issue and PR.
+None of the items below is planned anywhere else.
+
+WHEN TO PICK UP AN ITEM
+- Finish your current task first. Then take the highest item still free for your tag.
+- Claim it by commenting "[agent-X] claiming order N" on the announcement issue.
+- Open a normal issue for it (WORKFLOW section 3), branch <issue#>-slug, and open a PR.
+- The usual rules apply: a review from another tag; a human approve for the
+  guardrail, the sudo/nmap path, the lab and secrets; no scans unless WORKFLOW
+  section 1 allows it.
+- Freeze (WORKFLOW section 9):
+  - After Sun 02:00 UTC: P1 items only.
+  - After Sun 06:00 UTC: only crash or wrong-result fixes.
+  - After the upload at 07:00 UTC: nothing.
+- If your tag is inactive, any active agent in the same area may take the item.
+  Say so in the claim comment.
+- agent-A (engine, cli, guardrail, history, scan) is back at 23:41 UTC. It may take
+  over any agent-Z item that is still unclaimed.
+
+Format: N. [priority] owner (backup): what is wrong -> what to do. Evidence.
+
+--- P1: Test Set points, live checks, scoring criteria ---------------------------
+
+1. [P1] agent-Z (agent-A): `analyze` reads only *.xml files. A broken Test Set
+   file with another extension, or none, is skipped silently, so it gets no ERROR row
+   and loses its score bonus.
+   -> Add `analyze --all-files` (every visible file except our own CSVs and *.md;
+      non-XML files become ERROR). Runbook step 7: re-run with it when a skipped file
+      belongs to the Test Set. Evidence: src/tool/export.py:37.
+
+2. [P1] agent-C (agent-F): live check 6 loads the whole lab folder into the existing
+   history. L3 (score 20) comes after L2 (55), the trend runs first to last, and the
+   compare view defaults to the two newest scans. So /history would show the score
+   going DOWN.
+   -> In docs/live-checks.md check 6, start a fresh history
+      (`export TOOL_DATA_DIR=$(mktemp -d)`) and load only L1+L2.
+      Evidence: src/tool/web/history_view.py:123-129 and 222-226;
+      lab/CHECKLIST.md section 5.
+
+3. [P1] agent-G (agent-H): "Most dangerous device" breaks a tie by the lower IP. On
+   V6a it picks the router (2x Medium), while the map, the plan, the chat and the
+   report all lead with the hub's High Telnet.
+   -> Break ties by the highest single finding's points, then by IP. Add a V6a test
+      that home, map, plan and report agree. Evidence: src/tool/web/view.py:182.
+
+4. [P1] agent-G (agent-H): "Your plan", the chat fallback and the report use the
+   generic steps[0], not the device step that "Do this first" shows.
+   -> One shared first-step helper for the plan, the report and the fallback. The AI
+      evidence keeps the generic text (no IPs). Evidence: src/tool/ai/explain.py:116,
+      src/tool/web/report.py:45.
+
+5. [P1] agent-G (agent-H): the generic fix steps never mark the step that actually
+   removes the finding. HTTP_ADMIN starts with "change the password", and MQTT with
+   "turn on a password".
+   -> Mark the fixing step in all 15 codes. Reorder HTTP_ADMIN (HTTPS, then turn
+      plain http off) and MQTT (turn it off if unused). Test: exactly one fixing
+      step per code, in RO and EN. Evidence: src/tool/content/texts.py:210 and :262.
+
+6. [P1] agent-G (agent-H): the AI grounding checker accepts a port from another
+   device, an invented "Device Q" and invented brand names. Cached answers are never
+   re-checked.
+   -> Allow only the cited findings' ports and versions, plus the score. Reject
+      unknown device refs and product words. Run check() again on every cache hit.
+      Evidence: src/tool/ai/grounding.py:59-75 and :119-151;
+      src/tool/ai/explain.py:254-256 and :355-358.
+
+7. [P1] agent-Z (agent-A): "Delete my history" leaves ./scans/*.xml, which holds full
+   MACs and hostnames, yet the button says it deletes every check.
+   -> Default scans_dir = data_dir()/scans, removed by delete_all. Update README and
+      the runbooks. At least fix the RO/EN delete_note.
+      Evidence: src/tool/history.py:32-33; src/tool/scan.py:326; content/ui.py:458.
+
+8. [P1] agent-E (agent-F): nothing checks that the deliverables are in the commit
+   frozen at 07:30 EET: lab captures, check 6 without the stand-in, the current
+   technical summary.
+   -> Add a step 1b gate to docs/test-set-runbook.md, and post on #146: every
+      deliverable PR merges before 07:30 EET.
+
+9. [P1] agent-F (agent-E): "masked MACs" is a scored yes/no item, but no live-check
+   step shows it.
+   -> docs/live-checks.md item 8: a device card ("B8:27:EB:xx:xx:xx"),
+      `grep mac` in the --json output, and the CSVs hold no MAC.
+
+10. [P1] agent-F + humans: no pitch outline, speaker split or numbers anywhere. The
+    brief wants at least two speakers, and a junior presents a part.
+    -> docs/pitch.md: problem, demo, numbers, trade-offs, next steps, with timings
+       inside 7 minutes, named speakers (at least one junior), and the numbers
+       (24/24 with 0 extra, trap count, AI blocked count, lab 25->55, /24 scan time).
+
+11. [P1] agent-H (agent-G): on a page showing an opened file, the RO/EN switch and
+    the AI toggle go to /?lang=.. and silently show the latest history scan instead.
+    -> Keep the opened result under a token, as the report already does, and add
+       &scan=<token> to those links. Evidence: templates/home.html:18.
+
+12. [P1] agent-H (agent-G): the server, NAS and hub steps say "go to http://IP" even
+    when the scan saw no web page there. The UI never says which program is out of
+    date.
+    -> No URL when _web_port is None. Add a "What the scan saw" line (plain service
+       name and version, escaped), at least for OUTDATED_SERVICE.
+       Evidence: content/__init__.py:92; device_steps.py:137-218.
+
+--- P2: robustness, security hardening, polish -------------------------------------
+
+13. [P2] agent-Z (agent-A): an unexpected error in one file (for example an
+    unwritable data folder with --json) aborts the run before any CSV is written.
+    -> Load the salt once, with a guard. Wrap each file: except Exception -> an
+       ERROR row plus a stderr line. Evidence: export.py:72-74; engine/result.py:62.
+
+14. [P2] agent-H (agent-G): only /scan checks the Host header. A DNS-rebinding page
+    can read /history and /map.json and POST /history/delete. Pages have no frame
+    protection.
+    -> App-wide loopback-Host middleware (reuse local_scan_client), plus
+       X-Frame-Options: DENY and CSP frame-ancestors 'none'.
+
+15. [P2] agent-G: a chat question that names a device's hostname is sent to the
+    cloud unchanged, and the AI note doesn't say the question is sent.
+    -> Swap hostnames for pseudonyms in localise_question. Update ai_data_note in
+       RO and EN. Evidence: ai/evidence.py:118-131.
+
+16. [P2] agent-Z (agent-A), needs a human approve (guardrail): `scan 8.8.8.8` runs
+    detect() first, so it can say "several networks" instead of "public address". A
+    /16 venue range gets "too large" instead of "not your network".
+    -> Check public/CGNAT/hostname targets before detect(). Check the allowlist
+       before the size. Evidence: cli.py:167-178; guardrail.py:254-279.
+
+17. [P2] agent-Z (agent-A): `analyze FILE.xml` gives "not a folder", so live checks
+    1 and 5 need the mkdir/cp workaround.
+    -> Accept file paths as well as folders, then simplify docs/live-checks.md.
+
+18. [P2] agent-E: the Test Set runbook never saves the Test Set to the history, so
+    its before/after pair never shows as resolved in the UI.
+    -> Add a --save step into a separate TOOL_DATA_DIR, cmp the CSVs, check /history.
+
+19. [P2] agent-C (with #34): make validate never checks tests/fixtures/lab, because
+    its folder list is hard-coded.
+    -> Add FIXTURES / "lab" to GOLDEN in scripts/validate.py in the #34 PR.
+
+20. [P2] agent-E: the live `gitleaks git .` scans all ~80 branches, while CI checks
+    only HEAD.
+    -> In docs/live-checks.md check 7, use `--log-opts=HEAD` on the `final`
+       checkout.
+
+21. [P2] agent-Z (agent-A): a full MAC inside a banner, title or hostname (for
+    example ESP_A1B2C3) is shown unmasked.
+    -> Mask MAC-shaped text in parser._raw. Add a trap fixture.
+
+22. [P2] agent-Z (agent-A): the http-title fallback (no <elem>) matches nmap's
+    "Requested resource was .../admin/" line, which can give a false HTTP_ADMIN.
+    -> Use only the first line of `output`. Add a trap. Evidence: parser.py:191-194.
+
+23. [P2] agent-Z (agent-A): `sudo bilet analyze --save` creates a root-owned data/,
+    which then breaks serve and scan.
+    -> Refuse root in analyze, as scan and serve already do.
+
+24. [P2] agent-E: the Makefile hard-codes python3.12, so `make setup` fails on a
+    laptop that has only 3.13.
+    -> Pick the first Python that is 3.12 or newer. Add a README line about PYTHON=
+       and installing nmap.
+
+25. [P2] agent-F: README line 80 is stale, there's no deliverables index, and only a
+    tag gets made, no GitHub Release.
+    -> Fix the line, add a "Deliverables" links section, and add
+       `gh release create final --verify-tag` (humans) to the runbook.
+
+26. [P2] agent-H: UI polish.
+    - Report: "1 findings" (no singular form), the omissions line always printed,
+      0-point devices listed as priority, every item labelled "Do this first", no
+      ports.
+    - Catalog codes are never shown on /risks or the cards.
+    - "Port 554/tcp" is never explained.
+    - Check 2's script quotes old screen text.
+    - "Check again" sits above the score.
+    - /report and /scan are missing from the accessibility test.
+
+27. [P2] various:
+    - The DONE message says `tool serve`, not bilet (agent-G, content).
+    - `python -m tool.cli` does nothing (agent-Z).
+    - The lab captures are targeted, not whole-subnet: say so in the technical
+      summary (agent-C).
+    - Add a "data limit on the uplink phone" box to lab/CHECKLIST (agent-C).
