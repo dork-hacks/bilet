@@ -30,6 +30,20 @@
     .first { border-left: 6px solid #1a1a1a; padding: .5rem 1rem; background: #f4f4f4; }
     .first p { margin: .5rem 0; font-size: 1.15rem; }
     .muted { color: #4a4a4a; }
+    /* Devices and findings (#55). The severity is always written in the tag text. */
+    .device { border: 2px solid #c8c8c8; border-radius: .75rem; padding: .75rem 1rem;
+              margin: 1rem 0; }
+    .device h3 { margin: .25rem 0 .5rem; font-size: 1.2rem; }
+    .finding { border-left: 6px solid #4a4a4a; padding: .25rem .75rem; margin: .75rem 0; }
+    .finding h4 { margin: .25rem 0; font-size: 1.1rem; }
+    .finding p, .finding ol { margin: .4rem 0; }
+    .tag { font-weight: 700; padding: 0 .4rem; border-radius: .3rem; color: #ffffff;
+           background: #4a4a4a; }
+    .sev-high { border-left-color: #b3261e; } .sev-high .tag { background: #b3261e; }
+    .sev-medium { border-left-color: #8a5a00; } .sev-medium .tag { background: #8a5a00; }
+    .sev-low { border-left-color: #0b4f9c; } .sev-low .tag { background: #0b4f9c; }
+    .safe summary { cursor: pointer; font-weight: 700; padding: .5rem 0; }
+    .safe summary:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -81,6 +95,53 @@
       {% endif %}
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+
+    {% if view.devices or view.safe_devices %}
+    <section aria-labelledby="devices-heading">
+      <h2 id="devices-heading">{{ ui.devices_heading }}</h2>
+      {% if view.devices %}<p>{{ ui.devices_intro }}</p>{% endif %}
+      {% for device in view.devices %}
+      <article class="device" id="{{ device.anchor }}" aria-labelledby="{{ device.anchor }}-h">
+        <h3 id="{{ device.anchor }}-h">{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
+          <span class="muted">· {{ ui.points.replace("{n}", device.risk_points|string) }}</span></h3>
+        {% if device.hostname or device.mac_masked %}
+        <p class="muted">
+          {% if device.hostname %}{{ ui.device_name }} {{ device.hostname }}{% endif %}
+          {% if device.hostname and device.mac_masked %} · {% endif %}
+          {% if device.mac_masked %}{{ ui.hardware_address }} {{ device.mac_masked }}{% endif %}
+        </p>
+        {% endif %}
+        {% for finding in device.findings %}
+        <div class="finding sev-{{ finding.severity }}">
+          <h4>{{ finding.title }}</h4>
+          <p><span class="tag">{{ finding.severity_label }}</span>
+            {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
+            <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
+          <p>{{ finding.explanation }}</p>
+          {% if finding.steps %}
+          <p><strong>{{ ui.how_to_fix }}</strong></p>
+          <ol>
+            {% for step in finding.steps %}<li>{{ step }}</li>{% endfor %}
+          </ol>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </article>
+      {% endfor %}
+
+      {% if view.safe_devices %}
+      <details class="safe">
+        <summary>{{ ui.safe_devices.replace("{n}", view.safe_devices|length|string) }}</summary>
+        <ul>
+          {% for device in view.safe_devices %}
+          <li id="{{ device.anchor }}">{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}{% if device.hostname %}
+            (<span class="muted">{{ device.hostname }}</span>){% endif %}: {{ ui.no_problems }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </section>
+    {% endif %}
   {% endif %}
   </main>
 </body>

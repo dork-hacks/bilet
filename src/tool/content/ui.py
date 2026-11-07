@@ -47,6 +47,21 @@ UI = {
     "language": {"ro": "Limba", "en": "Language"},
     "device_at": {"ro": "{device} la adresa {ip}", "en": "{device} at {ip}"},
     "points": {"ro": "{n} puncte de risc", "en": "{n} risk points"},
+    # Devices and findings list (#55)
+    "devices_heading": {"ro": "Dispozitivele tale", "en": "Your devices"},
+    "devices_intro": {
+        "ro": "Cel mai periculos dispozitiv este primul. Rezolvă problemele de sus în jos.",
+        "en": "The most dangerous device comes first. Fix the problems from top to bottom.",
+    },
+    "hardware_address": {"ro": "Adresă hardware:", "en": "Hardware address:"},
+    "device_name": {"ro": "Nume:", "en": "Name:"},
+    "port": {"ro": "Port {port}", "en": "Port {port}"},
+    "how_to_fix": {"ro": "Cum rezolvi:", "en": "How to fix it:"},
+    "no_problems": {"ro": "Nu am găsit probleme", "en": "No problems found"},
+    "safe_devices": {
+        "ro": "Dispozitive fără probleme ({n})",
+        "en": "Devices with no problems ({n})",
+    },
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}
