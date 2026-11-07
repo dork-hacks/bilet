@@ -61,7 +61,7 @@ On the router:
 
 ```bash
 sh /tmp/lab/manager/setup_openwrt.sh     # installs, starts, prints the public key
-vi /etc/lab-manager/pis.conf              # one line per Pi: NAME IP (see pis.conf.example)
+vi /etc/lab-manager/pis.conf              # one line per Pi: NAME MAC[,MAC] (see pis.conf.example)
 /etc/init.d/lab-manager restart
 ```
 
@@ -92,6 +92,16 @@ sh /tmp/lab/manager/setup_openwrt.sh --hotspot 192.168.50.1
 Then open http://192.168.50.1:8090/. Running the setup without `--hotspot` goes back to loopback.
 
 `pis.conf` stays on the router: it isn't committed (MASTERPLAN §3.5).
+
+**Addresses come from DHCP.** List each Pi by MAC, not IP: the manager looks up its current
+address in the router's DHCP leases (`/tmp/dhcp.leases`) every 10 s while the page is in use,
+and on **Find the Pis again**. So a Pi that gets a new address is found again without editing
+anything. The hub needs both its MACs (its random one while UNKNOWN_DEVICE is on, its real one
+when that is fixed); the newest lease wins. The MACs stay in `pis.conf` on the router and never
+appear on the page. A Pi with a static lease can still be listed by IP.
+
+SSH host keys are kept per Pi name (`state/hosts/NAME/`), not per IP, so a Pi with a new
+address, or two Pis that swap addresses, still connect.
 
 **On a regular Linux machine with systemd** (not our router), `setup_manager.sh` does the
 same with `lab-manager.service` and OpenSSH.

@@ -1,4 +1,11 @@
-# Lab manager (#155): one lab Pi per line, NAME ADDRESS (its IP on RSH-dork_unit).
-# Copy to /etc/lab-manager/pis.conf on the Pi 5. Keep the real file local: it isn't committed.
-pi2 192.168.50.12
-pi3 192.168.50.13
+# Lab manager (#155): one lab Pi per line. Copy to /etc/lab-manager/pis.conf on the Pi 5.
+# Keep the real file local: it isn't committed (it holds the Pis' MACs, MASTERPLAN §3.5).
+#
+#   NAME MAC[,MAC] the address comes from the router's DHCP leases (/tmp/dhcp.leases), so
+#                  it follows the Pi when DHCP gives it a new one; the newest lease of its
+#                  MACs wins. List both of the hub's MACs: its random, stable one (while
+#                  UNKNOWN_DEVICE is on) and its real one (when that is fixed).
+#   NAME ADDRESS   a fixed IP, for a Pi with a static lease
+pi2 e4:5f:01:00:00:01
+pi3 e6:14:f0:00:00:03,dc:a6:32:00:00:03
+pi4 e4:5f:01:00:00:02
