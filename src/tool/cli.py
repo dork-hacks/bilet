@@ -33,6 +33,14 @@ def build_parser() -> argparse.ArgumentParser:
             )
             cmd.add_argument("--host", default="127.0.0.1", help="default: this computer only")
             cmd.add_argument("--port", type=int, default=8000)
+        if name == "scan":
+            cmd.add_argument(
+                "targets", nargs="*", help="addresses or ranges (default: the connected subnet)"
+            )
+            cmd.add_argument(
+                "--confirm", action="store_true", help="confirm this is your own network"
+            )
+            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
         if name == "analyze":
             cmd.add_argument("folder", type=Path, help="folder with nmap XML files")
             cmd.add_argument(
@@ -52,6 +60,29 @@ _DETECT_LABELS = {
     "ro": ("Interfață", "Adresa acestui calculator", "Rețea", "Router (gateway)"),
     "en": ("Interface", "This computer's address", "Network", "Router (gateway)"),
 }
+
+
+def scan_command(args: argparse.Namespace) -> int:
+    """Guardrail first (FR-02): nothing is scanned unless every check passes."""
+    from tool.content import detect_error_message, refusal_message
+    from tool.guardrail import Refused, authorize, build_allowlist, extra_ranges_from_env
+    from tool.network import DetectError, detect
+
+    try:
+        net = detect()
+    except DetectError as exc:
+        print(detect_error_message(exc.code, args.lang), file=sys.stderr)
+        return 1
+    try:
+        allowlist = build_allowlist(net.subnet, extra_ranges_from_env())
+        networks = authorize(args.targets or [net.subnet], allowlist, args.confirm)
+    except Refused as exc:
+        print(refusal_message(exc.code, exc.target, args.lang), file=sys.stderr)
+        print(f"({exc.code})", file=sys.stderr)
+        return 3
+    allowed = ", ".join(str(n) for n in networks)
+    print(f"Allowed: {allowed}. The live scan itself is not implemented yet (see issue #20).")
+    return 2
 
 
 def analyze_command(args: argparse.Namespace) -> int:
@@ -137,6 +168,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "serve":
         return serve(args)
+    if args.command == "scan":
+        return scan_command(args)
     if args.command == "analyze":
         return analyze_command(args)
     if args.command == "detect":
