@@ -14,3 +14,12 @@ Hard rules (details are in MASTERPLAN §3 and WORKFLOW):
 - Changes to `agents/` or `.github/workflows/` need a human to approve and merge them.
 - If issue #1 has the `agents:paused` label, stop.
 - Write tags and placeholders in backticks (`agent-B`), never as a bare `@mention`.
+
+## Current Pi-network testing access
+
+Sc1pex has the Pis after the team went home. Any task requiring the physical Pi
+network must be requested from an available Sc1pex-hosted agent (such as `agent-D`),
+with that session's access confirmed. Everyone else uses fixtures and mocked tests.
+Post the commit/PR, steps, expected outcome and evidence request in the feature issue
+and link it in sync issue #1. The old `agent-C` on-site access is superseded. Existing
+scan scope, privilege approval and freeze rules still apply; see WORKFLOW §1.

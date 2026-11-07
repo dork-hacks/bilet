@@ -15,21 +15,25 @@ Several agents may post from the same GitHub account, so **every issue comment, 
 | `[agent-A]`, `[agent-B]`, … | A Claude Code session. The letter is fixed for the whole event. |
 | `[human:<first name>]` | A teammate writing by hand. Humans may skip the tag when posting from their own account. |
 
-**Roster.** The live roster is the table in the body of the pinned sync issue (#1). Each agent edits only its own row there. This is a snapshot from 7 Nov, 18:00 UTC:
+**Roster.** The live roster is the table in the body of the pinned sync issue (#1). Each agent edits only its own row there. This roster snapshot is supplemented by the current access policy below:
 
 | Tag | Runs on | GitHub account | Areas |
 |---|---|---|---|
 | `agent-A` | Cloud dev VM (no hotspot access) | Mef05 | `area:engine`, `area:cli`, `area:guardrail`, `area:history`, `area:scan` |
 | `agent-B` | Eduard's Mac | edybostina | `area:ui`, `area:content`, `area:ai` |
-| `agent-C` | Andreea's Linux laptop (on the hotspot) | andreea110 | `area:lab`, the lab scans (see "Agents and scanning" below) |
-| `agent-D` | Sc1pex's Fedora laptop | Sc1pex | architecture, reviews; wrote the live scan (#20) as code and mocked tests |
+| `agent-C` | Andreea's Linux laptop (now off-site) | andreea110 | `area:lab`, offline work; request physical tests from Sc1pex-hosted agents |
+| `agent-D` | Sc1pex's Fedora laptop (Pi-network contact) | Sc1pex | architecture, reviews; wrote the live scan (#20) as code and mocked tests |
 | `agent-E` | andrei-riciu's Fedora laptop | andrei-riciu | offline `area:lab`, reviews. `agent-jimmygoy` is retired: its work counts as `agent-E`'s. |
 | `agent-F` | Sc1pex's Fedora laptop (separate worktree) | Sc1pex | `area:docs`, naming |
 | humans | Scanner laptop + Pis on the hotspot | own accounts | live scans on the day, the upload, the `final` tag |
 
 An agent on a machine that is **not on the hotspot** must never claim live-scan or lab tasks that need the network. It works only from nmap XML files and mocked tests.
 
-**Agents and scanning.** By default agents never run `nmap`, `sudo` or a scan. The one exception (decision on #1, 7 Nov 13:19, agreed by Mef05): `agent-C` may run the lab scans on the scanner laptop through `lab/verify`, only on `RSH-dork_unit`, with Andreea at the laptop. No other agent scans.
+**Current Pi-network access (Eduard, after the team went home).** Sc1pex has the Pis. Route every task requiring the physical Pi network to an available **Sc1pex-hosted agent**, including `agent-D` or another session on his machines with confirmed access. This follows the machine's actual access, not a single tag or GitHub account alone. Everyone else continues from XML captures, fixtures and mocked tests. `agent-C`'s earlier on-site availability is superseded.
+
+**Requesting a physical test.** Post in the originating issue, name an available Sc1pex-hosted agent and link the request in #1. Include the exact commit/PR, reproducible steps, expected result and evidence needed. This covers deployments, real service/settings checks, scan captures, full-network timing, scanner/runner parity and UI checks against the Pis. The testing agent acknowledges and posts actual results and sanitized evidence in that issue. Keep unverified hardware acceptance criteria pending; offline implementation and review can continue.
+
+**Agents and scanning.** Default restrictions on `nmap`, `sudo` and scans remain. The former `agent-C` on-site exception is no longer active. Routing tests to Sc1pex-hosted agents does not itself grant scanning or privilege permissions: execute only checks already authorized under the brief, MASTERPLAN §3 and required human approvals, only on our owned `RSH-dork_unit` lab network. Request any additional authorization from the human at Sc1pex's machine. Never test another network because a remote agent cannot reach the lab.
 
 **An absent agent** (out of usage, laptop off): whoever learns of it posts on #1 with the time and its areas. Its claims are **not** stale while it's away. Only a human moves its issues to another tag, in a comment on #1, and the owner gets them back when it returns unless that human says otherwise.
 
