@@ -176,6 +176,15 @@ Settle each line with this table. **"Keep" is the right answer unless the brief 
 
 **Pass:** every line is settled as "keep", and the file ends `… 0 skipped`, unless a skipped file is clearly not part of the Test Set.
 
+**A skipped file that belongs to the Test Set** (no `.xml` ending, for example the unreadable one): `tool analyze` also names it on stderr. Don't rename it, because the file name is a CSV column. Re-run steps 5 and 6 with `--all-files`, which reads every visible file except CSVs and `*.md`, so it gets its `ERROR` row (#203):
+
+```bash
+.venv/bin/tool analyze "$TS" --out out/testset --lang en --all-files
+.venv/bin/tool analyze "$TS" --out out/testset-run2 --lang en --all-files
+```
+
+Use the same flag in steps 8 and 11, so every run reads the same files.
+
 If a line really contradicts the brief:
 1. Open an issue (`type:bug`, `area:engine`, `prio:p0`) with the line and the brief's sentence.
 2. Fix it in a PR that keeps `make validate` green, and merge it.
@@ -259,7 +268,7 @@ done
 | **The run crashes** | A Python traceback instead of `N files, M findings, …`, so `scores.csv` isn't written. | Find the file: run `tool analyze` on each file alone, as in step 11. Open a `prio:p0` bug with the traceback and fix the crash in a PR, so the file becomes a finding or an `ERROR`. Restart at step 1. **Never edit the CSVs by hand, and never leave a file out:** the jury's re-run of that file would then not match. |
 | **A readable file gives `ERROR`** | Step 6: the file looks like a complete nmap file. | Same as a crash: a `prio:p0` bug, a fix, then step 1. The parser's message in the near-miss report says where it stopped. |
 | **The two runs differ** | Step 5 doesn't print `DETERMINISTIC`. | Don't upload. That's a determinism bug (NFR-05) and the re-run check would fail. Open a `prio:p0` bug with both CSVs. |
-| **A file is skipped** | Step 7 lists `…: not analysed`, or the file count in step 5 is short. | `.xml` files only, at the top of the folder, not hidden. Unzip and flatten the Test Set into `$TS`, then repeat from step 4. Never rename a file: the file name is a CSV column. |
+| **A file is skipped** | Step 7 lists `…: not analysed`, or the file count in step 5 is short. | `.xml` files only, at the top of the folder, not hidden. Unzip and flatten the Test Set into `$TS`, then repeat from step 4. A Test Set file without the `.xml` ending: add `--all-files` (step 7). Never rename a file: the file name is a CSV column. |
 | **A huge file is slow** | One file takes more than a few seconds. | Results are still right, so let it finish. The fix for files that repeat one IP thousands of times is #185 / PR #186. |
 | **`out/` was deleted** | `out/testset` is missing at the jury. | `$UP/testset/` holds the uploaded copy, and step 11 compares against it. |
 | **Upload form trouble** | The form refuses the files or closes. | Tell the organizers at once, with `$UP` as evidence: the CSVs, the checksums and the time. The form closes at 09:00 for everyone. |

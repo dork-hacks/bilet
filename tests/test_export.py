@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from tool.cli import main
-from tool.export import analyze_folder, scan_files
+from tool.export import analyze_folder, scan_files, skipped_files
 
 VALIDATION = Path(__file__).parent / "fixtures" / "validation"
 
@@ -119,3 +119,51 @@ def test_analyze_command_explains_broken_files_in_both_languages(tmp_path, capsy
 def test_analyze_command_missing_folder(tmp_path, capsys):
     assert main(["analyze", str(tmp_path / "nope"), "--out", str(tmp_path), "--lang", "en"]) == 2
     assert "not a folder" in capsys.readouterr().err
+
+
+# --- --all-files (#203): a Test Set file without the .xml ending ---------------------
+
+
+def _mixed_folder(tmp_path):
+    folder = tmp_path / "testset"
+    folder.mkdir()
+    shutil.copy(VALIDATION / "V1_home_basic.xml", folder / "a.xml")
+    (folder / "b_broken").write_bytes(b"<nmaprun><host>")  # no extension, truncated
+    (folder / "c.nmap").write_bytes(b"Nmap scan report for 10.0.0.1")  # nmap's text output
+    (folder / "README.md").write_text("notes")
+    (folder / "expected_scores.csv").write_text("file,network_score\r\n")
+    (folder / ".DS_Store").write_bytes(b"\0")
+    return folder
+
+
+def test_without_the_flag_only_xml_is_read_and_the_rest_is_named(tmp_path):
+    folder = _mixed_folder(tmp_path)
+    assert [p.name for p in scan_files(folder)] == ["a.xml"]
+    assert skipped_files(folder) == ["b_broken", "c.nmap"]  # CSVs, notes, hidden: not listed
+
+
+def test_all_files_gives_every_possible_scan_its_row(tmp_path):
+    folder = _mixed_folder(tmp_path)
+    report = analyze_folder(folder, tmp_path / "out", all_files=True)
+    scores = (tmp_path / "out" / "scores.csv").read_bytes().decode()
+    assert scores == "file,network_score\r\na.xml,90\r\nb_broken,ERROR\r\nc.nmap,ERROR\r\n"
+    assert report.errors == [("b_broken", "NOT_XML"), ("c.nmap", "NOT_XML")]
+    assert skipped_files(folder, all_files=True) == []
+
+
+def test_all_files_changes_nothing_for_a_folder_of_xml(tmp_path):
+    analyze_folder(VALIDATION, tmp_path / "plain")
+    analyze_folder(VALIDATION, tmp_path / "all", all_files=True)
+    for name in ("findings.csv", "scores.csv"):
+        assert (tmp_path / "plain" / name).read_bytes() == (tmp_path / "all" / name).read_bytes()
+
+
+def test_the_cli_names_skipped_files_and_reads_them_with_the_flag(tmp_path, capsys):
+    folder = _mixed_folder(tmp_path)
+    assert main(["analyze", str(folder), "--out", str(tmp_path / "o1"), "--lang", "en"]) == 0
+    err = capsys.readouterr().err
+    assert "Skipped files (not ending in .xml): b_broken, c.nmap" in err and "--all-files" in err
+    args = ["analyze", str(folder), "--out", str(tmp_path / "o2"), "--all-files", "--lang", "en"]
+    assert main(args) == 0
+    captured = capsys.readouterr()
+    assert "Skipped" not in captured.err and "3 files" in captured.out

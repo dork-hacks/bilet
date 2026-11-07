@@ -57,6 +57,17 @@ TEXT = {
     ),
     "json": ("ieșire pentru procesare automată", "machine-readable output"),
     "not_folder": ("nu este un dosar", "not a folder"),
+    "all_files": (
+        "citește și fișierele fără terminația .xml "
+        "(un fișier care nu se poate citi primește ERROR)",
+        "also read files without the .xml ending (an unreadable one gets ERROR)",
+    ),
+    "skipped": (
+        "Fișiere ignorate (nu se termină în .xml): {names}. Dacă fac parte din verificare, "
+        "rulează din nou cu --all-files.",
+        "Skipped files (not ending in .xml): {names}. If they are part of the check, "
+        "run again with --all-files.",
+    ),
     "totals": (
         "{files} fișiere, {findings} constatări, {errors} imposibil de citit",
         "{files} files, {findings} findings, {errors} unreadable",

@@ -106,6 +106,7 @@ def build_parser(lang: str = "ro") -> argparse.ArgumentParser:
             cmd.add_argument("--out", type=Path, default=Path("out"), help=cli_text("out", lang))
             cmd.add_argument("--json", action="store_true", help=cli_text("json_results", lang))
             cmd.add_argument("--save", action="store_true", help=cli_text("save", lang))
+            cmd.add_argument("--all-files", action="store_true", help=cli_text("all_files", lang))
         if name == "detect":
             cmd.add_argument("--json", action="store_true", help=cli_text("json", lang))
     return parser
@@ -210,7 +211,7 @@ def scan_command(args: argparse.Namespace) -> int:
 def analyze_command(args: argparse.Namespace) -> int:
     from tool.content import file_error_message, history_error_message
     from tool.engine.device import load_salt
-    from tool.export import analyze_folder
+    from tool.export import analyze_folder, skipped_files
 
     folder: Path = args.folder
     if not folder.is_dir():
@@ -229,7 +230,12 @@ def analyze_command(args: argparse.Namespace) -> int:
             args.save = False  # the CSVs are still written; only the history is skipped
             # --json would load the same salt again: give it a one-off one for this run.
             salt = secrets.token_hex(32).encode() if args.json else None
-    report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
+    report = analyze_folder(
+        folder, args.out, json_dir=json_dir, salt=salt, all_files=args.all_files
+    )
+    skipped = skipped_files(folder, args.all_files)
+    if skipped:  # never silent: a Test Set file without .xml would lose its ERROR row
+        print(cli_text("skipped", args.lang, names=", ".join(skipped)), file=sys.stderr)
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
     print(
