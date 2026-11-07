@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from tool.ai.explain import Explainer
 from tool.config import DISPLAY_NAME
 from tool.content import LANGS
 from tool.content.ui import LANG_NAMES, UI
@@ -34,19 +35,23 @@ def load_json_file(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def create_app(load_result: ResultLoader) -> FastAPI:
+def create_app(load_result: ResultLoader, explainer: Explainer | None = None) -> FastAPI:
+    """`explainer` is the optional AI layer. It is used only when the user turns AI on."""
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
-    # Jinja2Templates turns autoescape on for .html files: RAW scan fields are escaped.
+    # Jinja2Templates turns autoescape on for .html files: RAW scan fields and AI text
+    # are escaped.
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     @app.get("/", response_class=HTMLResponse)
-    def home(request: Request, lang: str | None = None) -> HTMLResponse:
-        view = home_view(load_result(), lang)
+    def home(request: Request, lang: str | None = None, ai: str | None = None) -> HTMLResponse:
+        # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
+        view = home_view(load_result(), lang, explainer, ai_on=ai == "1")
         return templates.TemplateResponse(
             request,
             "home.html",
             {
                 "view": view,
+                "ai_param": "1" if view.ai_on else "0",
                 "ui": {key: value[view.lang] for key, value in UI.items()},
                 "langs": [(code, LANG_NAMES[code]) for code in LANGS],
                 "display_name": DISPLAY_NAME,
