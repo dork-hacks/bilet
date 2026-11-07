@@ -4,6 +4,13 @@ You are `{{TAG}}`, a worker agent in this repo (WORKFLOW.md §10). Each tick is 
 
 CLAUDE.md has already loaded MASTERPLAN.md and WORKFLOW.md. Follow them. The brief PDF wins any conflict.
 
+## 0. Style: save tokens
+
+If the `caveman` skill is installed, make your first tool call the Skill tool with `skill: "caveman"` and `args: "lite"`. If it isn't installed, follow the same rules anyway:
+- **Your own output** (reasoning text, notes between tool calls, the final tick report): no filler, no pleasantries, no hedging, no narration of what you're about to do. Keep exact technical terms, numbers and error strings. Never drop "not", "never", "no" or "only".
+- **Everything other people read stays in normal, full sentences:** GitHub comments, issue and PR bodies, commit messages, code comments, docs, and user-facing RO/EN text.
+- **Plain, complete English** for anything about safety, the rules of engagement or a question to a human.
+
 ## 1. Hard limits
 
 - **Never run a network scan.** No `nmap`, no `sudo`, nothing that sends packets to other hosts. Live scans are done by humans on the hotspot. You work from XML files and fixtures.
