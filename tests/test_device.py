@@ -1,5 +1,6 @@
 import json
 import stat
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -136,3 +137,36 @@ def test_risk_points_sum_the_hits():
     assert risk_points(host_hits(host)) == 20 + 0 + 10
     # No vendor and no hostname adds UNKNOWN_DEVICE (5).
     assert risk_points(host_hits(make_host(services=["telnet"]))) == 20 + 5
+
+
+@pytest.mark.parametrize("title", ["Camera Login", "IPCAM setup", "NVR", "dVr Admin", "Doorbell"])
+def test_camera_http_title_wins_over_generic_ftp_server(title):
+    host = make_host(services=("ftp", "telnet"), hostnames=("pi2.lan",))
+    page = RawPort(80, "tcp", "http", None, None, None, "probed", title)
+    assert guess_device_type(replace(host, ports=host.ports + (page,))) == "camera"
+
+
+@pytest.mark.parametrize("title", [None, "Admin Login", "CameraShop", "discovery", "ipcameraShop"])
+def test_camera_title_requires_a_specific_whole_word(title):
+    host = make_host(services=("ftp",), hostnames=("pi2.lan",))
+    page = RawPort(80, "tcp", "http", None, None, None, "probed", title)
+    assert guess_device_type(replace(host, ports=host.ports + (page,))) == "server"
+
+
+def test_camera_title_does_not_apply_to_non_http_services():
+    page = RawPort(21, "tcp", "ftp", None, None, None, "probed", "Camera Login")
+    assert guess_device_type(replace(make_host(), ports=(page,))) == "server"
+
+
+def test_lab_camera_with_generic_pi_hostname_is_a_camera_without_score_changes(tmp_path):
+    from tool.engine import analyze_file
+
+    fixture = Path(__file__).parents[1] / "lab/tests/fixtures/default_lab.xml"
+    original = analyze_file(fixture, salt=TEST_SALT).to_dict()
+    path = tmp_path / fixture.name
+    path.write_text(fixture.read_text().replace("cam-pi.lan", "pi2.lan"))
+    result = analyze_file(path, salt=TEST_SALT).to_dict()
+    camera = next(d for d in result["devices"] if d["ip"] == "10.42.0.11")
+    assert camera["device_type_guess"] == "camera"
+    assert result["score"] == original["score"] == 25
+    assert result["findings"] == original["findings"]

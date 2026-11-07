@@ -39,9 +39,11 @@ class FakePis:
         self.state = {p.address: {"preset": "camera", "on": set(PRESETS["camera"])} for p in pis}
         self.down = set(down)
         self.calls = []
+        self.homes = []
 
-    def __call__(self, argv, timeout):
+    def __call__(self, argv, timeout, home=None):
         self.calls.append(argv)
+        self.homes.append(home)
         address, request = argv[-2].split("@", 1)[1], argv[-1]
         if address in self.down:
             return 255, ""
@@ -78,7 +80,9 @@ class ConfigTests(unittest.TestCase):
 
     def test_the_example_config_loads(self):
         pis = manager.load_config(LAB / "manager" / "pis.conf.example")
-        self.assertEqual([p.name for p in pis], ["pi2", "pi3"])
+        self.assertEqual([p.name for p in pis], ["pi2", "pi3", "pi4"])
+        self.assertTrue(all(p.macs and not p.address for p in pis))
+        self.assertEqual(len(pis[1].macs), 2)  # the hub: random and real MAC
 
     def test_only_private_hotspot_addresses_are_accepted(self):
         for line in (
@@ -90,10 +94,36 @@ class ConfigTests(unittest.TestCase):
             "Pi2 192.168.50.12",
             "pi2 192.168.50.12\npi2 192.168.50.13",
             "pi2;id 192.168.50.12",
+            "pi2 e4:5f:01:00:00",  # not a whole MAC
+            "pi2 e4:5f:01:00:00:01\npi3 E4:5F:01:00:00:01",  # the same MAC twice
+            "pi3 e6:14:f0:00:00:03,e6:14:f0:00:00:03",
+            "pi3 e6:14:f0:00:00:03,192.168.50.13",
         ):
             with self.subTest(line=line), self.assertRaises(manager.ConfigError):
                 self.config(line)
         self.assertEqual(len(self.config("# lab\npi2 10.42.0.5  # camera\n\n")), 1)
+        (pi,) = self.config("pi3 E6:14:F0:AA:BB:CC,dc:a6:32:00:00:03\n")
+        self.assertEqual(pi.macs, ("e6:14:f0:aa:bb:cc", "dc:a6:32:00:00:03"))
+        self.assertEqual(pi.address, "")
+
+    def test_dhcp_leases_give_each_mac_its_newest_private_address(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp, "dhcp.leases")
+            path.write_text(
+                "1799999000 e4:5f:01:00:00:01 192.168.50.158 pi2 01:e4:5f:01:00:00:01\n"
+                "1799999900 e6:14:f0:00:00:03 192.168.50.216 * *\n"
+                "1799999000 e6:14:f0:00:00:03 192.168.50.146 * *\n"  # older lease
+                "1799999000 e4:5f:01:00:00:02 8.8.8.8 evil *\n"  # not private: ignored
+                "garbage line\n"
+            )
+            self.assertEqual(
+                manager.read_leases(path),
+                {
+                    "e4:5f:01:00:00:01": (1799999000, "192.168.50.158"),
+                    "e6:14:f0:00:00:03": (1799999900, "192.168.50.216"),
+                },
+            )
+            self.assertEqual(manager.read_leases(pathlib.Path(tmp, "missing")), {})
 
     def test_presets_match_labctl(self):
         self.assertEqual(PRESETS["camera"], ["telnet", "http", "ftp"])
@@ -126,6 +156,10 @@ class ManagerTests(unittest.TestCase):
         self.assertIn("BatchMode=yes", argv)
         self.assertIn("IdentitiesOnly=yes", argv)
         self.assertEqual(argv[-2:], ["labmgr@192.168.50.12", "status"])
+        # Host keys are kept per Pi name, not per IP: a new address still matches.
+        known = f"UserKnownHostsFile={manager.STATE}/hosts/pi2/.ssh/known_hosts"
+        self.assertIn(known, argv)
+        self.assertEqual(fake.homes[0], manager.STATE / "hosts" / "pi2")
 
     def test_on_the_openwrt_router_it_uses_dropbears_client(self):
         mgr, fake = make()
@@ -149,9 +183,10 @@ class ManagerTests(unittest.TestCase):
             code, out = manager.run_ssh(
                 [sys.executable, "-c", "import os; print(os.environ['HOME'])"],
                 10,
-                home=pathlib.Path(tmp),
+                home=pathlib.Path(tmp, "pi2"),
             )
-        self.assertEqual((code, out.strip()), (0, tmp))
+            self.assertTrue(pathlib.Path(tmp, "pi2", ".ssh").is_dir())
+        self.assertEqual((code, out.strip()), (0, str(pathlib.Path(tmp, "pi2"))))
 
     def test_status_of_every_pi_and_the_expected_score(self):
         mgr, _ = make()
@@ -182,6 +217,36 @@ class ManagerTests(unittest.TestCase):
         mgr, _ = make()
         mgr.act("pi3", "preset", "hub")
         self.assertEqual(mgr.expected_score(mgr.all_status()), (25, 75))
+
+    def test_pis_listed_by_mac_follow_their_dhcp_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            leases = pathlib.Path(tmp, "dhcp.leases")
+            pis = [
+                manager.Pi("pi2", "", ("e4:5f:01:00:00:01", "dc:a6:32:00:00:01")),
+                manager.Pi("pi3", "192.168.50.13"),
+            ]
+            fake = FakePis([manager.Pi("pi2", "192.168.50.12"), pis[1]])
+            mgr = manager.Manager(pis, SERVICES, PRESETS, fake, leases=leases)
+            mgr.locate()  # no lease yet: pi2 is shown, but never asked
+            states, _ = mgr.snapshot()
+            self.assertFalse(states[0].reachable)
+            self.assertIn("no DHCP lease", states[0].error)
+            self.assertTrue(all("192.168.50.13" in c[-2] for c in fake.calls))
+            leases.write_text("1799999000 e4:5f:01:00:00:01 192.168.50.12 pi2 *\n")
+            mgr.locate()
+            self.assertEqual(mgr.pis["pi2"].address, "192.168.50.12")
+            self.assertEqual(mgr.pis["pi3"].address, "192.168.50.13")  # fixed IPs stay
+            self.assertTrue(mgr.all_status()[0].reachable)
+            page = manager.render(mgr, mgr.all_status()).decode()
+            self.assertIn('action="/locate"', page)
+            self.assertNotIn("e4:5f:01", page.lower())  # the MAC never reaches the page
+            # The Pi switched MAC (the hub's identity toggle): the newest lease wins.
+            leases.write_text(
+                "1799999000 e4:5f:01:00:00:01 192.168.50.12 pi2 *\n"
+                "1799999500 dc:a6:32:00:00:01 192.168.50.13 pi2 *\n"
+            )
+            mgr.locate()
+            self.assertEqual(mgr.pis["pi2"].address, "192.168.50.13")
 
     def test_unknown_pis_and_ops_do_nothing(self):
         mgr, fake = make()
@@ -215,10 +280,42 @@ class ManagerTests(unittest.TestCase):
         self.assertIn('id="pi-pi2"', page)
         self.assertIn('id="pi-pi3"', page)
         for svc in SERVICES:
-            self.assertIn(f"<td>{svc.name}</td>", page)
+            self.assertIn(f'value="{svc.name}"', page)
+            self.assertIn(manager.LABELS[svc.name], page)
         self.assertIn('<option value="smart-light">', page)
         self.assertIn('<option value="camera" selected>', page)
         self.assertEqual(page.count(f'value="{mgr.csrf}"'), page.count("<form"))
+        # Every switch says its state in words, not only in colour.
+        self.assertIn('aria-pressed="true" aria-label="Turn telnet off on pi2"', page)
+        self.assertIn('aria-pressed="false" aria-label="Turn rtsp on on pi2"', page)
+        self.assertNotIn("<script", page)
+
+    def test_the_page_uses_the_remembered_status(self):
+        mgr, fake = make()
+        states, _ = mgr.snapshot()
+        asked = len(fake.calls)
+        self.assertEqual(asked, 2)  # one status per Pi, the first time only
+        again, age = mgr.snapshot()
+        self.assertEqual(len(fake.calls), asked)
+        self.assertEqual([s.preset for s in again], [s.preset for s in states])
+        self.assertLess(age, 5)
+        self.assertTrue(mgr.act("pi2", "fix", "telnet"))  # the fix, then a fresh status
+        self.assertFalse(mgr.snapshot()[0][0].on["telnet"])
+
+    def test_polling_stops_when_nobody_looks(self):
+        mgr, fake = make()
+        now = [1000.0]
+        mgr.clock = lambda: now[0]
+        stop = threading.Event()
+        thread = threading.Thread(target=mgr.poll, args=(stop, 0.01), daemon=True)
+        thread.start()
+        threading.Event().wait(0.1)
+        self.assertEqual(fake.calls, [])  # nobody opened the page yet
+        mgr.snapshot()
+        threading.Event().wait(0.1)
+        self.assertGreater(len(fake.calls), 2)
+        stop.set()
+        thread.join(1)
 
 
 class HttpTests(unittest.TestCase):
@@ -356,7 +453,8 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(self.fake.calls, [])
 
     def test_a_scan_sees_no_admin_word_in_the_title(self):
-        for page in (self.request("GET", "/")[3], manager.PAGE):
+        mgr_page = manager.render(self.mgr, self.mgr.all_status()).decode()
+        for page in (self.request("GET", "/")[3], mgr_page):
             title = re.search(r"<title>(.*?)</title>", page).group(1).lower()
             for word in ("login", "admin", "config", "setup", "router", "settings"):
                 self.assertNotIn(word, title)
@@ -390,6 +488,13 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(len(self.access.sessions), manager.MAX_SESSIONS)
         self.assertFalse(self.access.valid(tokens[0]))
         self.assertTrue(self.access.valid(tokens[-1]))
+
+    def test_find_the_pis_again_needs_a_session(self):
+        body = f"csrf={self.mgr.csrf}"
+        self.assertEqual(self.request("POST", "/locate", body)[0], 403)
+        session = self.sign_in()[2].split(";")[0]
+        status, location, _, _ = self.request("POST", "/locate", body, cookie=session)
+        self.assertEqual((status, location), (303, "/?m=located"))
 
     def test_other_host_names_are_still_refused(self):
         self.assertEqual(self.request("GET", "/", host="evil.example")[0], 403)

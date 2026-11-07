@@ -42,6 +42,6 @@ def test_every_command_has_a_handler_and_reaches_it(monkeypatch):
 
 def test_an_unknown_command_is_rejected_by_argparse(capsys):
     with pytest.raises(SystemExit) as exc:
-        main(["frobnicate"])
+        main(["--lang", "en", "frobnicate"])
     assert exc.value.code == 2
     assert "invalid choice" in capsys.readouterr().err

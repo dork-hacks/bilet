@@ -94,7 +94,8 @@ def test_analyze_save_prints_the_alerts(tmp_path, monkeypatch, capsys, lang, wor
         main(["analyze", str(scans), "--out", str(tmp_path / "out"), "--save", "--lang", lang]) == 0
     )
     out = capsys.readouterr().out
-    assert "saved 2 scans" in out and word in out and "NEW_OPEN_PORT" in out
+    saved = "saved 2 scans" if lang == "en" else "S-au salvat 2 verificări"
+    assert saved in out and word in out and "NEW_OPEN_PORT" in out
     assert len(History(tmp_path / "data").scans()) == 2
 
 

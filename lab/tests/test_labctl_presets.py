@@ -14,33 +14,58 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 LAB = pathlib.Path(__file__).resolve().parents[1]
 
 FAKE_SYSTEMCTL = r"""#!/usr/bin/env bash
 # Fake systemctl: active units are lines in $FAKE_ACTIVE. lab-fake@* units are installed.
-args=(); for a in "$@"; do [[ $a == --* ]] || args+=("$a"); done
+quiet=; args=(); for a in "$@"; do [[ $a == --quiet ]] && quiet=1; [[ $a == --* ]] || args+=("$a"); done
 cmd=${args[0]}; unit=${args[1]:-}
 case $cmd in
-  is-active) grep -qx -- "$unit" "$FAKE_ACTIVE" ;;
+  is-active)  # like systemctl: one line per unit, exit 0 only if all are active
+    rc=0
+    for u in "${args[@]:1}"; do
+      if grep -qx -- "$u" "$FAKE_ACTIVE"; then s=active; else s=inactive; rc=3; fi
+      [[ -n $quiet ]] || echo "$s"
+    done
+    exit $rc ;;
   cat) [[ $unit == lab-fake@* ]] || grep -qx -- "$unit" "$FAKE_INSTALLED" ;;
   enable) grep -qx -- "$unit" "$FAKE_ACTIVE" || echo "$unit" >>"$FAKE_ACTIVE" ;;
-  disable) grep -vx -- "$unit" "$FAKE_ACTIVE" >"$FAKE_ACTIVE.tmp" || true; mv "$FAKE_ACTIVE.tmp" "$FAKE_ACTIVE" ;;
+  disable)
+    grep -vx -- "$unit" "$FAKE_ACTIVE" >"$FAKE_ACTIVE.tmp" || true
+    mv "$FAKE_ACTIVE.tmp" "$FAKE_ACTIVE" ;;
   *) exit 0 ;;
 esac
 """
 
 
+# Never add a host directory to PATH: it may also contain nmcli/systemctl.
+TEST_TOOLS = ("bash", "awk", "grep", "paste", "sed", "mv", "cat")
+UNSHARE = shutil.which("unshare")
+
+
+def isolated_path(bin_dir):
+    for tool in TEST_TOOLS:
+        found = shutil.which(tool)
+        if found is None:
+            raise RuntimeError(f"required test utility is missing: {tool}")
+        (bin_dir / tool).symlink_to(found)
+    return str(bin_dir)
+
+
 def can_unshare() -> bool:
-    if not shutil.which("unshare"):
+    true = shutil.which("true")
+    if UNSHARE is None or true is None:
         return False
-    done = subprocess.run(["unshare", "-r", "true"], capture_output=True, check=False)
+    done = subprocess.run([UNSHARE, "-r", true], capture_output=True, check=False, timeout=5)
     return done.returncode == 0
 
 
 class LabctlPresetTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         root = pathlib.Path(self.tmp.name)
         bin_dir = root / "bin"
         bin_dir.mkdir()
@@ -51,14 +76,8 @@ class LabctlPresetTests(unittest.TestCase):
         (root / "installed").write_text("")
         (root / "role").write_text("camera\n")
         self.preset_file = root / "preset"
-        # Only bash, coreutils, awk and grep from the system: no real nmcli or systemctl.
-        path = [str(bin_dir)]
-        for tool in ("bash", "awk", "grep", "paste", "sed", "mv", "cat"):
-            found = shutil.which(tool)
-            if found and str(pathlib.Path(found).parent) not in path:
-                path.append(str(pathlib.Path(found).parent))
         self.env = {
-            "PATH": ":".join(path),
+            "PATH": isolated_path(bin_dir),
             "LAB_SERVICES": str(LAB / "services.tsv"),
             "LAB_PRESETS": str(LAB / "presets.tsv"),
             "LAB_ROLE_FILE": str(root / "role"),
@@ -67,15 +86,11 @@ class LabctlPresetTests(unittest.TestCase):
             "FAKE_INSTALLED": str(root / "installed"),
             "HOME": str(root),
         }
-        self.has_nmcli = shutil.which("nmcli", path=self.env["PATH"]) is not None
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def labctl(self, *args, root=False):
         argv = ["bash", str(LAB / "labctl"), *args]
         if root:
-            argv = ["unshare", "-r", *argv]
+            argv = [UNSHARE, "-r", *argv]
         return subprocess.run(
             argv, env=self.env, capture_output=True, text=True, timeout=30, check=False
         )
@@ -86,7 +101,7 @@ class LabctlPresetTests(unittest.TestCase):
         return done.stdout.splitlines()
 
     def test_state_lists_the_preset_and_every_service(self):
-        self.assertFalse(self.has_nmcli)
+        self.assertIsNone(shutil.which("nmcli", path=self.env["PATH"]))
         self.active.write_text("lab-fake@telnet\nlab-fake@redis\n")
         lines = self.state()
         self.assertEqual(lines[0], "preset camera")  # no preset file: the installed role
@@ -94,8 +109,38 @@ class LabctlPresetTests(unittest.TestCase):
         self.assertIn("ftp off default", lines)  # the camera's preset since #128
         self.assertIn("redis on", lines)  # another role's service, on: still listed
         self.assertIn("mqtt off", lines)
+        self.assertIn("unknown off", lines)
         services = [ln.split()[0] for ln in lines[1:]]
         self.assertEqual(len(services), len(set(services)))
+
+    def test_host_network_commands_cannot_leak_into_the_test_path(self):
+        root = pathlib.Path(self.tmp.name)
+        host_bin = root / "host-bin"
+        host_bin.mkdir()
+        for tool in TEST_TOOLS:
+            (host_bin / tool).symlink_to(shutil.which(tool))
+        marker = root / "host-command-ran"
+        for tool in ("nmcli", "systemctl", "systemd-run"):
+            command = host_bin / tool
+            command.write_text(f"#!/bin/sh\necho called > '{marker}'\nexit 99\n")
+            command.chmod(0o755)
+        test_bin = root / "isolated-bin"
+        test_bin.mkdir()
+        (test_bin / "systemctl").symlink_to(root / "bin" / "systemctl")
+        with mock.patch.dict(os.environ, {"PATH": str(host_bin)}):
+            self.env["PATH"] = isolated_path(test_bin)
+        self.assertEqual(self.env["PATH"], str(test_bin))
+        for tool in ("nmcli", "systemd-run", "sudo", "nmap"):
+            self.assertIsNone(shutil.which(tool, path=self.env["PATH"]))
+        self.assertEqual(
+            pathlib.Path(shutil.which("systemctl", path=self.env["PATH"])).resolve(),
+            (root / "bin" / "systemctl").resolve(),
+        )
+        self.active.write_text("lab-fake@telnet\n")
+        lines = self.state()
+        self.assertIn("telnet on default", lines)
+        self.assertIn("unknown off", lines)
+        self.assertFalse(marker.exists())
 
     def test_lab_verify_reads_labctl_status(self):
         # lab/verify --status-file parses `labctl status` (labcheck.parse_status). Before
