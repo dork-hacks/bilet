@@ -108,6 +108,14 @@ class CardRoleTest(unittest.TestCase):
             self.assertTrue((lab / name).is_file(), name)
         self.assertTrue((lab / "fakes" / "fakesvc.py").is_file())
         self.assertTrue((self.boot / "lab-firstrun.sh").is_file())
+        # Everything setup.sh installs for the settings switches (#144).
+        for name in (
+            "switchd.py",
+            "systemd/lab-switch.socket",
+            "systemd/lab-switch@.service",
+            "systemd/lab-fake@http.service.d/switch.conf",
+        ):
+            self.assertTrue((lab / name).is_file(), name)
 
     def test_default_payload_has_no_toggles_or_packages(self):
         result = self.card_role("camera")

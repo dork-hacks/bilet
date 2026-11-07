@@ -6,9 +6,11 @@ Two Raspberry Pi 4s on the team hotspot, each playing a household device with
 requires it); only the targets are Pis.
 
 **Simulate, do not expose.** Every weak service is a fake banner (`fakes/fakesvc.py`) or a
-real daemon locked down so it grants nothing. No login ever works, client input is never
-executed, stored or logged, and every connection has a byte limit, timeouts and a
-connection cap. Only scan the team hotspot.
+real daemon locked down so it grants nothing. No login works, except the camera's settings
+page (below), whose password is the public device ID on the Pi's label and which only holds
+switches for this Pi's simulated services. Client input is never executed, stored or logged,
+and every connection has a byte limit, timeouts and a connection cap. Only scan the team
+hotspot.
 
 ## Roles and the default lab
 
@@ -106,6 +108,28 @@ on the camera → rescan (score 55). `sudo labctl fix ftp` too and its LED turns
 Then power on the optional third device for the "new device" alert (FR-13): no score change,
 and `sudo labctl break redis` on it gives "new open port".
 
+### From the device's own settings page (#144)
+
+A juror can follow the tool's own fix steps on the camera: open `http://<camera-ip>/`
+("Camera Login"), sign in as `admin` with the **device ID on the Pi's label**, and flip the
+switch the steps name ("Telnet / remote access", "Video stream (RTSP)", …). The rescan then
+shows the finding resolved.
+
+- `setup.sh` prints the device ID at the end (and keeps it in `/etc/lab/device-id`). Write it
+  on a sticker on the Pi. It is derived from `/etc/machine-id`, so it stays the same when you
+  reinstall or change the role. It is public on purpose, like a router's sticker password: not
+  the MAC, not anyone's real password.
+- The root page and its title stay exactly "Camera Login", so HTTP_ADMIN_CLEARTEXT still
+  matches; the settings live on `/settings`, which `http-title` never fetches.
+- The page can't call sudo (it runs sandboxed, with `NoNewPrivileges`). It writes one line to
+  `lab-switch.socket` (`/run/lab-switch.sock`, root:lab-web, mode 0660), and systemd starts
+  `switchd.py` as root for that one request. It accepts only `status`, `fix SERVICE` or
+  `break SERVICE` for a service of this Pi's role, and runs `labctl` with a fixed argv, never a
+  shell. Everything else gets `refused`. Only the HTTP fake is in the `lab-web` group.
+- Sessions are random, `HttpOnly`, `SameSite=Strict`, in memory only and expire after 15 min.
+  Every switch carries a CSRF token. A wrong password waits 1 s and shows the same page as
+  before.
+
 ## How the fakes run
 
 On a Pi, each fake is a systemd instance `lab-fake@<service>` running `fakesvc.py` as a
@@ -194,6 +218,9 @@ python3 -m unittest discover -s lab/tests
   Seen on pi2 (trixie, 7 Nov, before #128): `card_role.sh` installed a role, `labctl status`
   works, the `lab-fake@ftp` fake listens on 21 and the PWR LED blinks.
   The systemd units pass `systemd-analyze verify`.
+- The settings page switches (#144): offline tests only (`lab/tests/test_settings_page.py`,
+  `test_switchd.py`). The socket unit, the `lab-web` group and the drop-in still need a run on
+  a Pi: sign in, turn Telnet off, rescan.
 - SNMP: whether nmap marks the locked-down snmpd as `open` (it should, via the SNMPv3
   engine-discovery reply) still needs a scan. `lab/verify` fails it with a hint if nmap
   says `open|filtered`.
