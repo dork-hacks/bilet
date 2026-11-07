@@ -16,7 +16,7 @@ def test_version(capsys):
     assert __version__ in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("command", sorted(set(COMMANDS) - {"serve", "detect"}))
+@pytest.mark.parametrize("command", sorted(set(COMMANDS) - {"serve", "detect", "analyze"}))
 def test_unimplemented_commands_fail_clearly(command, capsys):
     assert main([command]) == 2
     assert "not implemented yet" in capsys.readouterr().err
