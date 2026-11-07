@@ -58,6 +58,16 @@
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
 
+    {% if view.alerts %}
+    <section class="alerts" aria-labelledby="alerts-heading">
+      <h2 id="alerts-heading"><span class="icon" aria-hidden="true">!</span> {{ ui.alerts_heading }}</h2>
+      <ul>
+        {% for text in view.alerts %}<li>{{ text }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
     {% if view.plan %}
     <section class="plan" aria-labelledby="plan-heading">
       <h2 id="plan-heading">{{ ui.plan_heading }}
