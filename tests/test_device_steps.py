@@ -71,3 +71,46 @@ def test_a_hostile_ip_value_is_only_text_and_never_expanded():
     steps = fix_steps("TELNET_OPEN", "en", "camera", "{url}\x1b[2J")
     assert "{url}" in steps[0]  # the value is shown as typed, not replaced again
     assert "\x1b" not in " ".join(steps)
+
+
+_FIX_MARK = {
+    "ro": "Acesta este pasul care rezolvă problema",
+    "en": "This is the step that fixes it",
+}
+
+
+@pytest.mark.parametrize(("key", "variant"), list(DEVICE_STEPS.items()))
+def test_at_most_one_step_is_marked_as_the_fix_and_both_languages_agree(key, variant):
+    marked = {
+        lang: [i for i, step in enumerate(variant[lang]) if _FIX_MARK[lang] in step]
+        for lang in LANGS
+    }
+    assert marked["ro"] == marked["en"]
+    assert len(marked["en"]) <= 1
+
+
+@pytest.mark.parametrize(("key", "variant"), list(DEVICE_STEPS.items()))
+def test_the_first_step_says_where_the_device_is(key, variant):
+    for lang in LANGS:
+        assert "{ip}" in variant[lang][0]
+
+
+@pytest.mark.parametrize("device_type", ["camera", "router", "server", "nas", "iot_hub"])
+def test_every_lab_device_type_has_at_least_one_variant(device_type):
+    assert any(t == device_type for _, t in DEVICE_STEPS)
+
+
+@pytest.mark.parametrize(
+    ("switch", "key"),
+    [
+        ("Telnet / remote access", ("TELNET_OPEN", "camera")),
+        ("HTTPS / secure connection", ("HTTP_ADMIN_CLEARTEXT", "camera")),
+        ("FTP / file sharing", ("FTP_CLEARTEXT", "server")),
+        ("Software update", ("OUTDATED_SERVICE", "server")),
+    ],
+)
+def test_lab_switch_names_match_the_fake_settings_pages(switch, key):
+    # #144 labels the lab's switches with exactly these names, in both languages.
+    for lang in LANGS:
+        text = " ".join(DEVICE_STEPS[key][lang])
+        assert f"„{switch}”" in text or f"“{switch}”" in text
