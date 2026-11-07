@@ -19,10 +19,16 @@ LAB = pathlib.Path(__file__).resolve().parents[1]
 
 FAKE_SYSTEMCTL = r"""#!/usr/bin/env bash
 # Fake systemctl: active units are lines in $FAKE_ACTIVE. lab-fake@* units are installed.
-args=(); for a in "$@"; do [[ $a == --* ]] || args+=("$a"); done
+quiet=; args=(); for a in "$@"; do [[ $a == --quiet ]] && quiet=1; [[ $a == --* ]] || args+=("$a"); done
 cmd=${args[0]}; unit=${args[1]:-}
 case $cmd in
-  is-active) grep -qx -- "$unit" "$FAKE_ACTIVE" ;;
+  is-active)  # like systemctl: one line per unit, exit 0 only if all are active
+    rc=0
+    for u in "${args[@]:1}"; do
+      if grep -qx -- "$u" "$FAKE_ACTIVE"; then s=active; else s=inactive; rc=3; fi
+      [[ -n $quiet ]] || echo "$s"
+    done
+    exit $rc ;;
   cat) [[ $unit == lab-fake@* ]] || grep -qx -- "$unit" "$FAKE_INSTALLED" ;;
   enable) grep -qx -- "$unit" "$FAKE_ACTIVE" || echo "$unit" >>"$FAKE_ACTIVE" ;;
   disable) grep -vx -- "$unit" "$FAKE_ACTIVE" >"$FAKE_ACTIVE.tmp" || true; mv "$FAKE_ACTIVE.tmp" "$FAKE_ACTIVE" ;;

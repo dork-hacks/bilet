@@ -215,10 +215,42 @@ class ManagerTests(unittest.TestCase):
         self.assertIn('id="pi-pi2"', page)
         self.assertIn('id="pi-pi3"', page)
         for svc in SERVICES:
-            self.assertIn(f"<td>{svc.name}</td>", page)
+            self.assertIn(f'value="{svc.name}"', page)
+            self.assertIn(manager.LABELS[svc.name], page)
         self.assertIn('<option value="smart-light">', page)
         self.assertIn('<option value="camera" selected>', page)
         self.assertEqual(page.count(f'value="{mgr.csrf}"'), page.count("<form"))
+        # Every switch says its state in words, not only in colour.
+        self.assertIn('aria-pressed="true" aria-label="Turn telnet off on pi2"', page)
+        self.assertIn('aria-pressed="false" aria-label="Turn rtsp on on pi2"', page)
+        self.assertNotIn("<script", page)
+
+    def test_the_page_uses_the_remembered_status(self):
+        mgr, fake = make()
+        states, _ = mgr.snapshot()
+        asked = len(fake.calls)
+        self.assertEqual(asked, 2)  # one status per Pi, the first time only
+        again, age = mgr.snapshot()
+        self.assertEqual(len(fake.calls), asked)
+        self.assertEqual([s.preset for s in again], [s.preset for s in states])
+        self.assertLess(age, 5)
+        self.assertTrue(mgr.act("pi2", "fix", "telnet"))  # the fix, then a fresh status
+        self.assertFalse(mgr.snapshot()[0][0].on["telnet"])
+
+    def test_polling_stops_when_nobody_looks(self):
+        mgr, fake = make()
+        now = [1000.0]
+        mgr.clock = lambda: now[0]
+        stop = threading.Event()
+        thread = threading.Thread(target=mgr.poll, args=(stop, 0.01), daemon=True)
+        thread.start()
+        threading.Event().wait(0.1)
+        self.assertEqual(fake.calls, [])  # nobody opened the page yet
+        mgr.snapshot()
+        threading.Event().wait(0.1)
+        self.assertGreater(len(fake.calls), 2)
+        stop.set()
+        thread.join(1)
 
 
 class HttpTests(unittest.TestCase):
@@ -356,7 +388,8 @@ class SignInTests(unittest.TestCase):
         self.assertEqual(self.fake.calls, [])
 
     def test_a_scan_sees_no_admin_word_in_the_title(self):
-        for page in (self.request("GET", "/")[3], manager.PAGE):
+        mgr_page = manager.render(self.mgr, self.mgr.all_status()).decode()
+        for page in (self.request("GET", "/")[3], mgr_page):
             title = re.search(r"<title>(.*?)</title>", page).group(1).lower()
             for word in ("login", "admin", "config", "setup", "router", "settings"):
                 self.assertNotIn(word, title)
