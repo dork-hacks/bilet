@@ -37,7 +37,7 @@ Hardware and AI work must never block the engine.
 
 ## 4. Our unique angle: 3 × Raspberry Pi 4 + 1 × Raspberry Pi 5
 
-### 4.1 "House in a box": the 3 Pi 4s are the target devices
+### 4.1 "House in a box": two Pi 4s (plus an optional third device) are the targets
 
 Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab required by hour 3).
 
@@ -45,13 +45,15 @@ Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab
 
 | Box | Plays the role of | Services (fake or empty) | Catalog codes |
 |---|---|---|---|
-| Pi 4 #1 | IP camera | RTSP on 554, HTTP page titled "Camera Login", BusyBox telnet banner on port 2323 | CAMERA_STREAM_EXPOSED, HTTP_ADMIN_CLEARTEXT, TELNET_OPEN |
-| Pi 4 #2 | Old office server | FTP banner `220 (vsFTPd 2.3.4)`, fake Redis replying `-NOAUTH`, Samba with no shares, SSH (key-only) | FTP_CLEARTEXT, OUTDATED_SERVICE, DB_EXPOSED, SMB_EXPOSED, SSH_OPEN |
-| Pi 4 #3 | "Mystery" smart hub | Mosquitto 1.6 (no data), SSDP responder on UDP 1900, locked-down snmpd, fake JetDirect on 9100, **random MAC and no hostname** | MQTT_EXPOSED, UPNP_EXPOSED, SNMP_EXPOSED, PRINTER_RAW_EXPOSED, UNKNOWN_DEVICE |
+| pi2 | IP camera that uploads clips over FTP | RTSP on 554, HTTP page titled "Camera Login", BusyBox telnet banner on port 2323, FTP banner `220 (vsFTPd 2.3.4)` | CAMERA_STREAM_EXPOSED, HTTP_ADMIN_CLEARTEXT, TELNET_OPEN, FTP_CLEARTEXT, OUTDATED_SERVICE |
+| pi3 | "Mystery" smart hub | Mosquitto 1.6 (no data), SSDP responder on UDP 1900, locked-down snmpd, fake JetDirect on 9100, **random MAC and no hostname** | MQTT_EXPOSED, UPNP_EXPOSED, SNMP_EXPOSED, PRINTER_RAW_EXPOSED, UNKNOWN_DEVICE |
+| Optional third device | Old office server, joins later (FR-13) | Nothing on by default; fake Redis, Samba with no shares as toggles | DB_EXPOSED, SMB_EXPOSED |
+
+We have two Pi 4 targets, so the default lab is the camera and the hub (#128). Every Pi runs key-only SSH (SSH_OPEN, 0 points).
 
 - **Status LEDs:** the on-board LEDs (`/sys/class/leds`) show device state. Blinking red means it has a weak service, steady green means it's fixed. No extra hardware is needed. If we have buttons, a GPIO "fix" button per Pi turns its weak service off.
 - **Tune the default lab so the score starts at about 25, not 0.** The score floors at 0, so a lab worth −50 would hide the first fixes. Enable the other services as toggles for extra captures and test fixtures.
-  - Default set: telnet (20) + HTTP admin (10) + FTP (10) + outdated vsftpd (20) + MQTT (10) + unknown device (5) + SSH (0). That is 75 points, so the score is 25, with 7 finding types.
+  - Default set: telnet (20) + HTTP admin (10) + FTP (10) + outdated vsftpd (20) on the camera, MQTT (10) + unknown device (5) on the hub, + SSH (0). That is 75 points, so the score is 25, with 7 finding types. The optional third device adds 0 until a toggle is on.
 - **Fake services must fool `nmap -sV`.** Verify that each one is labelled with the catalog's service name. Telnet needs IAC negotiation bytes, SNMP needs a valid response packet and UPnP needs an HTTP 200 reply with a `SERVER:` header to M-SEARCH.
 - Fake service scripts and setup live in `lab/` with one setup script per role.
 
@@ -59,7 +61,7 @@ Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab
 
 **Decision (agreed with the mentors, 7 Nov):** the brief's gateway doesn't have to be a phone. The organizers only expected most teams to have nothing but a phone. The Pi 5 runs our hotspot instead.
 
-- **It serves `RSH-dork_unit`** (WPA2/WPA3, DHCP and DNS) for the scanner laptop and the three Pi 4s. That avoids phone client isolation and client limits, and gives us a fixed subnet.
+- **It serves `RSH-dork_unit`** (WPA2/WPA3, DHCP and DNS) for the scanner laptop and the Pi 4s. That avoids phone client isolation and client limits, and gives us a fixed subnet.
 - **It still needs an uplink** for the cloud LLM and GitHub, for example a team phone over USB tethering or Ethernet. Don't run the uplink and the access point on the Pi 5's single built-in Wi-Fi radio: that's unreliable. Use a second interface.
 - **It appears in every scan as the router.** Lock it down so it adds nothing to the lab score: key-only SSH (SSH_OPEN, 0 points), and no admin web page, Telnet or UPnP. The default lab must still score 25.
 - **The scanner is still a laptop.** The brief requires it, so the official Test Set run and the jury's live checks happen there.
@@ -67,7 +69,7 @@ Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab
 
 ### 4.3 Demo moment
 
-The jury sees a red score. We press "fix" on the camera Pi, its LED turns green, we rescan from the laptop and the score climbs. Then we power on Pi #3 and the UI shows "A new device joined your network". This one sequence covers the history live check, FR-13 and innovation.
+The jury sees a red score. We press "fix" on the camera Pi (telnet and the admin page, then FTP, and its LED turns green), we rescan from the laptop and the score climbs. Then we power on the optional third device and the UI shows "A new device joined your network". This one sequence covers the history live check, FR-13 and innovation.
 
 ## 5. The AI layer: an LLM API that makes results easy to understand
 

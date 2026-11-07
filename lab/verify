@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """lab/verify: check what nmap -sV makes of the lab Pis (#34). See lab/CHECKLIST.md.
 
-  lab/verify --camera IP --server IP --hub IP --confirm     scan (sudo nmap), then check
-  lab/verify --camera IP --server IP --hub IP --print-only  show the nmap command only
-  lab/verify --camera IP --server IP --hub IP --xml FILE    check a capture, no scan
+  lab/verify --camera IP --hub IP --confirm     scan (sudo nmap), then check
+  lab/verify --camera IP --hub IP --print-only  show the nmap command only
+  lab/verify --camera IP --hub IP --xml FILE    check a capture, no scan
+
+The default lab is two Pis, camera and hub (#128). Add --server IP for the optional
+third device; with nothing switched on there it adds 0 points.
 
 Toggles default to services.tsv; change them with --on/--off SVC[,SVC] or --status-file.
 Exit 0 = every check passed, 1 = a check failed, 2 = refused or unreadable.
