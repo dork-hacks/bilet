@@ -35,11 +35,13 @@ def test_devices_are_most_dangerous_first():
     assert [d.ip for d in safe] == ["192.168.1.50"]  # the TV has no findings
 
 
-def test_ties_keep_the_scan_order():
+def test_equal_totals_and_peak_findings_keep_the_scan_order():
     scan = copy.deepcopy(SCAN)
     for device in scan["devices"]:
         if device["finding_ids"]:
             device["risk_points"] = 10
+    for finding in scan["findings"]:
+        finding["points"] = 10
     risky, _ = device_list(scan, "en")
     assert [d.ip for d in risky] == ["192.168.1.1", "192.168.1.40", "192.168.1.41", "192.168.1.99"]
 

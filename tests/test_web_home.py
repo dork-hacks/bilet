@@ -7,7 +7,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tool.cli import main
+from tool.content import device_type_label, finding_text
+from tool.engine.result import analyze_file
 from tool.web.app import create_app, load_json_file
+from tool.web.map_view import network_map
+from tool.web.report import report_view
 from tool.web.view import home_view, most_dangerous, score_band
 
 FIXTURES = Path(__file__).parent / "fixtures" / "contract"
@@ -32,12 +36,41 @@ def test_most_dangerous_is_the_camera_in_the_fixture():
     )
 
 
-def test_tie_goes_to_the_first_device():
+def test_equal_totals_and_peak_findings_keep_contract_ip_order():
     scan = copy.deepcopy(SCAN)
     for device in scan["devices"]:
         device["risk_points"] = 30 if device["finding_ids"] else 0
+    for finding in scan["findings"]:
+        finding["points"] = 10
     first_with_findings = next(d for d in scan["devices"] if d["finding_ids"])
     assert most_dangerous(scan)[0]["ip"] == first_with_findings["ip"]
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_v6a_priority_agrees_on_home_map_plan_and_report(lang):
+    scan = analyze_file(FIXTURES.parent / "validation/V6a_before.xml", salt=b"test").to_dict()
+    original = copy.deepcopy(scan)
+    hub_ip = "192.168.1.30"
+    device, finding = most_dangerous(scan)
+    assert device["ip"] == hub_ip
+    assert device["risk_points"] == 20
+    assert finding["code"] == "TELNET_OPEN"
+    home = home_view(scan, lang)
+    assert hub_ip in home.first.device
+    assert home.first.finding_title == finding_text("TELNET_OPEN", lang).title
+    assert home.devices[0].ip == hub_ip
+    expected_plan_start = (
+        f'{finding_text("TELNET_OPEN", lang).title} '
+        f'({device_type_label(device["device_type_guess"], lang)}):'
+    )
+    assert home.plan.steps[0].startswith(expected_plan_start)
+    report = report_view(scan, lang)
+    assert report["devices"][0]["ip"] == hub_ip
+    assert report["findings"][0]["ip"] == hub_ip
+    data = network_map(scan, lang)
+    assert data["nodes"][0]["ip"] == hub_ip
+    assert [n["ip"] for n in [data["hub"], *data["nodes"]] if n["worst"]] == [hub_ip]
+    assert scan == original
 
 
 def test_no_findings_means_nothing_to_fix():
