@@ -17,7 +17,11 @@ SCAN = json.loads((FIXTURES / "example_scan.json").read_text(encoding="utf-8"))
 
 def page(result, lang="en"):
     """The home page without the network map (#170), which draws its own icons."""
-    html = TestClient(create_app(lambda: result)).get("/", params={"lang": lang}).text
+    html = (
+        TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
+        .get("/", params={"lang": lang})
+        .text
+    )
     return re.sub(r'<section class="netmap".*?</section>', "", html, flags=re.S)
 
 

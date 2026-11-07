@@ -19,7 +19,11 @@ def test_outdated_finding_shows_escaped_product_version_or_service(lang, label, 
     ).to_dict()
     finding = next(f for f in scan["findings"] if f["code"] == "OUTDATED_SERVICE")
     finding["evidence"].update(product=product, service_name="ftp", version="2.3.4")
-    html = TestClient(create_app(lambda: scan)).get("/", params={"lang": lang}).text
+    html = (
+        TestClient(create_app(lambda: scan), base_url="http://127.0.0.1")
+        .get("/", params={"lang": lang})
+        .text
+    )
     assert label in html
     assert "2.3.4" in html
     if product is None:

@@ -31,7 +31,7 @@ def history(tmp_path):
 
 @pytest.fixture
 def client(history):
-    return TestClient(create_app(lambda: None, history=history))
+    return TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
 
 
 def open_file(client, name: str, data: bytes, lang: str = "en", **headers):

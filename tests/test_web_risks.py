@@ -18,7 +18,7 @@ VALIDATION = Path(__file__).parent / "fixtures" / "validation"
 
 
 def page(lang: str | None = None, load=lambda: None) -> str:
-    client = TestClient(create_app(load))
+    client = TestClient(create_app(load), base_url="http://127.0.0.1")
     url = "/risks" if lang is None else f"/risks?lang={lang}"
     response = client.get(url)
     assert response.status_code == 200
@@ -106,7 +106,7 @@ def test_page_links_home_and_language_switch_stays_here():
 
 def test_home_links_to_risks_and_each_finding_links_to_its_entry():
     result = analyze_file(VALIDATION / "V2_smart_home.xml", salt=b"test-salt").to_dict()
-    client = TestClient(create_app(lambda: result))
+    client = TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
     html = client.get("/?lang=en").text
     assert 'href="/risks?lang=en"' in html
     codes = {finding["code"] for finding in result["findings"]}
@@ -116,5 +116,5 @@ def test_home_links_to_risks_and_each_finding_links_to_its_entry():
 
 
 def test_history_links_to_risks():
-    client = TestClient(create_app(lambda: None))
+    client = TestClient(create_app(lambda: None), base_url="http://127.0.0.1")
     assert 'href="/risks?lang=en"' in client.get("/history?lang=en").text

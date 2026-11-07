@@ -27,7 +27,7 @@ def history(tmp_path):
 
 
 def home(history, load_result=lambda: None) -> str:
-    client = TestClient(create_app(load_result, history=history))
+    client = TestClient(create_app(load_result, history=history), base_url="http://127.0.0.1")
     res = client.get("/", params={"lang": "en"})
     assert res.status_code == 200
     return res.text
@@ -42,7 +42,7 @@ def test_newest_scan_by_nmap_start_time_wins(history):
 
 
 def test_a_scan_saved_while_running_shows_on_the_next_load(history):
-    client = TestClient(create_app(lambda: None, history=history))
+    client = TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
     assert NO_SCAN in client.get("/", params={"lang": "en"}).text
     history.add(scan(VALIDATION / "V6a_before.xml"))
     assert NO_SCAN not in client.get("/", params={"lang": "en"}).text

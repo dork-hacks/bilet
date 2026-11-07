@@ -20,7 +20,7 @@ ERROR = json.loads((FIXTURES / "example_error.json").read_text(encoding="utf-8")
 
 
 def client_for(result):
-    return TestClient(create_app(lambda: result))
+    return TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
 
 
 # --- view logic -------------------------------------------------------------------------

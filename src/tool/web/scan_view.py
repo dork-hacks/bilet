@@ -25,22 +25,23 @@ class ScanRunner(Protocol):
     def cancel(self): ...
 
 
-def local_scan_client(request: Request) -> bool:
-    """Require both a loopback peer and a literal loopback Host (DNS rebinding guard).
-
-    Forwarded headers and localhost DNS names never grant scan access.
-    """
+def loopback_host(request: Request, *, allow_localhost: bool = False) -> bool:
+    """Validate one Host authority without trusting DNS or forwarded headers."""
     try:
-        peer = ip_address(request.client.host) if request.client else None
-        authority = request.headers.get("host", "")
+        values = request.headers.getlist("host")
+        if len(values) != 1:
+            return False
+        authority = values[0]
+        if authority != authority.strip() or "%" in authority or "\\" in authority:
+            return False
         parsed = urlsplit("//" + authority)
-        host = ip_address(parsed.hostname or "")
-        # Accessing port validates malformed/out-of-range values too.
+        name = parsed.hostname or ""
+        local = allow_localhost and name == "localhost"
+        if not local:
+            local = ip_address(name).is_loopback
         port = parsed.port
         return bool(
-            peer
-            and peer.is_loopback
-            and host.is_loopback
+            local
             and not parsed.username
             and not parsed.password
             and not parsed.path
@@ -48,6 +49,15 @@ def local_scan_client(request: Request) -> bool:
             and not parsed.fragment
             and (port is None or 0 < port < 65536)
         )
+    except ValueError:
+        return False
+
+
+def local_scan_client(request: Request) -> bool:
+    """Scan controls also require a loopback peer and a literal loopback Host."""
+    try:
+        peer = ip_address(request.client.host) if request.client else None
+        return bool(peer and peer.is_loopback and loopback_host(request))
     except ValueError:
         return False
 

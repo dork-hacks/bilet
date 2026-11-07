@@ -49,7 +49,7 @@ def history(tmp_path):
 
 
 def home(history, lang="en", load_result=lambda: None) -> str:
-    client = TestClient(create_app(load_result, history=history))
+    client = TestClient(create_app(load_result, history=history), base_url="http://127.0.0.1")
     res = client.get("/", params={"lang": lang})
     assert res.status_code == 200
     return res.text

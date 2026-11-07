@@ -28,7 +28,7 @@ NODE_KEYS = {
 
 
 def client_for(result):
-    return TestClient(create_app(lambda: result))
+    return TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
 
 
 def embedded(page: str) -> dict:
