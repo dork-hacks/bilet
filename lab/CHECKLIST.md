@@ -14,19 +14,22 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
 
 ## 1. Network
 
-- [ ] The gateway (team phone or the Pi 5, see #64) runs the hotspot **`RSH-dork_unit`**:
-      WPA2 or WPA3, a strong password, **2.4 GHz** band, a mobile data limit.
+- [ ] The Pi 5 (OpenWrt, MASTERPLAN §4.2) runs the hotspot **`RSH-dork_unit`**: WPA2 or
+      WPA3, a strong password, **2.4 GHz** band. Its uplink (team phone over USB, or
+      Ethernet) is a second interface, not the access point's radio.
 - [ ] The scanner laptop joins `RSH-dork_unit` **and nothing else**: Ethernet unplugged,
       venue Wi-Fi forgotten, VPN off. `.venv/bin/tool detect --lang en` must show a single
       network with a private subnet no larger than a /24.
-- [ ] The three Pis are on the hotspot. Read their IPs from the hotspot's client list:
+- [ ] The three Pis are on the hotspot. Read their IPs from the Pi 5's DHCP leases
+      (LuCI: Status → Overview, or `cat /tmp/dhcp.leases` on the Pi 5):
       ```bash
       CAM=<camera IP>; SRV=<server IP>; HUB=<hub IP>; PI=<your SSH user>
       ROLES="--camera $CAM --server $SRV --hub $HUB"
       ```
 - [ ] **Client isolation test:** `ping -c 3 $CAM`, `ping -c 3 $SRV`, `ping -c 3 $HUB` from
       the laptop, and `ssh $PI@$CAM ping -c 3 $SRV` between two Pis. If pings fail, the
-      hotspot isolates clients: try another phone, or fall back to setup D and say so.
+      hotspot isolates clients: on the Pi 5, turn off **Isolate Clients** for the
+      `RSH-dork_unit` wireless network (LuCI: Network → Wireless → Edit → Advanced Settings).
 
 ## 2. The Pis
 
@@ -97,4 +100,7 @@ This covers the codes captures 1 and 2 don't: CAMERA_STREAM, DB, SMB, UPNP, SNMP
       closes #34, and paste the three verify summaries (the PASS lines) into it.
       `lab/captures/` stays out of git.
 - [ ] Optional, once `tool scan` exists: scan the whole hotspot subnet with it and check that
-      the laptop's own IP doesn't come out as UNKNOWN_DEVICE.
+      the laptop's own IP doesn't come out as UNKNOWN_DEVICE. The Pi 5 router shows up in
+      that scan too, and its findings count in the score: it should show at most `SSH_OPEN`
+      (key-only) and no HTTP_ADMIN_CLEARTEXT. Lock down LuCI (HTTPS only, or LAN-side
+      access off) before the jury run if it does.
