@@ -4,6 +4,7 @@ Run: python3 -m unittest discover -s lab/tests"""
 import importlib.util
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -114,21 +115,50 @@ class SetupTests(unittest.TestCase):
         body = text.split("device_id() {", 1)[1].split("\n}\n", 1)[0]
         return body.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
 
+    def generate_device_id(self, out, machine_id):
+        # Run only the extracted Python, never setup.sh or a host machine-id read.
+        harness = f"""
+import pathlib
+from unittest import mock
+
+def read_machine_id(path):
+    assert str(path) == "/etc/machine-id", path
+    return {machine_id!r}
+
+with mock.patch.object(pathlib.Path, "read_bytes", read_machine_id), \
+     mock.patch("secrets.token_bytes", return_value=b"x" * 32):
+    exec(compile({self.device_id_script()!r}, "device_id", "exec"))
+"""
+        subprocess.run(
+            [sys.executable, "-I", "-", str(out)],
+            input=harness,
+            text=True,
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+        return out.read_text().strip()
+
     def test_the_device_id_is_a_label_style_id_the_settings_page_accepts(self):
         spec = importlib.util.spec_from_file_location("fakesvc_ids", LAB / "fakes" / "fakesvc.py")
         fakesvc = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(fakesvc)
         with tempfile.TemporaryDirectory() as tmp:
             out = pathlib.Path(tmp) / "device-id"
-            subprocess.run(
-                ["python3", "-I", "-", str(out)],
-                input=self.device_id_script(),
-                text=True,
-                check=True,
-            )
-            value = out.read_text().strip()
+            value = self.generate_device_id(out, b"0123456789abcdef0123456789abcdef\n")
             self.assertEqual(fakesvc.read_device_id(str(out)), value)
+            self.assertEqual(
+                self.generate_device_id(out, b"0123456789abcdef0123456789abcdef"), value
+            )
         self.assertRegex(value, r"^LAB-[A-Z2-9]{4}-[A-Z2-9]{4}$")
+
+    def test_uninitialized_machine_ids_use_the_mocked_random_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "device-id"
+            expected = "LAB-2NM5-K9SN"  # HMAC of the mocked random key, b"x" * 32
+            for machine_id in (b"", b"uninitialized\n", b"A" * 32):
+                with self.subTest(machine_id=machine_id):
+                    self.assertEqual(self.generate_device_id(out, machine_id), expected)
 
     def test_setup_installs_and_removes_the_helper(self):
         text = (LAB / "setup.sh").read_text()
