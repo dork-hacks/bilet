@@ -35,6 +35,44 @@ MAP_LEVELS = {
 }
 
 UI = {
+    "report_link": {"ro": "Raport de tipărit", "en": "Printable report"},
+    "report_title": {"ro": "Rezumatul verificării", "en": "Check summary"},
+    "report_print": {"ro": "Tipărește / salvează PDF", "en": "Print / save PDF"},
+    "report_intro": {
+        "ro": "O pagină cu prioritățile tale. Începe cu primul pas de mai jos.",
+        "en": "One page of priorities. Start with the first step below.",
+    },
+    "report_counts": {
+        "ro": "În total: {devices} dispozitive · {findings} constatări",
+        "en": "Total: {devices} devices · {findings} findings",
+    },
+    "report_devices": {"ro": "Dispozitivele prioritare", "en": "Priority devices"},
+    "report_fixes": {
+        "ro": "Primii pași, în ordinea riscului",
+        "en": "First steps, highest risk first",
+    },
+    "report_omissions": {
+        "ro": (
+            "Rezumat: {devices} dispozitive și {findings} constatări nu sunt afișate. "
+            "Pagina principală conține toate detaliile și toți pașii de remediere."
+        ),
+        "en": (
+            "Summary: {devices} devices and {findings} findings are omitted. "
+            "The home page has the full details and all fix steps."
+        ),
+    },
+    "report_note": {
+        "ro": (
+            "Bazat doar pe această verificare și pe explicațiile standard, fără AI. "
+            "Un scor bun nu garantează siguranța. După remedieri, verifică din nou. "
+            "Pentru o pagină, tipărește pe A4 fără antetul și subsolul browserului."
+        ),
+        "en": (
+            "Based only on this check and built-in explanations, without AI. "
+            "A good score does not guarantee safety. Check again after fixes. "
+            "For one page, print on A4 with browser headers and footers off."
+        ),
+    },
     "page_title": {"ro": "Siguranța rețelei de acasă", "en": "Home network safety"},
     "score_heading": {"ro": "Scorul rețelei tale", "en": "Your network score"},
     "score_out_of": {"ro": "din 100", "en": "out of 100"},
