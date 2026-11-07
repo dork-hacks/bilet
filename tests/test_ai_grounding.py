@@ -242,12 +242,41 @@ def test_numbers_of_cited_findings_and_score_allowed():
     [
         ("Device Q is also at risk.", "Dispozitivul Q este și el în pericol."),
         ("Device AB is also at risk.", "Dispozitivului AB i se întâmplă la fel."),
+        # #219 review: lower and mixed case must not bypass the check.
+        ("Device q is also at risk.", "Dispozitivul q este și el în pericol."),
+        ("device Qx is also at risk.", "DISPOZITIVUL qX este și el în pericol."),
+        ("DEVICE z is also at risk.", "dispozitivului z i se întâmplă la fel."),
     ],
 )
 def test_invented_device_rejected(en, ro):
     ev = build_evidence(_two_devices())
     assert check({"en": en, "ro": "Text bun.", "cites": ["E1"]}, ev).reason == "en:device"
     assert check({"en": "Text ok.", "ro": ro, "cites": ["E1"]}, ev).reason == "ro:device"
+
+
+def test_known_device_in_lower_case_allowed():
+    ev = build_evidence(_two_devices())
+    en = "Turn off Telnet on device a first, then check device b."
+    ro = "Opriți întâi Telnet pe dispozitivul a, apoi verificați dispozitivul b."
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
+
+
+@pytest.mark.parametrize(
+    ("en", "ro"),
+    [
+        (
+            "The device is at risk, so the device on your Wi-Fi needs a fix.",
+            "Dispozitivul e în pericol, iar dispozitivul nu are o parolă bună.",
+        ),
+        (
+            "Restart the device to apply it.",
+            "Dispozitivul o să repornească, apoi dispozitivul se oprește.",
+        ),
+    ],
+)
+def test_ordinary_words_after_device_allowed(en, ro):
+    ev = build_evidence(_two_devices())
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
 
 
 def test_known_devices_allowed():

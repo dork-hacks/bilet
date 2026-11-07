@@ -216,6 +216,8 @@ def _poison_cache(cache, text):
     [
         "Your camera also has port 8080 open.",
         "Device Q is also at risk.",
+        "Device q is also at risk.",
+        "Dispozitivul q este și el în pericol.",
         "Your camera looks like a Hikvision model.",
     ],
 )

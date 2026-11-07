@@ -53,8 +53,18 @@ _EMAIL = re.compile(r"\b\S+@\S+\.\w+\b")
 _PHONE = re.compile(r"\+?\d[\d ()\-]{6,}\d")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 _SENTENCE_END = re.compile(r"[.!?]+(?:\s+|$)")
-# "Device C" (EN) or "Dispozitivul C" / "dispozitivului C" (RO).
-_DEVICE_REF = re.compile(r"\b(?:[Dd]evice|[Dd]ispozitiv\w*)\s+([A-Z]{1,2})\b")
+# "Device C" (EN) or "Dispozitivul C" / "dispozitivului C" (RO), in any letter case:
+# "Device q" or "DEVICE q" must not slip past the check (#219 review).
+_DEVICE_REF = re.compile(r"\b(?:device|dispozitiv\w*)\s+([a-z]{1,2})\b", re.IGNORECASE)
+# Ordinary short EN/RO words that may follow "device"/"dispozitivul" in lower case
+# ("the device is", "dispozitivul a fost"). Only these lower-case words are not treated
+# as a device name; anything else, and any capitalised letter, must be a pseudonym.
+_SHORT_WORDS = frozenset(
+    # EN
+    "a an as at be by do go he if in is it me my no of on or so to up us we".split()
+    # RO (ASCII forms; words with diacritics never match [a-z])
+    + "ai al ca ce cu da de e ei el fi i il la le li mi ne nu o pe sa se si te va".split()
+)
 _WORD = re.compile(r"[^\W\d_](?:[\w]|[-'’](?=\w))*")
 _SENTENCE_START = re.compile(r"(?:^|[.!?:;]\s+|[\"“„«(]\s*)$")
 # Plain words that may be capitalised inside a sentence without being in any of our texts.
@@ -153,8 +163,21 @@ def _product_like(word: str, sentence_start: bool) -> bool:
 
 
 def check_devices(text: str, pseudonyms: set[str]) -> bool:
-    """False if the text names a "Device X" that isn't in the evidence."""
-    return all(match.group(1) in pseudonyms for match in _DEVICE_REF.finditer(text))
+    """False if the text names a "Device X" that isn't in the evidence.
+
+    The letter is compared case-insensitively ("Device a" is Device A). A lower-case
+    ordinary word such as "is" or "a" after "device" is not a device name. That means a
+    lower-case invented "device a" (or "e", "i", "o") can pass when there is no such
+    device: a known, narrow limit of this heuristic.
+    """
+    for match in _DEVICE_REF.finditer(text):
+        letters = match.group(1)
+        if letters.upper() in pseudonyms:
+            continue
+        if letters.islower() and letters in _SHORT_WORDS:
+            continue
+        return False
+    return True
 
 
 def check_products(text: str, words: set[str]) -> bool:
