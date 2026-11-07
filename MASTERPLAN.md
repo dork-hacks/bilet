@@ -8,7 +8,7 @@
 
 ## 1. The challenge in one paragraph
 
-In 24 hours we build a tool that scans a small network we own (a phone hotspot), finds devices and open ports, classifies them using the **official finding catalog**, gives a **standard score**, explains each risk in plain **Romanian and English**, gives step-by-step fixes and keeps a **history** that shows the score improving after fixes. Users are parents and grandparents, not security experts. Jury tagline: *"not a wrapper around nmap."*
+In 24 hours we build a tool that scans a small network we own (our own hotspot), finds devices and open ports, classifies them using the **official finding catalog**, gives a **standard score**, explains each risk in plain **Romanian and English**, gives step-by-step fixes and keeps a **history** that shows the score improving after fixes. Users are parents and grandparents, not security experts. Jury tagline: *"not a wrapper around nmap."*
 
 ## 2. How we are scored, and what that means for priorities
 
@@ -41,7 +41,7 @@ Hardware and AI work must never block the engine.
 
 Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab required by hour 3).
 
-**The hotspot is `RSH-dork_unit`:** one team phone, WPA2 or WPA3, a strong password and a mobile data limit. The brief says `RSH-<team-number>`; we use our team name `dork_unit` instead (decided by Mef05, #41). Every Pi and the scanner laptop join this network and nothing else.
+**The hotspot is `RSH-dork_unit`, served by the Pi 5** (section 4.2): WPA2 or WPA3 and a strong password. The brief says `RSH-<team-number>`; we use our team name `dork_unit` instead (decided by Mef05, #41). Every Pi 4 and the scanner laptop join this network and nothing else.
 
 | Box | Plays the role of | Services (fake or empty) | Catalog codes |
 |---|---|---|---|
@@ -55,15 +55,19 @@ Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab
 - **Fake services must fool `nmap -sV`.** Verify that each one is labelled with the catalog's service name. Telnet needs IAC negotiation bytes, SNMP needs a valid response packet and UPnP needs an HTTP 200 reply with a `SERVER:` header to M-SEARCH.
 - Fake service scripts and setup live in `lab/` with one setup script per role.
 
-### 4.2 The Pi 5 is the always-on home guardian (the product vision)
+### 4.2 The Pi 5 is the hotspot (access point and router)
 
-- It runs **the same code** as the laptop: the UI, scheduled rescans, change alerts (FR-13: new device or newly opened port) and passive mDNS/SSDP listening (allowed by the rules).
-- It can optionally run a **local LLM** (Ollama with a small model) as the offline/private AI provider (see 5.5).
-- The brief says the scanner is a **laptop**. Official live checks and the Test Set run happen on the laptop. The Pi 5 is pitched as "the same tool in a home-appliance form factor". Ask a mentor before making it the official scanner.
+**Decision (agreed with the mentors, 7 Nov):** the brief's gateway doesn't have to be a phone. The organizers only expected most teams to have nothing but a phone. The Pi 5 runs our hotspot instead.
+
+- **It serves `RSH-dork_unit`** (WPA2/WPA3, DHCP and DNS) for the scanner laptop and the three Pi 4s. That avoids phone client isolation and client limits, and gives us a fixed subnet.
+- **It still needs an uplink** for the cloud LLM and GitHub, for example a team phone over USB tethering or Ethernet. Don't run the uplink and the access point on the Pi 5's single built-in Wi-Fi radio: that's unreliable. Use a second interface.
+- **It appears in every scan as the router.** Lock it down so it adds nothing to the lab score: key-only SSH (SSH_OPEN, 0 points), and no admin web page, Telnet or UPnP. The default lab must still score 25.
+- **The scanner is still a laptop.** The brief requires it, so the official Test Set run and the jury's live checks happen there.
+- **No local LLM.** 8 GB of RAM isn't enough for a useful model next to the access point, so the LLM stays in the cloud (section 5.5).
 
 ### 4.3 Demo moment
 
-The jury sees a red score. We press "fix" on the camera Pi, its LED turns green, the guardian re-checks and the score climbs. Then we power on Pi #3 and the UI shows "A new device joined your network". This one sequence covers the history live check, FR-13 and innovation.
+The jury sees a red score. We press "fix" on the camera Pi, its LED turns green, we rescan from the laptop and the score climbs. Then we power on Pi #3 and the UI shows "A new device joined your network". This one sequence covers the history live check, FR-13 and innovation.
 
 ## 5. The AI layer: an LLM API that makes results easy to understand
 
@@ -85,7 +89,7 @@ rules engine ──► findings (deterministic, no AI)
           evidence builder ── anonymises (Device A/B, no MAC, no hostname)
                      │
                      ▼
-            LLM provider interface ── cloud API | local Ollama on Pi 5 | none
+            LLM provider interface ── cloud API | none
                      │
                      ▼
           grounding checker ── rejects anything not in the evidence
@@ -95,7 +99,7 @@ rules engine ──► findings (deterministic, no AI)
         AI text shown       built-in template text shown
 ```
 
-- **A pluggable provider** chosen by env var (`LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`). The default is a cloud API (for example Claude via the Anthropic API, using a fast, cheap model). Alternatives are a local Ollama model on the Pi 5, or `none`.
+- **A pluggable provider** chosen by env var (`LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`). The provider is a cloud API (for example Claude via the Anthropic API, using a fast, cheap model), or `none`. There is no local model (section 5.5).
 - **Built-in templates are always the baseline.** Every catalog code has hand-written RO/EN explanations and 1–5 fix steps. The app is fully usable with AI turned off, and the AI only improves on these texts.
 - **Timeout of about 5 s**, then fall back to the templates. The UI shows a small label: "Explained by AI" or "Standard explanation".
 - **Cache** AI outputs by a hash of the evidence, so the demo is fast and repeatable. Pre-generate them for our lab scans.
@@ -115,9 +119,11 @@ This is a strong jury talking point, because R Systems stresses *governed* AI.
 - AI is **opt-in** with a visible toggle, and the UI says what data leaves the device.
 - The API key lives only in the environment. Never commit it, log it or send it to the frontend. All calls go through our backend.
 
-### 5.5 Optional: local LLM on the Pi 5
+### 5.5 The LLM stays in the cloud
 
-This is the privacy pitch: *"your network map never leaves your house."* Small models are weaker in Romanian, so the hand-written templates stay authoritative. The local model mainly handles Q&A. Pre-download the model at home, not over the hotspot.
+**Decision (team, 7 Nov):** no local LLM. The Pi 5's 8 GB isn't enough for a useful model, and small models are weak in Romanian anyway.
+
+The privacy pitch becomes: *"only anonymised finding codes leave your house: never MAC addresses, hostnames, IPs or banners."* The evidence builder in section 5.2 already strips those. With AI turned off, or with no API key, the app is fully usable with the hand-written RO/EN texts.
 
 ## 6. Technical architecture
 
@@ -177,7 +183,7 @@ This is the privacy pitch: *"your network map never leaves your house."* Small m
 | Owner | Part | Milestone |
 |---|---|---|
 | Senior A | Parser, rules, scoring, CSV export, golden tests | 24/24 validation rows by hour 10 |
-| Senior B | Network detection, live scan, guardrail, history/diff, Pi 5 service | Out-of-scope scan refused by hour 14 |
+| Senior B | Network detection, live scan, guardrail, history/diff | Out-of-scope scan refused by hour 14 |
 | Junior C | Pi 4 lab, fake services, LEDs, scan captures | 3 scans saved by hour 3 |
 | Junior D | UI, accessibility, RO/EN | Score, findings and history visible by hour 16 |
 | Pair | RO/EN templates for all 15 codes, CIS/OWASP mapping, AI layer + grounding checker, pitch | Templates by hour 12, AI by hour 16 |
@@ -186,11 +192,11 @@ This is the privacy pitch: *"your network map never leaves your house."* Small m
 
 | Hour | Goal |
 |---|---|
-| Before the event | Flash Pi OS Lite 64-bit and set up SSH keys. **Download all packages, images and models on home Wi-Fi** (hotspot data is limited and the scanner can't use venue Wi-Fi at the same time). Test the phone hotspot with 5 or more clients (iPhone limits clients; some Androids isolate them). Check whether pre-written code is allowed. |
+| Before the event | Flash Pi OS Lite 64-bit and set up SSH keys. **Download all packages, images and models on home Wi-Fi** (hotspot data is limited and the scanner can't use venue Wi-Fi at the same time). Test the Pi 5 hotspot with the laptop and all three Pi 4s connected: they must be able to ping each other. |
 | 0–1 | Read the validation set, ask the open questions (section 9), set up the repo skeleton, agree on the `Finding` data model. |
 | 1–3 | Lab running on the hotspot with 3 scans saved. Parser reads V1–V7. |
 | 3–10 | Rules engine reaches 24/24. Template texts. UI skeleton. Guardrail. |
-| 10–16 | Live scan, history/diff, Pi 5 guardian, AI layer and grounding checker. **Mentor check at hour 16.** |
+| 10–16 | Live scan, history/diff, AI layer and grounding checker. **Mentor check at hour 16.** |
 | 16–20 | Trap files, non-technical Romanian test, gitleaks, pitch rehearsal of all 7 live checks. |
 | 20–21 | Run on the Test Set, sanity-check the new traps against the rules, upload, **tag `final` right away**. No code changes after the upload. |
 | 21–24 | Jury: 7-minute pitch plus 8 minutes of live checks. |
@@ -202,18 +208,18 @@ This is the privacy pitch: *"your network map never leaves your house."* Small m
 - [ ] **Project name** (undecided)
 - [ ] Team size and seniority, so the split in section 7 can be adjusted
 - [ ] Scanner laptop OS (on macOS: install nmap with brew; the live scan needs sudo)
-- [ ] Pi 5 RAM (the local LLM needs 8 GB)
+- [x] Pi 5 RAM: 8 GB, not enough for a local LLM, so the LLM stays in the cloud (section 5.5)
 - [ ] Which LLM API and who holds the key (never in the repo)
 - [ ] Do we have LEDs, buttons or a small screen for the Pis?
-- [ ] Which phone acts as the hotspot (client limit, client isolation)?
-- [ ] For mentors: Samba `3.X - 4.X` handling, `method="table"` handling, whether the Pi 5 can be the official scanner
+- [x] Hotspot: the Pi 5, not a phone (agreed with the mentors, section 4.2)
+- [ ] For mentors: Samba `3.X - 4.X` handling, `method="table"` handling (the Pi 5 question is settled: it's the access point, not the scanner)
 
 ## 10. Main risks
 
 | Risk | Mitigation |
 |---|---|
 | Live re-run differs from the upload | Run the Test Set and the re-run on the same laptop with pinned dependencies |
-| Hotspot isolation or client limit | Fallback setup D (single-laptop Docker), plus lab XML captures kept in the repo |
+| Pi 5 access point fails | Fall back to a team phone hotspot named `RSH-dork_unit` (also allowed), plus the lab XML captures kept in the repo |
 | LLM slow, down or hallucinating | 5 s timeout, grounding checker, template fallback, cache |
 | Hardware eats engine time | Only Junior C works on hardware before the engine passes 24/24 |
 | Fake banners not recognised by nmap | Verify each one with `nmap -sV` during prep |
