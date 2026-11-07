@@ -1,4 +1,4 @@
-"""Command-line entry point. Each subcommand is filled in by its own issue."""
+"""Command-line entry point: `bilet` (or `tool`) analyze | detect | scan | serve."""
 
 import argparse
 import json
@@ -13,12 +13,12 @@ from pathlib import Path
 from tool import __version__
 from tool.config import DISPLAY_NAME
 
-# subcommand -> (help text, issue that implements it)
+# subcommand -> help text. Each one's handler is in HANDLERS, at the end of this file.
 COMMANDS = {
-    "analyze": ("analyse a folder of nmap XML files and write findings.csv / scores.csv", 16),
-    "detect": ("show the network this computer is connected to", 19),
-    "scan": ("scan your own network (needs --confirm and admin rights)", 20),
-    "serve": ("start the web interface", 29),
+    "analyze": "analyse a folder of nmap XML files and write findings.csv / scores.csv",
+    "detect": "show the network this computer is connected to",
+    "scan": "scan your own network (needs --confirm and admin rights)",
+    "serve": "start the web interface",
 }
 
 
@@ -37,11 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
-    for name, (help_text, _issue) in COMMANDS.items():
+    for name, help_text in COMMANDS.items():
         cmd = sub.add_parser(name, help=help_text)
         if name == "serve":
             cmd.add_argument(
-                "--result", type=Path, help="show this ScanResult JSON (until history lands)"
+                "--result", type=Path, help="show this ScanResult JSON, not the latest saved scan"
             )
             cmd.add_argument("--host", default="127.0.0.1", help="default: this computer only")
             cmd.add_argument("--port", type=int, default=8000)
@@ -313,15 +313,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command is None:
         parser.print_help()
         return 0
-    if args.command == "serve":
-        return serve(args)
-    if args.command == "scan":
-        return scan_command(args)
-    if args.command == "analyze":
-        return analyze_command(args)
-    if args.command == "detect":
-        return detect_command(args)
-    _help, issue = COMMANDS[args.command]
-    where = f" (see issue #{issue})" if issue else ""
-    print(f"'{args.command}' is not implemented yet{where}.", file=sys.stderr)
-    return 2
+    return HANDLERS[args.command](args)
+
+
+HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "analyze": analyze_command,
+    "detect": detect_command,
+    "scan": scan_command,
+    "serve": serve,
+}
