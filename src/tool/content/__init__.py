@@ -87,9 +87,9 @@ def finding_text(code: str, lang: str | None = DEFAULT_LANG) -> FindingText:
 _STEP_FIELD = re.compile(r"\{(ip|url)\}")
 
 
-def _settings_url(ip: str, web_port: int | None) -> str:
+def _settings_url(ip: str, web_port: int) -> str:
     host = f"[{ip}]" if ":" in ip else ip  # an IPv6 address needs brackets in a URL
-    if web_port is None or web_port == 80:
+    if web_port == 80:
         return f"http://{host}"
     return f"http://{host}:{web_port}"
 
@@ -114,7 +114,25 @@ def fix_steps(
         return finding_text(code, lang).steps
     clean_ip = _clean_target(ip)
     port = web_port if isinstance(web_port, int) and 0 < web_port < 65536 else None
-    values = {"ip": clean_ip, "url": _settings_url(clean_ip, port)}
+    values = {"ip": clean_ip, "url": _settings_url(clean_ip, port) if port else ""}
+    if port is None:
+        # A service such as FTP does not imply a browser-accessible settings page.
+        label = device_type_label(device_type or "unknown", lang)
+        guidance = {
+            "en": (
+                f"Open the settings for {label} at {clean_ip} using its app or the device itself. "
+                "If you cannot find them, ask whoever set it up."
+            ),
+            "ro": (
+                f"Deschideți setările pentru {label} de la {clean_ip} din aplicația sa "
+                "sau direct de pe dispozitiv. Dacă nu le găsiți, întrebați persoana "
+                "care l-a configurat."
+            ),
+        }[lang]
+        return tuple(
+            guidance if "{url}" in step else _STEP_FIELD.sub(lambda m: values[m.group(1)], step)
+            for step in variant[lang]
+        )
     return tuple(_STEP_FIELD.sub(lambda m: values[m.group(1)], step) for step in variant[lang])
 
 

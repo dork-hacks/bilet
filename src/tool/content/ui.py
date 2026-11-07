@@ -35,6 +35,7 @@ MAP_LEVELS = {
 }
 
 UI = {
+    "observed_service": {"ro": "Ce a observat verificarea", "en": "What the scan saw"},
     "scan_no_live_hosts": {
         "ro": (
             "Niciun dispozitiv nu a răspuns. Verifică legătura cu hotspot-ul tău "
