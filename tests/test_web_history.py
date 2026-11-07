@@ -76,7 +76,7 @@ def test_reverse_comparison_shows_the_problems_coming_back(before_after):
 
 def test_hostile_picker_values_fall_back_to_the_default(before_after):
     history, before, after = before_after
-    for bad in ("x", "-1", "999999", "1 OR 1=1", "9" * 40, ""):
+    for bad in ("x", "-1", "999999", "1 OR 1=1", "9" * 40, "", "²", "①", "١", "１"):
         view = history_view(history, "en", old=bad, new=bad)
         assert (view.old_id, view.new_id) == (before, after)
 
