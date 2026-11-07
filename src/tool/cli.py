@@ -85,6 +85,12 @@ _SCAN_TEXT = {
         " așa că este posibil să vi se ceară parola.",
         "en": "Checking {targets}. nmap needs admin rights, so you may be asked for your password.",
     },
+    "SELF_SKIPPED": {
+        "ro": "Acest calculator ({address}) nu este verificat: o scanare a lui însuși"
+        " nu vede ce vede restul rețelei.",
+        "en": "This computer ({address}) isn't checked: a scan of itself doesn't see"
+        " what the rest of the network sees.",
+    },
     "DONE": {
         "ro": "Scanare salvată: {path}. Scor: {score}/100, {findings} probleme găsite."
         " Vedeți rezultatele cu: tool serve",
@@ -153,8 +159,11 @@ def scan_command(args: argparse.Namespace) -> int:
         return 3
     targets = ", ".join(str(n) for n in networks)
     print(_scan_text("START", args.lang, targets=targets), flush=True)
+    print(_scan_text("SELF_SKIPPED", args.lang, address=net.address), flush=True)
     try:
-        path = live.run_scan(networks, runner=live.run_nmap, scans_dir=args.scans_dir)
+        path = live.run_scan(
+            networks, runner=live.run_nmap, scans_dir=args.scans_dir, exclude=[net.address]
+        )
     except live.ScanError as exc:
         print(_scan_text(exc.code, args.lang, targets=targets), file=sys.stderr)
         print(f"({exc.code}{': ' + exc.detail if exc.detail else ''})", file=sys.stderr)

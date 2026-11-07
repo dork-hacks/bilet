@@ -148,17 +148,24 @@ def port_scan_args(hosts: list[str], spec: str) -> list[str]:
     ] + hosts
 
 
-def live_hosts(discovery_xml: bytes, networks: list[Network]) -> list[str]:
+def live_hosts(
+    discovery_xml: bytes, networks: list[Network], exclude: Iterable[str] = ()
+) -> list[str]:
     """Up hosts from the discovery XML that lie inside an authorized range, in IP order.
-    Anything else nmap reports is dropped, so the port scan never leaves the allowlist."""
+    Anything else nmap reports is dropped, so the port scan never leaves the allowlist.
+
+    `exclude` is the scanner's own address: scanning itself goes over loopback, past its
+    own firewall, and nmap never sees its own MAC, so it would show up as an unknown device
+    with ports the rest of the network can't reach (agent-E's review of #93)."""
     try:
         scan = parse_bytes(discovery_xml, "discovery.xml")
     except ParseError as exc:
         raise ScanError(NMAP_FAILED, f"discovery output: {exc.code}") from exc
+    skip = {ipaddress.ip_address(a) for a in exclude}
     found = set()
     for host in scan.hosts:
         ip = ipaddress.ip_address(host.ip)
-        if any(ip.version == n.version and ip in n for n in networks):
+        if ip not in skip and any(ip.version == n.version and ip in n for n in networks):
             found.add(ip)
     return [str(ip) for ip in sorted(found)]
 
@@ -169,8 +176,10 @@ def run_scan(
     scans_dir: Path = Path("scans"),
     services_text: str | None = None,
     now: datetime | None = None,
+    exclude: Iterable[str] = (),
 ) -> Path:
-    """Steps 2-4 for networks the guardrail has already authorized. Returns the saved XML."""
+    """Steps 2-4 for networks the guardrail has already authorized. Returns the saved XML.
+    Addresses in `exclude` (this computer's own) are never port-scanned."""
     if not networks:
         raise ScanError(NO_LIVE_HOSTS)
     if any(n.version != 4 for n in networks):
@@ -179,7 +188,7 @@ def run_scan(
         services_text = services_file().read_text(encoding="utf-8", errors="replace")
     spec = port_spec(top_tcp_ports(services_text))
 
-    hosts = live_hosts(runner(discovery_args(networks)), networks)
+    hosts = live_hosts(runner(discovery_args(networks)), networks, exclude)
     if not hosts:
         raise ScanError(NO_LIVE_HOSTS, ", ".join(str(n) for n in networks))
     xml = runner(port_scan_args(hosts, spec))

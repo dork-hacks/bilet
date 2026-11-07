@@ -98,6 +98,11 @@ def test_live_hosts_keeps_only_up_hosts_inside_the_ranges():
     assert live.live_hosts(xml, [net(V1_NET)]) == ["192.168.1.1", "192.168.1.20"]
 
 
+def test_live_hosts_skips_the_scanners_own_address():
+    xml = discovery("192.168.1.1", "192.168.1.30")
+    assert live.live_hosts(xml, [net(V1_NET)], exclude=["192.168.1.30"]) == ["192.168.1.1"]
+
+
 def test_live_hosts_rejects_unreadable_discovery_output():
     with pytest.raises(live.ScanError) as exc:
         live.live_hosts(b"not xml", [net(V1_NET)])
@@ -214,6 +219,8 @@ def test_scan_saves_analyses_and_stores_in_history(lab, tmp_path, capsys):
     assert "Score: 90/100" in out and str(saved[0]) in out
     assert "saved 1 scans to the local history" in out
     assert len(History(tmp_path / "data").scans()) == 1
+    # This computer (192.168.1.30) answered discovery but is never port-scanned.
+    assert lab.calls[1][-1] == "192.168.1.1" and "192.168.1.30" in out
 
 
 @pytest.mark.parametrize(
