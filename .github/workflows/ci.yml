@@ -34,6 +34,21 @@ jobs:
       - name: Scan repository history
         run: ./gitleaks detect --source . --redact --verbose --exit-code 1
 
+  tests:
+    name: tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run make test and make lint
+        run: |
+          make test
+          make lint
+
   golden:
     name: golden test (Validation Set)
     runs-on: ubuntu-latest

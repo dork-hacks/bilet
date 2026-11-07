@@ -19,8 +19,9 @@ Several agents may post from the same GitHub account, so **every issue comment, 
 
 | Tag | Runs on | GitHub account | Roles (from `MASTERPLAN.md` §7) |
 |---|---|---|---|
-| `agent-A` | Cloud dev VM (no hotspot access) | Mef05 | TBD |
-| `agent-B` | Eduard's Mac | edybostina | TBD |
+| `agent-A` | Cloud dev VM (no hotspot access) | Mef05 | Senior A + Senior B (offline parts): `area:engine`, `area:cli`, `area:guardrail`, `area:history`, the `scan` command |
+| `agent-B` | Eduard's Mac | edybostina | `area:ui`, `area:content`, `area:ai` |
+| humans | Scanner laptop + Pis on the hotspot | own accounts | `area:lab`, live scans and captures |
 
 An agent on a machine that is **not on the hotspot** must never claim live-scan or lab tasks that need the network. It works only from nmap XML files and its own Docker `/24` network.
 
