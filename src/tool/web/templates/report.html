@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="{{ view.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ui.report_title }} · {{ display_name }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #faf6ef; color: #302b25; font: 16px/1.4 system-ui, sans-serif; }
+    main, nav { max-width: 760px; margin: 1rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.65rem; margin: 0 0 .4rem; }
+    h2 { font-size: 1.15rem; margin: .8rem 0 .4rem; }
+    h3 { font-size: 1rem; margin: 0; }
+    p { margin: .35rem 0; }
+    a { color: #624125; } a:focus-visible, button:focus-visible { outline: 3px solid #624125; outline-offset: 3px; }
+    nav { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    button { font: inherit; color: #fff; background: #624125; border: 0; border-radius: .5rem; padding: .6rem 1rem; cursor: pointer; }
+    .summary, article { background: #fffdf8; border: 1px solid #85715b; border-radius: .6rem; padding: .65rem .85rem; margin: .5rem 0; break-inside: avoid; }
+    .number { font-size: 2rem; font-weight: 750; }
+    ol { margin: .4rem 0; padding-left: 1.6rem; }
+    li { padding-left: .2rem; }
+    ul { margin: .35rem 0; padding-left: 1.3rem; }
+    .note { border-top: 1px solid #85715b; padding-top: .5rem; }
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { background: white; }
+      nav { display: none; }
+      main { max-width: none; margin: 0; padding: 0; }
+      .summary, article { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <nav aria-label="{{ ui.report_title }}">
+    <a href="/?lang={{ view.lang }}">{{ ui.open_back }}</a>
+    {% for code, name in langs %}<a href="/report?lang={{ code }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}" {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a>{% endfor %}
+    <button type="button" onclick="window.print()">{{ ui.report_print }}</button>
+  </nav>
+  <main>
+    <h1>{{ display_name }} · {{ ui.report_title }}</h1>
+    <p>{{ ui.report_intro }}</p>
+    {% if view.kind == "empty" %}
+    <p>{{ ui.no_scan }}</p>
+    {% elif view.kind == "error" %}
+    <section role="alert"><h2>{{ ui.error_heading }}</h2><p>{{ view.error_message }}</p></section>
+    {% else %}
+    <section class="summary" aria-labelledby="score-heading">
+      <h2 id="score-heading">{{ ui.score_heading }}</h2>
+      <p><span class="number">{{ view.score }}</span> {{ ui.score_out_of }} · {{ view.band.icon }} {{ view.band.label }}</p>
+      <p>{{ ui.report_counts.replace("{devices}", view.device_count|string).replace("{findings}", view.finding_count|string) }}</p>
+    </section>
+    <section aria-labelledby="report-devices">
+      <h2 id="report-devices">{{ ui.report_devices }}</h2>
+      <ul>{% for device in view.devices %}<li>{{ device.label }} · {{ device.ip }} · {{ ui.points.replace("{n}", device.points|string) }}{% if device.mac %} · {{ device.mac }}{% endif %}</li>{% endfor %}</ul>
+    </section>
+    <section aria-labelledby="report-fixes">
+      <h2 id="report-fixes">{{ ui.report_fixes }}</h2>
+      {% if view.findings %}
+      <ol>{% for finding in view.findings %}<li><article>
+        <h3>{{ finding.title }} · {{ finding.ip }}</h3>
+        <p>{{ finding.severity }} · {{ ui.points.replace("{n}", finding.points|string) }}</p>
+        <p><strong>{{ ui.do_first }}</strong> {{ finding.step }}</p>
+      </article></li>{% endfor %}</ol>
+      {% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
+    </section>
+    <p class="note">{{ ui.report_omissions.replace("{devices}", view.omitted_devices|string).replace("{findings}", view.omitted_findings|string) }}</p>
+    {% endif %}
+    <p class="note">{{ ui.report_note }}</p>
+  </main>
+</body>
+</html>

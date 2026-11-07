@@ -62,6 +62,7 @@
       {% endif %}
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+    <p><a class="button" href="/report?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.report_link }}</a></p>
     {# The "Check again" button (#135) goes here, right under "Do this first". #}
 
     {% if view.alerts %}
