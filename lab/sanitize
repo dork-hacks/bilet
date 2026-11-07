@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""lab/sanitize: turn a raw lab capture into a test fixture (#34). See lab/CHECKLIST.md.
+
+  lab/sanitize lab/captures/scan_X.xml L1_default.xml --camera IP --server IP --hub IP
+
+Writes tests/fixtures/lab/L1_default.xml with:
+- the device half of every MAC replaced (the OUI, so the vendor, stays): camera :00:00:01,
+  server :00:00:02, hub :00:00:03, any other MAC :00:00:00;
+- every real hostname replaced by the role name, wherever it appears;
+- every host that isn't one of the three Pis removed.
+Then prints the expected findings.csv rows from services.tsv and the toggles
+(--on/--off/--status-file, as for lab/verify); --expected also writes them into
+tests/fixtures/lab/expected_findings.csv and expected_scores.csv.
+"""
+
+import sys
+from pathlib import Path
+
+if sys.version_info < (3, 11):  # noqa: UP036 - the laptop may run an older python3
+    sys.exit("lab/sanitize needs Python 3.11 or newer")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # works under python3 -I too
+import labcheck  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(labcheck.sanitize_main())
