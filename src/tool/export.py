@@ -25,6 +25,7 @@ class Report:
     files: int = 0
     findings: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)  # (file, error code)
+    results: list[ScanResult] = field(default_factory=list)  # in file order
 
 
 def scan_files(folder: Path) -> list[Path]:
@@ -72,6 +73,7 @@ def analyze_folder(
     for path in scan_files(folder):
         result = analyze_file(path, salt=salt)
         report.files += 1
+        report.results.append(result)
         if result.status != "ok":
             report.errors.append((result.file, (result.error or {}).get("code", "")))
         rows = finding_rows(result)

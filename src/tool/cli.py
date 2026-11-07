@@ -41,6 +41,9 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--json", action="store_true", help="also write one ScanResult JSON per file"
             )
+            cmd.add_argument(
+                "--save", action="store_true", help="also store the scans in the local history"
+            )
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
         if name == "detect":
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
@@ -56,6 +59,7 @@ _DETECT_LABELS = {
 
 def analyze_command(args: argparse.Namespace) -> int:
     from tool.content import file_error_message
+    from tool.engine.device import load_salt
     from tool.export import analyze_folder
 
     folder: Path = args.folder
@@ -63,14 +67,46 @@ def analyze_command(args: argparse.Namespace) -> int:
         print(f"{folder}: not a folder", file=sys.stderr)
         return 2
     json_dir = args.out / "json" if args.json else None
-    report = analyze_folder(folder, args.out, json_dir=json_dir)
+    # History keys devices with the private local salt; CSV-only runs never need it.
+    salt = load_salt() if args.save else None
+    report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
     print(
         f"{report.files} files, {report.findings} findings, {len(report.errors)} unreadable"
         f" -> {args.out / 'findings.csv'}, {args.out / 'scores.csv'}"
     )
+    if args.save:
+        save_and_alert(report.results, args.lang)
     return 0
+
+
+# Until area:content adds alert texts to tool.content (asked on #22).
+_ALERT_TEXT = {
+    "NEW_DEVICE": {
+        "ro": "Un dispozitiv nou a apărut în rețea: {ip}",
+        "en": "A new device joined your network: {ip}",
+    },
+    "NEW_OPEN_PORT": {
+        "ro": "Un serviciu nou este deschis pe {ip}, portul {port}/{protocol}",
+        "en": "A new service is open on {ip}, port {port}/{protocol}",
+    },
+}
+
+
+def save_and_alert(results: list, lang: str) -> None:
+    """Store readable results in the history and print what appeared since the last scan."""
+    from tool.history import History
+
+    history = History()
+    ids = [history.add(r) for r in results if r.status == "ok"]
+    print(f"saved {len(ids)} scans to the local history")
+    if not ids:
+        return
+    newest = max(ids, key=[s.id for s in history.scans()].index)
+    for alert in history.alerts_for(newest):
+        text = _ALERT_TEXT[alert.code][lang]
+        print(text.format(ip=alert.ip, port=alert.port, protocol=alert.protocol), f"({alert.code})")
 
 
 def detect_command(args: argparse.Namespace) -> int:
