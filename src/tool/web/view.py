@@ -5,6 +5,7 @@ comes from tool.content. RAW scan fields are passed through as data and escaped 
 template (Jinja autoescape), never here.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from tool.ai.evidence import build_evidence
@@ -12,6 +13,7 @@ from tool.ai.explain import SOURCE_TEMPLATE, Explainer, clean_question, summary_
 from tool.content import (
     DEFAULT_LANG,
     LANGS,
+    alert_message,
     device_type_label,
     file_error_message,
     finding_text,
@@ -19,6 +21,7 @@ from tool.content import (
     standards_line,
 )
 from tool.content.ui import SCORE_BANDS, UI
+from tool.history import Alert
 
 GOOD_FROM = 80  # score >= 80: green
 WARN_FROM = 50  # score >= 50: amber, below: red
@@ -102,6 +105,7 @@ class HomeView:
     plan: Plan | None = None  # None when nothing scores points
     reply: QuestionReply | None = None  # the answer to the owner's question, if they asked
     ai_blocked: int | None = None  # AI answers the safety check replaced; None with AI off
+    alerts: tuple[str, ...] = ()  # what appeared since the previous check (FR-13), as text
 
 
 def explain_first(
@@ -221,16 +225,28 @@ def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[
     return tuple(risky), tuple(safe)
 
 
+def alert_texts(alerts: Iterable[Alert], lang: str) -> tuple[str, ...]:
+    """The RO/EN sentence for each change alert. Only the IP, port and protocol are used:
+    never the device key, a MAC or a hostname."""
+    return tuple(
+        alert_message(a.code, a.ip, port=a.port, protocol=a.protocol, lang=lang) for a in alerts
+    )
+
+
 def home_view(
     result: dict | None,
     lang: str | None = DEFAULT_LANG,
     explainer: Explainer | None = None,
     ai_on: bool = False,
     question: str | None = None,
+    alerts: Iterable[Alert] = (),
 ) -> HomeView:
     """The home screen. `explainer` is used only when the user opted in (`ai_on`).
 
     `question` is the owner's typed question (untrusted); it is answered only with AI on.
+    `alerts` are the history's change alerts for this scan (#78), shown only for a readable
+    scan. Their values come from scan files: the text is built by tool.content and the
+    template escapes it.
     """
     lang = pick_lang(lang)
     ai_available = explainer is not None and explainer.provider is not None
@@ -277,5 +293,6 @@ def home_view(
         reply=reply,
         # Counted after this page's AI calls, so the number includes them.
         ai_blocked=active.rejection_count() if active is not None else None,
+        alerts=alert_texts(alerts, lang),
         **ai,
     )
