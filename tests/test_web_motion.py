@@ -43,7 +43,7 @@ def test_every_animation_and_transition_sits_behind_the_reduced_motion_guard():
 
 @pytest.mark.parametrize("lang", ["en", "ro"])
 def test_the_real_score_stays_visible_and_accessible_without_a_count_up(lang):
-    client = TestClient(create_app(lambda: scan("V6a_before.xml")))
+    client = TestClient(create_app(lambda: scan("V6a_before.xml")), base_url="http://127.0.0.1")
     html = client.get("/", params={"lang": lang}).text
     score = scan("V6a_before.xml")["score"]
     assert f'<span class="number">{score}</span>' in html
@@ -62,7 +62,7 @@ def test_resolved_findings_get_a_hidden_check_mark(tmp_path, lang):
     history = History(tmp_path / "data")
     history.add(scan("V6a_before.xml"))
     history.add(scan("V6b_after.xml"))
-    client = TestClient(create_app(lambda: None, history=history))
+    client = TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
     html = client.get("/history", params={"lang": lang}).text
     marks = html.count('<span class="done-mark" aria-hidden="true">✓</span>')
     assert marks == 3  # the brief's V6a -> V6b pair fixes three problems

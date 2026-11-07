@@ -42,7 +42,7 @@ The scan first finds the devices that are up, then checks only those: the top 1,
 bilet serve
 ```
 
-Then open <http://127.0.0.1:8000>. By default it listens on this computer only. `--port` changes the port. Don't use `--host 0.0.0.0` or your network address: the interface has no password, so anyone on the same Wi-Fi could see your results and delete your history. It refuses to start as root: only the live scan's nmap step ever needs admin rights. Every page has a Română / English switch.
+Then open <http://127.0.0.1:8000>. By default it listens on this computer only. `--port` changes the port. Don't use `--host 0.0.0.0` or your network address: the interface has no password, so anyone on the same Wi-Fi could see your results and delete your history. It refuses to start as root: only the live scan's nmap step ever needs admin rights. The app accepts only loopback Host names/addresses (localhost, 127.0.0.1 or ::1) and refuses framing. Network-address URLs and custom DNS names are rejected. Every page has a Română / English switch.
 
 - **Home (`/`):** the score as a traffic light (icon, label and number), the most dangerous device and the first thing to do, then every device with its problems and fix steps, and an alert when a new device or a new open port appears. It shows the newest scan in the history; `--result path/to/result.json` (from `bilet analyze --json`) shows that file instead. "Open a scan file" checks any nmap XML file without saving it, and a broken file gives a plain error, not a crash.
 - **Every risk explained (`/risks`):** the explanation and fix steps for all 15 problem types, with their CIS Controls and OWASP IoT references.

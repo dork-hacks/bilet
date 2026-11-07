@@ -180,7 +180,7 @@ def client(tmp_path):
     history = History(tmp_path / "data")
     history.add(scan("V6a_before.xml"))
     history.add(scan("V6b_after.xml"))
-    return TestClient(create_app(lambda: None, history=history))
+    return TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
 
 
 def upload(client, lang: str, name: str, data: bytes):

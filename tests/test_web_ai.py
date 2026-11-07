@@ -42,7 +42,9 @@ def top_template(lang):
 
 
 def get(explainer, **params):
-    return TestClient(create_app(lambda: SCAN, explainer=explainer)).get("/", params=params)
+    return TestClient(
+        create_app(lambda: SCAN, explainer=explainer), base_url="http://127.0.0.1"
+    ).get("/", params=params)
 
 
 # --- view ---------------------------------------------------------------------------------

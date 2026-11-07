@@ -58,7 +58,11 @@ def test_each_finding_item_carries_its_references():
 
 def test_page_shows_the_references_in_both_languages():
     for lang in ("ro", "en"):
-        html = TestClient(create_app(lambda: SCAN)).get("/", params={"lang": lang}).text
+        html = (
+            TestClient(create_app(lambda: SCAN), base_url="http://127.0.0.1")
+            .get("/", params={"lang": lang})
+            .text
+        )
         assert UI["standards"][lang] in html
         assert "OWASP IoT Top 10:" in html
 
@@ -97,7 +101,7 @@ def test_blocked_count_only_with_ai_on(tmp_path):
 def test_page_shows_the_blocked_count_with_ai_on(tmp_path):
     log = tmp_path / "ai_rejections.jsonl"
     explainer = Explainer(SilentProvider(), rejection_log=log)
-    app = TestClient(create_app(lambda: SCAN, explainer=explainer))
+    app = TestClient(create_app(lambda: SCAN, explainer=explainer), base_url="http://127.0.0.1")
     off = app.get("/", params={"lang": "en", "ai": "0"}).text
     assert UI["ai_blocked"]["en"].split("{n}")[0] not in off
     for lang in ("ro", "en"):
