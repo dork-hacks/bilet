@@ -37,7 +37,9 @@ where = ["src"]
 "tool.web" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# lab/tests are plain unittest files (they also run on a Pi without pytest); listing them
+# here makes CI's `make test` run them too (#108).
+testpaths = ["tests", "lab/tests"]
 addopts = "-q"
 
 [tool.ruff]
