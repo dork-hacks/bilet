@@ -1,0 +1,97 @@
+<section class="ask chat" aria-labelledby="ask-heading">
+  <h2 id="ask-heading">{{ ui.ask_heading }}</h2>
+  <div class="chat-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ ui.ask_heading }}">
+    <div class="chat-message assistant">
+      <p>{{ ui.chat_welcome }}</p>
+      {% if not view.ai_on or not view.ai_available %}
+      <p>{{ ui.chat_off }}</p>
+      {% if view.plan and view.plan.steps %}
+      <ol>{% for step in view.plan.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+      {% else %}<p>{{ ui.ai_summary_nothing }}</p>{% endif %}
+      <span class="source-tag">{{ ui.standard_explanation }}</span>
+      {% endif %}
+    </div>
+    {% if view.reply %}
+    <div class="chat-message owner"><p><strong>{{ ui.ask_you_asked }}</strong> {{ view.reply.question }}</p></div>
+    <div class="chat-message assistant chat-answer">
+      <p><strong>{{ ui.ask_answer }}</strong> {{ view.reply.text }}</p>
+      <span class="source-tag">{% if view.reply.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span>
+    </div>
+    {% endif %}
+  </div>
+  <form method="post" action="/ask" class="chat-form">
+    <input type="hidden" name="lang" value="{{ view.lang }}">
+    <input type="hidden" name="ai" value="{{ ai_param }}">
+    <label for="ask-q">{{ ui.ask_label }}</label>
+    <p class="muted" id="ask-hint">{{ ui.ask_hint }}</p>
+    <input type="text" id="ask-q" name="q" maxlength="300" required aria-describedby="ask-hint" autocomplete="off">
+    <div class="chat-suggestions" hidden>
+      <button type="button" class="suggestion">{{ ui.chat_first }}</button>
+      <button type="button" class="suggestion">{{ ui.chat_device }}</button>
+    </div>
+    <button class="button" type="submit">{{ ui.ask_button }}</button>
+  </form>
+  <p class="chat-status muted" role="status" data-wait="{{ ui.chat_wait }}" data-error="{{ ui.chat_error }}"></p>
+</section>
+<script>
+(() => {
+  const chat = document.querySelector('.chat');
+  if (!chat || !window.fetch || !window.DOMParser) return;
+  const form = chat.querySelector('form');
+  const input = form.querySelector('[name=q]');
+  const log = chat.querySelector('.chat-log');
+  const status = chat.querySelector('.chat-status');
+  const controls = form.querySelectorAll('button');
+  let pending = false;
+  chat.querySelector('.chat-suggestions').hidden = false;
+  chat.querySelectorAll('.suggestion').forEach(button => {
+    button.addEventListener('click', () => {
+      input.value = button.textContent;
+      input.focus();
+    });
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (pending || !input.value.trim()) return;
+    pending = true;
+    const question = input.value;
+    const body = new URLSearchParams(new FormData(form));
+    controls.forEach(button => { button.disabled = true; });
+    input.readOnly = true;
+    status.textContent = status.dataset.wait;
+    status.classList.add('waiting');
+    try {
+      const response = await fetch(form.action, { method: 'POST', body });
+      if (!response.ok) throw new Error('request');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const answer = page.querySelector('.chat-answer');
+      if (!answer) throw new Error('answer');
+      const owner = document.createElement('div');
+      owner.className = 'chat-message owner';
+      const text = document.createElement('p');
+      text.textContent = question;
+      owner.append(text);
+      // Only text nodes are copied from the server response; never interpret AI HTML.
+      const reply = document.createElement('div');
+      reply.className = 'chat-message assistant';
+      answer.querySelectorAll('p, .source-tag').forEach(node => {
+        const part = document.createElement(node.matches('p') ? 'p' : 'span');
+        if (part.tagName === 'SPAN') part.className = 'source-tag';
+        part.textContent = node.textContent;
+        reply.append(part);
+      });
+      log.append(owner, reply);
+      input.value = '';
+      status.textContent = '';
+    } catch (_) {
+      status.textContent = status.dataset.error;
+    } finally {
+      pending = false;
+      controls.forEach(button => { button.disabled = false; });
+      input.readOnly = false;
+      status.classList.remove('waiting');
+      input.focus();
+    }
+  });
+})();
+</script>

@@ -89,28 +89,8 @@
     {% endif %}
 
     {# Questions are about the latest scan, so the form is left out for an opened file. #}
-    {% if view.ai_on and view.ai_available and not opened %}
-    <section class="ask" aria-labelledby="ask-heading">
-      <h2 id="ask-heading">{{ ui.ask_heading }}</h2>
-      <form method="post" action="/ask">
-        <input type="hidden" name="lang" value="{{ view.lang }}">
-        <input type="hidden" name="ai" value="1">
-        <label for="ask-q">{{ ui.ask_label }}</label>
-        <p class="muted" id="ask-hint">{{ ui.ask_hint }}</p>
-        <input type="text" id="ask-q" name="q" maxlength="300" required
-               aria-describedby="ask-hint" autocomplete="off">
-        <button class="button" type="submit">{{ ui.ask_button }}</button>
-      </form>
-      <div aria-live="polite">
-      {% if view.reply %}
-      <div class="reply">
-        <p><strong>{{ ui.ask_you_asked }}</strong> {{ view.reply.question }}</p>
-        <p><strong>{{ ui.ask_answer }}</strong> {{ view.reply.text }}
-          <span class="source-tag">{% if view.reply.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p>
-      </div>
-      {% endif %}
-      </div>
-    </section>
+    {% if not opened %}
+    {% include "_chat.html" %}
     {% endif %}
 
     {% if view.devices or view.safe_devices %}

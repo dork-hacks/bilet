@@ -116,10 +116,30 @@
     .changes h3 { font-size: 1.1rem; margin: 1rem 0 .25rem; }
     /* Phones: less padding, the score stacks, wide tables scroll instead of overflowing. */
     @media (max-width: 32rem) {
-      body { padding: .75rem .75rem 2rem; }
+      body { padding: .75rem .75rem 2rem; overflow-wrap: anywhere; }
+      .score > div { min-width: 0; }
+      .source-tag { white-space: normal; }
       .score { padding: 1.1rem; gap: 1rem; }
       .score .number { font-size: 2.8rem; }
       .device, .first { padding: .85rem 1rem; }
       table { display: block; overflow-x: auto; }
+    }
+    /* Chat stays local to this page; messages wrap even long hostile input. */
+    .chat-log { display: flex; flex-direction: column; gap: .75rem; }
+    .chat-message { max-width: 85%; padding: .75rem 1rem; border-radius: 1rem;
+                    overflow-wrap: anywhere; }
+    .chat-message p { margin: .25rem 0 .5rem; }
+    .chat-message.assistant { align-self: flex-start; background: #ffffff; }
+    .chat-message.owner { align-self: flex-end; background: #efe5d6; }
+    .chat-suggestions { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chat-suggestions[hidden] { display: none; }
+    .ask button.suggestion { background: #ffffff; color: #0f5c57; text-align: left;
+                            white-space: normal; }
+    .ask button.suggestion:hover { background: #efe5d6; }
+    .chat button:disabled { cursor: wait; opacity: .65; }
+    .chat-status { min-height: 1.6em; }
+    @media (prefers-reduced-motion: no-preference) {
+      .chat-status.waiting { animation: chat-wait 1.4s ease-in-out infinite alternate; }
+      @keyframes chat-wait { from { opacity: 1; } to { opacity: .6; } }
     }
   </style>
