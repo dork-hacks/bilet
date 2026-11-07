@@ -52,4 +52,10 @@ make test
 make lint
 ```
 
-CI runs gitleaks, the tests and the lint check on every PR.
+```bash
+make validate
+```
+
+`make validate` is the golden test: it runs the CSV export on the organizers' Validation Set and checks both files are byte-identical to their answer key, and that two runs give the same bytes. Once our own trap files land (#23), it checks those too.
+
+CI runs gitleaks, the tests, the lint check and `make validate` on every PR.

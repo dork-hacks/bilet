@@ -2,7 +2,7 @@ PYTHON ?= python3.12
 VENV   ?= .venv
 BIN    := $(VENV)/bin
 
-.PHONY: setup test lint clean
+.PHONY: setup test lint validate clean
 
 # One-command setup (NFR-10): creates the virtualenv and installs pinned dependencies.
 setup: $(BIN)/tool
@@ -17,11 +17,13 @@ test: setup
 	$(BIN)/pytest
 
 lint: setup
-	$(BIN)/ruff check src tests
-	$(BIN)/ruff format --check src tests
+	$(BIN)/ruff check src tests scripts
+	$(BIN)/ruff format --check src tests scripts
 
-# `make validate` (the golden test against the Validation Set) arrives with issue #17.
-# CI runs it automatically as soon as the target exists.
+# Golden test (#17): the CSV export against the organizers' answer key (byte for byte)
+# and our own trap files. CI's golden job runs it on every push and PR.
+validate: setup
+	$(BIN)/python scripts/validate.py
 
 clean:
 	rm -rf $(VENV) .pytest_cache .ruff_cache src/*.egg-info
