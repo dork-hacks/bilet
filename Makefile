@@ -2,7 +2,7 @@ PYTHON ?= python3.12
 VENV   ?= .venv
 BIN    := $(VENV)/bin
 
-.PHONY: setup test test-map lint validate clean
+.PHONY: setup test test-map lint validate near-misses clean
 
 # One-command setup (NFR-10): creates the virtualenv and installs pinned dependencies.
 setup: $(BIN)/tool
@@ -28,6 +28,12 @@ lint: setup
 # and our own trap files. CI's golden job runs it on every push and PR.
 validate: setup
 	$(BIN)/python scripts/validate.py
+
+# Near-miss report (#187): the cases in a folder of scans a human should double-check
+# before an upload. Read-only. Usage: make near-misses DIR=<folder>
+near-misses: setup
+	@test -n "$(DIR)" || { echo "usage: make near-misses DIR=<folder of nmap XML files>"; exit 2; }
+	$(BIN)/python scripts/near_misses.py "$(DIR)"
 
 clean:
 	rm -rf $(VENV) .pytest_cache .ruff_cache src/*.egg-info
