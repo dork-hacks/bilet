@@ -200,6 +200,61 @@ def test_unknown_evidence_id(evidence):
         Explainer(None).explain_finding(evidence, "E99")
 
 
+# -- #218: cached answers are checked again on every read ---------------------------
+
+
+def _poison_cache(cache, text):
+    """Rewrite every cached answer, as if it was written under older, looser rules."""
+    for path in cache.iterdir():
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(en=text, ro=text)
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "Your camera also has port 8080 open.",
+        "Device Q is also at risk.",
+        "Your camera looks like a Hikvision model.",
+    ],
+)
+def test_failing_cached_explanation_falls_back_to_template(evidence, tmp_path, bad):
+    cache, log = tmp_path / "cache", tmp_path / "rejections.jsonl"
+    Explainer(FakeProvider(GOOD), cache_dir=cache).explain_finding(evidence, "E1")
+    _poison_cache(cache, bad)
+    down = FakeProvider(error=ProviderUnavailable("down"))
+    explainer = Explainer(down, cache_dir=cache, rejection_log=log)
+    out = explainer.explain_finding(evidence, "E1")
+    assert out.source == SOURCE_TEMPLATE and out.en == template_en()
+    assert explainer.rejection_count() == 1
+    assert len(down.calls) == 1  # asked again instead of trusting the stale entry
+
+
+def test_failing_cached_entry_is_replaced_by_a_fresh_checked_answer(evidence, tmp_path):
+    cache = tmp_path / "cache"
+    Explainer(FakeProvider(GOOD), cache_dir=cache).explain_finding(evidence, "E1")
+    _poison_cache(cache, "Device Q is also at risk.")
+    out = Explainer(FakeProvider(GOOD), cache_dir=cache).explain_finding(evidence, "E1")
+    assert out.source == SOURCE_AI and out.reason == "ok" and out.en == GOOD["en"]
+
+
+def test_failing_cached_summary_and_answer_fall_back(evidence, tmp_path):
+    cache = tmp_path / "cache"
+    reply = {
+        "en": "First turn off Telnet on Device A.",
+        "ro": "Întâi opriți Telnet pe Dispozitivul A.",
+        "cites": ["E1"],
+    }
+    first = Explainer(FakeProvider(reply), cache_dir=cache)
+    assert first.summarise(evidence).source == SOURCE_AI
+    assert first.answer(evidence, "Is my camera safe?").source == SOURCE_AI
+    _poison_cache(cache, "Device Q also listens on port 8080.")
+    down = Explainer(FakeProvider(error=ProviderUnavailable("down")), cache_dir=cache)
+    assert down.summarise(evidence).source == SOURCE_TEMPLATE
+    assert down.answer(evidence, "Is my camera safe?").source == SOURCE_TEMPLATE
+
+
 def test_parse_reply_tolerates_wrapping():
     assert parse_reply('Here you go: {"en": "x"} thanks') == {"en": "x"}
     assert parse_reply("no json") is None
