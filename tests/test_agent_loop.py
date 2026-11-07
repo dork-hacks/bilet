@@ -57,8 +57,8 @@ def test_one_tick_uses_runtime_and_records_result(tmp_path, runtime, result):
         "RESULT": result,
     }
     script = "run-codex-loop.sh" if runtime == "codex" else "run-loop.sh"
-    completed = subprocess.run(
-        ["bash", str(ROOT / "agents" / script), "agent-G", str(work)],
+    completed = subprocess.run(  # noqa: S603 — fixed script, isolated stub commands
+        ["/bin/bash", str(ROOT / "agents" / script), "agent-G", str(work)],
         env=env,
         capture_output=True,
         text=True,
