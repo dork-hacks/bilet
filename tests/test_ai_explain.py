@@ -188,3 +188,11 @@ def test_ollama_unreachable_is_unavailable():
     provider = OllamaProvider(url="http://127.0.0.1:9")
     with pytest.raises(ProviderUnavailable):
         provider.complete("s", "p", timeout=0.5)
+
+
+def test_pinned_anthropic_sdk_builds_a_client_offline():
+    # Guards the pyproject pin: some SDK and httpx pairs fail when the client is built.
+    # Building the client sends nothing over the network.
+    anthropic = pytest.importorskip("anthropic")
+    client = anthropic.Anthropic(api_key="test-not-a-key", timeout=1, max_retries=0)
+    assert client.max_retries == 0
