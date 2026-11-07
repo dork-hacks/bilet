@@ -127,6 +127,32 @@ class ManagerTests(unittest.TestCase):
         self.assertIn("IdentitiesOnly=yes", argv)
         self.assertEqual(argv[-2:], ["labmgr@192.168.50.12", "status"])
 
+    def test_on_the_openwrt_router_it_uses_dropbears_client(self):
+        mgr, fake = make()
+        mgr.client, mgr.key = "dropbear", pathlib.Path("/etc/lab-manager/state/id_dropbear")
+        mgr.ask(mgr.pis["pi3"], "status")
+        self.assertEqual(
+            fake.calls[0],
+            [
+                "dbclient",
+                "-i",
+                "/etc/lab-manager/state/id_dropbear",
+                "-y",
+                "-T",
+                "labmgr@192.168.50.13",
+                "status",
+            ],
+        )
+
+    def test_run_ssh_gives_dbclient_a_home_for_known_hosts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code, out = manager.run_ssh(
+                [sys.executable, "-c", "import os; print(os.environ['HOME'])"],
+                10,
+                home=pathlib.Path(tmp),
+            )
+        self.assertEqual((code, out.strip()), (0, tmp))
+
     def test_status_of_every_pi_and_the_expected_score(self):
         mgr, _ = make()
         states = mgr.all_status()
@@ -248,6 +274,22 @@ class HttpTests(unittest.TestCase):
     def test_an_oversized_form_is_refused(self):
         body = f"csrf={self.mgr.csrf}&pad=" + "x" * manager.MAX_BODY
         self.assertEqual(self.request("POST", "/do", body)[0], 413)
+
+    def test_the_openwrt_scripts_parse_and_keep_loopback(self):
+        for name in ("setup_openwrt.sh", "lab-manager.init"):
+            done = subprocess.run(
+                ["sh", "-n", str(LAB / "manager" / name)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(done.returncode, 0, f"{name}: {done.stderr}")
+        init = (LAB / "manager" / "lab-manager.init").read_text()
+        self.assertIn("--bind 127.0.0.1", init)
+        self.assertIn("--ssh-client dropbear", init)
+        self.assertIn("procd_set_param user labmanager", init)
+        setup = (LAB / "manager" / "setup_openwrt.sh").read_text()
+        self.assertNotIn("bash", setup.splitlines()[0])
 
     def test_the_manager_only_binds_loopback(self):
         with self.assertRaises(SystemExit):

@@ -6,10 +6,12 @@ fix, break and preset need root, so those tests run labctl in a user namespace
 (`unshare -r`) and are skipped where that isn't allowed.
 Run: python3 -m unittest discover -s lab/tests"""
 
+import importlib.util
 import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -94,6 +96,27 @@ class LabctlPresetTests(unittest.TestCase):
         self.assertIn("mqtt off", lines)
         services = [ln.split()[0] for ln in lines[1:]]
         self.assertEqual(len(services), len(set(services)))
+
+    def test_lab_verify_reads_labctl_status(self):
+        # lab/verify --status-file parses `labctl status` (labcheck.parse_status). Before
+        # this test, #163's ", in the preset" suffix made it skip every preset row.
+        spec = importlib.util.spec_from_file_location("labcheck_status", LAB / "labcheck.py")
+        labcheck = importlib.util.module_from_spec(spec)
+        sys.modules["labcheck_status"] = labcheck
+        spec.loader.exec_module(labcheck)
+        services = labcheck.load_services(LAB / "services.tsv")
+        self.active.write_text("lab-fake@http\nlab-fake@ftp\n")  # telnet fixed
+        camera = self.labctl("status").stdout
+        (pathlib.Path(self.tmp.name) / "role").write_text("hub\n")
+        self.active.write_text("lab-fake@mqtt\n")
+        hub = self.labctl("status").stdout
+        states = labcheck.parse_status(camera + hub, services)
+        self.assertEqual(
+            {k: v for k, v in states.items() if k in ("telnet", "http", "ftp", "rtsp", "mqtt")},
+            {"telnet": False, "http": True, "ftp": True, "rtsp": False, "mqtt": True},
+        )
+        self.assertNotIn("redis", camera)  # another role's service, off: not this Pi's
+        self.assertIn("Role: camera", camera)
 
     def test_presets_lists_the_roles_and_presets_tsv(self):
         done = self.labctl("presets")
