@@ -546,3 +546,27 @@ def test_scan_prints_the_devices_found_and_the_progress(lab, tmp_path, capsys):
     assert "Devices found: 1 (192.168.1.1). Now checking their ports" in out
     assert "Checking ports (TCP): 40% done, about 2 minutes left." in out
     assert out.index("Devices found") < out.index("Score: 90/100")
+
+
+def _break_history(folder, how):
+    import sqlite3
+
+    folder.mkdir(parents=True, exist_ok=True)
+    db = folder / "history.sqlite3"
+    if how == "newer":
+        with sqlite3.connect(db) as conn:
+            conn.execute("PRAGMA user_version = 99")
+    else:
+        db.write_bytes(b"this is not a database" * 100)
+
+
+@pytest.mark.parametrize("how", ["newer", "corrupt"])
+def test_a_broken_history_never_breaks_the_scan(lab, tmp_path, capsys, how):
+    # #132: the XML is saved and the score printed; the history problem is one plain line.
+    _break_history(tmp_path / "data", how)
+    assert scan(tmp_path, "--confirm", "--lang", "en") == 0
+    captured = capsys.readouterr()
+    assert "Score: 90/100" in captured.out
+    assert len(list((tmp_path / "scans").glob("scan_*.xml"))) == 1
+    assert "the history couldn't be updated" in captured.err
+    assert "Traceback" not in captured.err

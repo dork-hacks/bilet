@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import secrets
 import sys
 import time
 from collections.abc import Callable
@@ -183,7 +184,15 @@ def analyze_command(args: argparse.Namespace) -> int:
         return 2
     json_dir = args.out / "json" if args.json else None
     # History keys devices with the private local salt; CSV-only runs never need it.
-    salt = load_salt() if args.save else None
+    salt = None
+    if args.save:
+        try:
+            salt = load_salt()
+        except OSError as exc:  # the data folder can't be written (agent-D, #134)
+            print(f"{_HISTORY_FAILED[args.lang]} ({type(exc).__name__}: {exc})", file=sys.stderr)
+            args.save = False  # the CSVs are still written; only the history is skipped
+            # --json would load the same salt again: give it a one-off one for this run.
+            salt = secrets.token_hex(32).encode() if args.json else None
     report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
@@ -196,9 +205,33 @@ def analyze_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def save_and_alert(results: list, lang: str) -> None:
+# Until area:content adds it to tool.content (asked on #132; agent-B is away).
+_HISTORY_FAILED = {
+    "ro": "Rezultatele sunt salvate, dar istoricul nu a putut fi actualizat.",
+    "en": "Your results are saved, but the history couldn't be updated.",
+}
+
+
+def save_and_alert(results: list, lang: str) -> bool:
     """Store every result in the history (unreadable ones as error rows, which are never
-    compared) and print what appeared since the previous readable scan."""
+    compared) and print what appeared since the previous readable scan.
+
+    A history problem (a database from a newer version, a locked or corrupt file, a full
+    disk) never ends the command with a traceback: the scan or the CSVs are already
+    saved, so it prints one plain line and returns False (#132)."""
+    import sqlite3
+
+    from tool.history import HistoryError
+
+    try:
+        _save_and_alert(results, lang)
+    except (HistoryError, sqlite3.Error, OSError) as exc:
+        print(f"{_HISTORY_FAILED[lang]} ({type(exc).__name__}: {exc})", file=sys.stderr)
+        return False
+    return True
+
+
+def _save_and_alert(results: list, lang: str) -> None:
     from tool.content import alert_message
     from tool.history import History
 
