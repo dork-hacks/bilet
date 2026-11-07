@@ -1,85 +1,120 @@
   <style>
-    /* Base text 18px (>= 16px, MASTERPLAN 6.5). All colour pairs below pass WCAG AA.
-       tests/test_web_a11y.py checks both, so keep sizes in rem or px. */
-    :root { font-size: 18px; color: #1a1a1a; background: #ffffff; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5;
-           margin: 0 auto; max-width: 42rem; padding: 1rem; }
-    a { color: #0b4f9c; }
-    a:focus-visible, button:focus-visible, select:focus-visible {
-      outline: 3px solid #0b4f9c; outline-offset: 2px; }
+    /* Warm, calm palette (#162 part 1). Base text 18px (>= 16px, MASTERPLAN 6.5). Every
+       colour pair below passes WCAG AA: tests/test_web_a11y.py checks each text colour
+       against each background, so keep colours as hex values and sizes in rem or px.
+       Page #fbf6ef (cream), text #2b2420 (warm brown), accent #0f5c57 (deep teal). */
+    :root { font-size: 18px; color: #2b2420; background: #fbf6ef; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           line-height: 1.6; margin: 0 auto; max-width: 46rem; padding: 1.25rem 1.25rem 3rem; }
+    h1 { font-size: 1.9rem; line-height: 1.25; margin: .5rem 0; }
+    h2 { font-size: 1.4rem; line-height: 1.3; margin: 2rem 0 .75rem; }
+    a { color: #0f5c57; text-underline-offset: .2em; }
+    a:hover { color: #0a4642; }
+    a:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible,
+    input:focus-visible {
+      outline: 3px solid #0f5c57; outline-offset: 3px; border-radius: .4rem; }
     .skip { position: absolute; left: -999px; }
-    .skip:focus { left: 1rem; top: 1rem; background: #fff; padding: .5rem; }
+    .skip:focus { left: 1rem; top: 1rem; background: #ffffff; padding: .5rem 1rem;
+                  border-radius: .75rem; z-index: 10; }
     header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+             flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 2px solid #eadfce; }
+    nav ul { list-style: none; display: flex; gap: .5rem; margin: 0; padding: 0;
              flex-wrap: wrap; }
-    nav ul { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }
-    nav [aria-current="true"] { font-weight: 700; text-decoration: none; color: #1a1a1a; }
-    .score { border: 4px solid; border-radius: 1rem; padding: 1.25rem; margin: 1.5rem 0;
-             display: flex; align-items: center; gap: 1.25rem; }
-    .score .icon { font-size: 3rem; font-weight: 700; width: 4.5rem; height: 4.5rem;
+    nav a { display: inline-block; padding: .35rem .9rem; border-radius: 999px;
+            text-decoration: none; font-weight: 600; }
+    nav a:hover { background: #efe5d6; }
+    nav [aria-current="true"] { font-weight: 700; color: #2b2420; background: #efe5d6; }
+    /* The score: calm traffic light. Icon + label + number, so colour is never alone. */
+    .score { border: 3px solid; border-radius: 1.5rem; padding: 1.5rem; margin: 1.5rem 0;
+             display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+             box-shadow: 0 6px 20px rgba(80, 55, 30, .08); }
+    .score .icon { font-size: 2.6rem; font-weight: 700; width: 5rem; height: 5rem;
                    border-radius: 50%; display: flex; align-items: center;
                    justify-content: center; color: #ffffff; flex-shrink: 0; }
-    .score .number { font-size: 3rem; font-weight: 700; line-height: 1; }
+    .score .number { font-size: 3.4rem; font-weight: 800; line-height: 1; }
     .score .label { font-size: 1.4rem; font-weight: 700; }
-    .good { border-color: #1b6e2a; background: #eef7ef; } .good .icon { background: #1b6e2a; }
-    .warn { border-color: #8a5a00; background: #fff6e0; } .warn .icon { background: #8a5a00; }
-    .bad  { border-color: #b3261e; background: #fdeceb; } .bad .icon  { background: #b3261e; }
-    .first { border-left: 6px solid #1a1a1a; padding: .5rem 1rem; background: #f4f4f4; }
-    .first p { margin: .5rem 0; font-size: 1.15rem; }
+    .good { border-color: #2e6b34; background: #edf6ea; } .good .icon { background: #2e6b34; }
+    .warn { border-color: #8a5300; background: #fff3dc; } .warn .icon { background: #8a5300; }
+    .bad  { border-color: #a8322a; background: #fdecea; } .bad .icon  { background: #a8322a; }
+    /* "Do this first": the one clear call to action. */
+    .first { border: 3px solid #0f5c57; border-radius: 1.25rem; padding: 1rem 1.25rem;
+             background: #ffffff; margin: 1.25rem 0;
+             box-shadow: 0 6px 20px rgba(80, 55, 30, .08); }
+    .first p { margin: .5rem 0; font-size: 1.2rem; }
     /* Change alerts (#78): icon + heading text, so colour is never the only signal. */
-    .alerts { border: 3px solid #8a5a00; background: #fff6e0; border-radius: .75rem;
-              padding: .5rem 1rem; margin: 1rem 0; }
-    .alerts h2 { display: flex; align-items: center; gap: .5rem; }
-    .alerts .icon { background: #8a5a00; color: #ffffff; border-radius: 50%; width: 2rem;
-                    height: 2rem; display: inline-flex; align-items: center;
+    .alerts { border: 2px solid #d9b46a; background: #fff3dc; border-radius: 1.25rem;
+              padding: .5rem 1.25rem; margin: 1rem 0; }
+    .alerts h2 { display: flex; align-items: center; gap: .5rem; margin: .75rem 0; }
+    .alerts .icon { background: #8a5300; color: #ffffff; border-radius: 50%; width: 2.2rem;
+                    height: 2.2rem; display: inline-flex; align-items: center;
                     justify-content: center; font-weight: 700; flex-shrink: 0; }
     .alerts li { font-size: 1.1rem; margin: .25rem 0; }
-    .muted { color: #4a4a4a; }
+    .muted { color: #5b5048; }
     /* Devices and findings (#55). The severity is always written in the tag text. */
-    .device { border: 2px solid #c8c8c8; border-radius: .75rem; padding: .75rem 1rem;
-              margin: 1rem 0; }
-    .device h3 { margin: .25rem 0 .5rem; font-size: 1.2rem; }
-    .finding { border-left: 6px solid #4a4a4a; padding: .25rem .75rem; margin: .75rem 0; }
+    .device { border: 1px solid #eadfce; border-radius: 1.25rem; padding: 1rem 1.25rem;
+              margin: 1rem 0; background: #ffffff;
+              box-shadow: 0 3px 12px rgba(80, 55, 30, .06); }
+    .device h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; }
+    .finding { border-left: 6px solid #5b5048; border-radius: .5rem; padding: .35rem 1rem;
+               margin: .9rem 0; background: #fdfaf5; }
     .finding h4 { margin: .25rem 0; font-size: 1.1rem; }
-    .finding p, .finding ol { margin: .4rem 0; }
-    .tag { font-weight: 700; padding: 0 .4rem; border-radius: .3rem; color: #ffffff;
-           background: #4a4a4a; }
-    .sev-high { border-left-color: #b3261e; } .sev-high .tag { background: #b3261e; }
-    .sev-medium { border-left-color: #8a5a00; } .sev-medium .tag { background: #8a5a00; }
-    .sev-low { border-left-color: #0b4f9c; } .sev-low .tag { background: #0b4f9c; }
-    .safe summary { cursor: pointer; font-weight: 700; padding: .5rem 0; }
-    .safe summary:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
+    .finding p, .finding ol { margin: .45rem 0; }
+    .finding li { margin: .2rem 0; }
+    .tag { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: #ffffff;
+           background: #5b5048; white-space: nowrap; }
+    .sev-high { border-left-color: #a8322a; } .sev-high .tag { background: #a8322a; }
+    .sev-medium { border-left-color: #8a5300; } .sev-medium .tag { background: #8a5300; }
+    .sev-low { border-left-color: #1d5a8a; } .sev-low .tag { background: #1d5a8a; }
+    .safe { background: #ffffff; border-radius: 1.25rem; padding: .25rem 1.25rem;
+            border: 1px solid #eadfce; }
+    .safe summary { cursor: pointer; font-weight: 700; padding: .6rem 0; }
     /* The AI / standard label is text, not only colour (MASTERPLAN 6.5). */
-    .source-tag { display: inline-block; font-size: .9rem; border: 1px solid #4a4a4a;
-           border-radius: .3rem; padding: 0 .4rem; color: #4a4a4a; white-space: nowrap; }
-    .ai { margin-top: 2rem; border-top: 1px solid #c4c4c4; }
-    .ai h2 { font-size: 1.2rem; }
+    .source-tag { display: inline-block; font-size: .9rem; border: 1px solid #5b5048;
+           border-radius: 999px; padding: 0 .6rem; color: #5b5048; white-space: nowrap; }
+    .ai { margin-top: 2.5rem; border-top: 2px solid #eadfce; }
+    .ai h2 { font-size: 1.3rem; }
+    .plan { background: #ffffff; border-radius: 1.25rem; padding: .5rem 1.25rem;
+            border: 1px solid #eadfce; }
     .plan ol { margin: .5rem 0; padding-left: 1.5rem; }
-    .ask label { display: block; font-weight: 700; margin: .5rem 0 .25rem; }
+    .ask label { display: block; font-weight: 700; margin: .75rem 0 .35rem; }
     .ask input[type=text] { font-size: 1rem; width: 100%; box-sizing: border-box;
-           padding: .5rem; border: 2px solid #4a4a4a; border-radius: .5rem; }
-    .ask input[type=text]:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
-    .ask button { font-size: 1rem; margin-top: .5rem; background: #ffffff; color: #0b4f9c;
-           cursor: pointer; }
+           padding: .7rem 1rem; border: 2px solid #8c7d6f; border-radius: 1rem;
+           background: #ffffff; color: #2b2420; }
+    /* Buttons: rounded, large tap targets (at least 44px high) for phones. */
+    .ask button, .history button, .button {
+           font-size: 1rem; font-weight: 700; min-height: 2.5rem; margin-top: .6rem;
+           padding: .5rem 1.25rem; border: 2px solid #0f5c57; border-radius: 999px;
+           background: #0f5c57; color: #ffffff; cursor: pointer; text-decoration: none;
+           display: inline-block; }
+    .ask button:hover, .history button:hover, .button:hover { background: #0a4642; }
+    .history button.danger { background: #ffffff; color: #a8322a; border-color: #a8322a; }
+    .history button.danger:hover { background: #fdecea; }
     /* "Open a scan file" (#92). */
-    .open input[type=file] { display: block; font-size: 1rem; padding: .25rem 0; }
-    .open input[type=file]:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
-    .opened { border-left: 6px solid #0b4f9c; padding: .5rem 1rem; background: #f4f4f4; }
-    .reply { border-left: 6px solid #0b4f9c; padding: .25rem 1rem; background: #f4f4f4; }
-    .button { display: inline-block; padding: .5rem 1rem; border: 2px solid #0b4f9c;
-              border-radius: .5rem; text-decoration: none; font-weight: 700; }
+    .open input[type=file] { display: block; font-size: 1rem; padding: .35rem 0; }
+    .opened, .reply, .notice { border-left: 6px solid #0f5c57; border-radius: .75rem;
+           padding: .5rem 1.25rem; background: #ffffff; }
     /* History screen (#65). The band label is always written next to its colour. */
-    table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem; }
-    th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #c8c8c8; }
-    .chip { font-weight: 700; padding: 0 .4rem; border-radius: .3rem; color: #ffffff;
+    table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem;
+            background: #ffffff; border-radius: 1rem; overflow: hidden; }
+    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #eadfce; }
+    .chip { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: #ffffff;
             white-space: nowrap; }
-    .chip.good { background: #1b6e2a; } .chip.warn { background: #8a5a00; }
-    .chip.bad { background: #b3261e; }
-    .chart { width: 100%; height: auto; border: 1px solid #c8c8c8; border-radius: .5rem; }
-    .chart text { font-size: 16px; fill: #1a1a1a; }
-    .picker label { display: block; font-weight: 700; margin: .5rem 0 .25rem; }
-    .picker select, .history button { font-size: 1rem; padding: .4rem; max-width: 100%; }
-    .history button { background: #ffffff; color: #0b4f9c; cursor: pointer; margin-top: .5rem; }
-    .history button.danger { color: #b3261e; border-color: #b3261e; }
-    .notice { border-left: 6px solid #0b4f9c; padding: .25rem 1rem; background: #f4f4f4; }
+    .chip.good { background: #2e6b34; } .chip.warn { background: #8a5300; }
+    .chip.bad { background: #a8322a; }
+    .chart { width: 100%; height: auto; border: 1px solid #eadfce; border-radius: 1rem;
+             background: #ffffff; }
+    .chart text { font-size: 16px; fill: #2b2420; }
+    .picker label { display: block; font-weight: 700; margin: .75rem 0 .35rem; }
+    .picker select { font-size: 1rem; padding: .5rem .75rem; max-width: 100%;
+                     border: 2px solid #8c7d6f; border-radius: .75rem; background: #ffffff;
+                     color: #2b2420; }
     .changes h3 { font-size: 1.1rem; margin: 1rem 0 .25rem; }
+    /* Phones: less padding, the score stacks, wide tables scroll instead of overflowing. */
+    @media (max-width: 32rem) {
+      body { padding: .75rem .75rem 2rem; }
+      .score { padding: 1.1rem; gap: 1rem; }
+      .score .number { font-size: 2.8rem; }
+      .device, .first { padding: .85rem 1rem; }
+      table { display: block; overflow-x: auto; }
+    }
   </style>
