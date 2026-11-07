@@ -1,14 +1,19 @@
 # Network explorer QA (#173)
 
 Fixture-only Chromium checks, 7 November 2026. Desktop: 1440 × 1100;
-phone: 375 × 812. Software WebGL (SwiftShader), reduced-motion preference enabled.
+phone: 375 × 812. Additional layout assertions at 1366 × 768, 1280 × 800,
+1440 × 900 and 1024 × 768 verified no clipping or horizontal overflow. Software WebGL (SwiftShader), reduced-motion preference enabled.
 No real network was scanned. Device addresses/names are synthetic.
 
-- [Desktop](desktop.png): warm neutral device models and separate inspector/search panes.
+- [Desktop](desktop.png): full-width map with naturally sized device-detail and search cards below.
+- [Laptop, 1366 × 768](laptop-1366.png): full information without nested panel scrollbars.
 - [Phone, Romanian](phone.png): stacked panes, readable controls, no horizontal overflow.
 - [Fullscreen](fullscreen.png): native fullscreen keeps inspector and directory available.
 - [Selected device in a 250-device fixture](dense-selected.png): search for Device 237,
   select it, and focus its model. Ten directory rows per page, 25 pages before searching.
+
+Toolbar shortcuts focus the detail card or search; Focus device returns to the map.
+Both cards grow with their content, and all ten directory rows are visible per page.
 
 Browser assertions passed: native fullscreen enter/exit; denied-fullscreen expansion
 and Escape; forward keyboard focus wrapping; row selection retains keyboard focus;

@@ -89,9 +89,15 @@
         <button type="button" class="netmap-fullscreen" aria-pressed="false" hidden>{{ ui.map_fullscreen }}</button>
       </div>
       <p class="netmap-intro">{{ ui.map_intro }}</p>
+      <div class="netmap-toolbar">
       <div class="netmap-switch" role="group" aria-label="{{ ui.map_view_label }}" hidden>
         <button type="button" data-view="3d" aria-pressed="true">{{ ui.map_view_3d }}</button>
         <button type="button" data-view="list" aria-pressed="false">{{ ui.map_view_list }}</button>
+      </div>
+      <div class="netmap-panel-links" hidden>
+        <button type="button" class="netmap-details-shortcut" aria-controls="map-selected-panel">{{ ui.map_selected }}</button>
+        <button type="button" class="netmap-search-shortcut" aria-controls="map-device-directory">{{ ui.map_search }}</button>
+      </div>
       </div>
       <div class="netmap-3d" hidden>
         <div class="netmap-workspace">
@@ -99,9 +105,9 @@
             <div class="netmap-stage"></div>
             <p class="netmap-hint" id="map-instructions">{{ ui.map_how }} <span class="netmap-keys">{{ ui.map_keys }}</span></p>
           </div>
-          <aside class="netmap-sidebar" aria-label="{{ ui.map_inspector }}">
-            <div class="netmap-detail" aria-live="polite" aria-atomic="true"><p class="muted">{{ ui.map_pick }}</p></div>
-            <div class="netmap-directory" hidden>
+          <div class="netmap-panels" role="group" aria-label="{{ ui.map_inspector }}">
+            <div class="netmap-detail" id="map-selected-panel" tabindex="-1" aria-live="polite" aria-atomic="true"><p class="muted">{{ ui.map_pick }}</p></div>
+            <div class="netmap-directory" id="map-device-directory" tabindex="-1" hidden>
               <label for="map-search">{{ ui.map_search }}</label>
               <input type="search" class="netmap-search" id="map-search" placeholder="{{ ui.map_search_hint }}" autocomplete="off" aria-controls="map-device-results">
               <p class="netmap-count muted" role="status" aria-live="polite"></p>
@@ -112,7 +118,7 @@
                 <button type="button" data-page="next" aria-label="{{ ui.map_next }}">→</button>
               </div>
             </div>
-          </aside>
+          </div>
         </div>
       </div>
       <div class="netmap-list">

@@ -247,3 +247,12 @@ def test_device_explorer_has_translated_controls_and_progressive_fallback(lang):
     assert '<div class="netmap-3d" hidden>' in page
     assert '<div class="netmap-list">' in page
     assert f'href="#{data["nodes"][0]["id"]}"' in page
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_map_panel_shortcuts_have_focusable_destinations(lang):
+    page = client_for(SCAN).get("/", params={"lang": lang}).text
+    for target in ("map-selected-panel", "map-device-directory"):
+        assert f'aria-controls="{target}"' in page
+        assert f'id="{target}" tabindex="-1"' in page
+    assert 'class="netmap-panel-links" hidden' in page

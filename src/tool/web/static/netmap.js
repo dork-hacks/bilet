@@ -43,6 +43,9 @@ function start(data) {
   const previous = section.querySelector("[data-page=previous]");
   const next = section.querySelector("[data-page=next]");
   const pageInfo = section.querySelector(".netmap-page-info");
+  const panelLinks = section.querySelector(".netmap-panel-links");
+  const detailsShortcut = section.querySelector(".netmap-details-shortcut");
+  const searchShortcut = section.querySelector(".netmap-search-shortcut");
   const fullscreen = section.querySelector(".netmap-fullscreen");
   const icons = document.getElementById("netmap-icons");
   const T = data.text;
@@ -172,7 +175,10 @@ function start(data) {
     } else detail.append(el("p", { text: T.map_no_findings }));
     const actions = el("div", { className: "nm-detail-actions" });
     const focusButton = el("button", { type: "button", text: T.map_focus });
-    focusButton.addEventListener("click", () => focus(entry));
+    focusButton.addEventListener("click", () => {
+      focus(entry); stage.scrollIntoView({ block: "center", behavior: "instant" });
+      stage.focus({ preventScroll: true });
+    });
     const link = el("a", { href: `#${node.id}`, text: node.has_problems ? T.map_go_problems : T.map_go_device });
     link.addEventListener("click", async () => {
       if (document.fullscreenElement === section) await document.exitFullscreen();
@@ -193,6 +199,8 @@ function start(data) {
       edge.line.material.color.setHex(edge.entry === entry ? ACCENT : 0x7b9691);
       edge.line.material.opacity = edge.entry === entry ? 0.95 : 0.25;
     }
+    detailsShortcut.textContent = entry.node
+      ? `${T.map_selected}: ${entry.node.type_label}` : T.map_selected;
     showDetail(entry); renderDirectory();
     if (move) focus(entry);
     requestFrame();
@@ -219,7 +227,7 @@ function start(data) {
       ]);
       row.addEventListener("click", () => {
         select(entry, true);
-        if (window.matchMedia("(max-width: 48rem)").matches) detail.scrollIntoView({ block: "nearest", behavior: "instant" });
+        detail.scrollIntoView({ block: "nearest", behavior: "instant" });
       });
       results.append(el("li", {}, [row]));
     }
@@ -246,7 +254,10 @@ function start(data) {
       ]),
     ]);
     label.style.setProperty("--node-accent", `#${new THREE.Color(node ? COLOURS[node.level.key] : ACCENT).getHexString()}`);
-    label.addEventListener("click", () => select(entry, true));
+    label.addEventListener("click", () => {
+      select(entry, true); detail.scrollIntoView({ block: "nearest", behavior: "instant" });
+      detail.focus({ preventScroll: true });
+    });
     stage.append(label); entry.label = label;
   }
   const tools = el("div", { className: "netmap-tools" });
@@ -295,6 +306,13 @@ function start(data) {
     }
   });
 
+  detailsShortcut.addEventListener("click", () => {
+    detail.scrollIntoView({ block: "start", behavior: "instant" }); detail.focus({ preventScroll: true });
+  });
+  searchShortcut.addEventListener("click", () => {
+    directory.scrollIntoView({ block: "start", behavior: "instant" }); search.focus({ preventScroll: true });
+  });
+
   const pointers = new Map(); let downAt = null, pinch = 0, wheelZooms = false;
   stage.addEventListener("pointerleave", () => { wheelZooms = false; });
   canvas.addEventListener("pointerdown", e => {
@@ -321,7 +339,10 @@ function start(data) {
     raycaster.setFromCamera(new THREE.Vector2(2 * (e.clientX - r.left) / r.width - 1,
       1 - 2 * (e.clientY - r.top) / r.height), camera);
     const hit = raycaster.intersectObjects(pickables, false)[0];
-    if (hit) select(hit.object.userData.entry, true);
+    if (hit) {
+      select(hit.object.userData.entry, true);
+      detail.scrollIntoView({ block: "nearest", behavior: "instant" }); detail.focus({ preventScroll: true });
+    }
   }
   canvas.addEventListener("pointerup", e => {
     const click = pointers.size === 1 && downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6;
@@ -404,7 +425,7 @@ function start(data) {
   canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); show("list"); });
   function show(mode) {
     wrap.hidden = mode !== "3d"; list.hidden = mode === "3d";
-    fullscreen.hidden = mode !== "3d";
+    fullscreen.hidden = mode !== "3d"; panelLinks.hidden = mode !== "3d";
     for (const b of switcher.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === mode));
     if (mode === "3d") { resize(); requestFrame(); }
     else {
