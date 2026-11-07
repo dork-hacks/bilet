@@ -315,11 +315,20 @@ class Explainer:
     # -- internals ---------------------------------------------------------------
 
     def _call(self, prompt: str, system: str = SYSTEM_PROMPT) -> str:
-        """Run the provider with a hard wall-clock limit, even if it ignores its timeout."""
+        """Run the provider with a hard wall-clock limit, even if it ignores its timeout.
+
+        Any exception other than a timeout becomes ProviderUnavailable, so a bug or an
+        SDK change in a provider can only ever give the built-in text, never an error page.
+        Only the exception's class name is kept: its message could hold request details.
+        """
         pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
             future = pool.submit(self.provider.complete, system, prompt, self.timeout)
             return future.result(timeout=self.timeout)
+        except (ProviderUnavailable, concurrent.futures.TimeoutError):
+            raise
+        except Exception as exc:
+            raise ProviderUnavailable(type(exc).__name__) from None
         finally:
             pool.shutdown(wait=False, cancel_futures=True)
 
