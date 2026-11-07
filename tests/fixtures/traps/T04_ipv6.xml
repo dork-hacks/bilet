@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 09:40:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T04_ipv6.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: IPv6-only hosts are reported by IPv6 address; a dual-stack host by its IPv4 (hand-merged: one nmap run can't mix -6 and IPv4) -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T04_ipv6.xml 192.168.1.0/24" start="1794044400" startstr="Sat Nov  7 09:40:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794044402" endtime="1794044497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:C7:BF:00:00:01" addrtype="mac" vendor="Tp-link Technologies"/>
+<hostnames>
+<hostname name="router.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794044402" endtime="1794044497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="fd00:1:2:3::30" addrtype="ipv6"/>
+<address addr="192.168.1.30" addrtype="ipv4"/>
+<address addr="B8:27:EB:00:00:30" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames>
+<hostname name="hub.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" product="Mosquitto version" version="1.6.15" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794044402" endtime="1794044497"><status state="up" reason="nd-response" reason_ttl="0"/>
+<address addr="fd00:1:2:3::10" addrtype="ipv6"/>
+<address addr="C0:56:E3:00:00:10" addrtype="mac" vendor="Hangzhou Hikvision Digital Technology"/>
+<hostnames>
+<hostname name="cam.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="554"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="rtsp" product="Hikvision 7513 POE IP camera rtspd" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794044402" endtime="1794044497"><status state="up" reason="nd-response" reason_ttl="0"/>
+<address addr="fd00:1:2:3::99" addrtype="ipv6"/>
+<address addr="02:00:00:00:00:99" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="6379"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="redis" product="Redis key-value store" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794044700" timestr="Sat Nov  7 09:45:00 2026" summary="Nmap done at Sat Nov  7 09:45:00 2026; 256 IP addresses (4 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="4" down="252" total="256"/>
+</runstats>
+</nmaprun>

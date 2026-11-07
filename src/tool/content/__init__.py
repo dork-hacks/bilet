@@ -5,13 +5,16 @@ AI fallback get every user-facing text from here. Every lookup has a safe fallba
 an unknown code never crashes a page.
 """
 
+import re
 from dataclasses import dataclass
 
 from tool.content.texts import (
+    ALERTS,
     DETECT_ERRORS,
     DEVICE_TYPES,
     FILE_ERRORS,
     FINDINGS,
+    GENERIC_ALERT,
     GENERIC_FILE_ERROR,
     GENERIC_FINDING,
     GENERIC_REFUSAL,
@@ -28,6 +31,7 @@ __all__ = [
     "DEFAULT_LANG",
     "LANGS",
     "FindingText",
+    "alert_message",
     "detect_error_message",
     "device_type_label",
     "file_error_message",
@@ -125,3 +129,28 @@ def refusal_message(code: str, target: str = "", lang: str | None = DEFAULT_LANG
     template = REFUSALS.get(code, GENERIC_REFUSAL)[lang]
     # str.replace, not str.format: braces in the target are only ever text.
     return template.replace("{target}", _clean_target(target))
+
+
+_ALERT_FIELD = re.compile(r"\{(ip|port|protocol)\}")
+
+
+def alert_message(
+    code: str,
+    ip: str,
+    port: int | None = None,
+    protocol: str | None = None,
+    lang: str | None = DEFAULT_LANG,
+) -> str:
+    """Plain-language text for a change alert (FR-13). Never raises.
+
+    The values come from scan files, so they are only ever text: one pass fills every
+    placeholder, and a value that looks like a placeholder is never expanded.
+    """
+    lang = _lang(lang)
+    template = ALERTS.get(code, GENERIC_ALERT)[lang]
+    values = {
+        "ip": _clean_target(ip),
+        "port": "?" if port is None else _clean_target(str(port)),
+        "protocol": "?" if protocol is None else _clean_target(protocol),
+    }
+    return _ALERT_FIELD.sub(lambda m: values[m.group(1)], template)

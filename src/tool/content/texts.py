@@ -547,6 +547,24 @@ DETECT_ERRORS: dict[str, dict[str, str]] = {
     },
 }
 
+# Change alerts (FR-13, #22). The codes come from tool.history.Alert; an unknown code
+# is shown as GENERIC_ALERT. {ip}, {port} and {protocol} are filled in as plain text.
+ALERTS: dict[str, dict[str, str]] = {
+    "NEW_DEVICE": {
+        "ro": "Un dispozitiv nou s-a conectat la rețeaua dumneavoastră: {ip}. Dacă nu îl recunoașteți, schimbați parola rețelei Wi-Fi.",
+        "en": "A new device joined your network: {ip}. If you don't recognise it, change your Wi-Fi password.",
+    },
+    "NEW_OPEN_PORT": {
+        "ro": "Dispozitivul {ip} are un serviciu nou pornit (portul {port}/{protocol}). Dacă nu ați instalat sau pornit nimic nou pe el, verificați ce s-a schimbat.",
+        "en": "The device at {ip} has a new service turned on (port {port}/{protocol}). If you didn't install or turn on anything new on it, check what changed.",
+    },
+}
+
+GENERIC_ALERT: dict[str, str] = {
+    "ro": "Ceva s-a schimbat în rețeaua dumneavoastră de la verificarea anterioară.",
+    "en": "Something changed on your network since the previous check.",
+}
+
 GENERIC_REFUSAL: dict[str, str] = {
     "ro": "Programul a refuzat să verifice {target}. Verifică doar rețeaua dumneavoastră.",
     "en": "The tool refused to check {target}. It only checks your own network.",

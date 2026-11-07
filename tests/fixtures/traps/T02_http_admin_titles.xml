@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 09:20:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T02_http_admin_titles.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: http-title keyword matching: case, substrings, missing titles, odd ports -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T02_http_admin_titles.xml 192.168.1.0/24" start="1794043200" startstr="Sat Nov  7 09:20:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.2" addrtype="ipv4"/>
+<address addr="50:C7:BF:00:00:02" addrtype="mac" vendor="Tp-link Technologies"/>
+<hostnames>
+<hostname name="ap-upstairs.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="WebAdmin"><elem key="title">WebAdmin</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.3" addrtype="ipv4"/>
+<address addr="B8:27:EB:00:00:03" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames>
+<hostname name="pihole.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" version="1.4.59" method="probed" conf="10"/><script id="http-title" output="Site doesn't have a title (text/html; charset=UTF-8)."></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.4" addrtype="ipv4"/>
+<address addr="8C:79:F5:00:00:04" addrtype="mac" vendor="Samsung Electronics"/>
+<hostnames>
+<hostname name="living-room-tv.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="8008"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.5" addrtype="ipv4"/>
+<address addr="DC:A6:32:00:00:05" addrtype="mac" vendor="Raspberry Pi Trading"/>
+<hostnames>
+<hostname name="web.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" version="1.18.0" extrainfo="Ubuntu" method="probed" conf="10"/><script id="http-title" output="Welcome to nginx!"><elem key="title">Welcome to nginx!</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.6" addrtype="ipv4"/>
+<address addr="24:A4:3C:00:00:06" addrtype="mac" vendor="Ubiquiti Networks"/>
+<hostnames>
+<hostname name="switch.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Boa HTTPd" method="probed" conf="10"/><script id="http-title" output="SETTINGS"><elem key="title">SETTINGS</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.7" addrtype="ipv4"/>
+<address addr="C0:56:E3:00:00:07" addrtype="mac" vendor="Hangzhou Hikvision Digital Technology"/>
+<hostnames>
+<hostname name="nvr.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Hikvision IP camera httpd" method="probed" conf="10"/><script id="http-title" output="Login"><elem key="title">Login</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.8" addrtype="ipv4"/>
+<address addr="24:0A:C4:00:00:08" addrtype="mac" vendor="Espressif"/>
+<hostnames>
+<hostname name="plug-kitchen.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="9000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" method="probed" conf="10"/><script id="http-title" output="Device Configuration"><elem key="title">Device Configuration</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794043202" endtime="1794043297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.9" addrtype="ipv4"/>
+<address addr="00:11:32:00:00:09" addrtype="mac" vendor="Synology Incorporated"/>
+<hostnames>
+<hostname name="nas.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="5000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" method="probed" conf="10"/><script id="http-title" output="Dashboard"><elem key="title">Dashboard</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794043500" timestr="Sat Nov  7 09:25:00 2026" summary="Nmap done at Sat Nov  7 09:25:00 2026; 256 IP addresses (8 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="8" down="248" total="256"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 12:10:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T19_unknown_device.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: UNKNOWN_DEVICE needs no vendor AND no hostname AND an open port; empty port column -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T19_unknown_device.xml 192.168.1.0/24" start="1794053400" startstr="Sat Nov  7 12:10:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794053402" endtime="1794053497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.80" addrtype="ipv4"/>
+<address addr="02:00:00:00:00:80" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" method="probed" conf="10"/><script id="http-title" output="Welcome"><elem key="title">Welcome</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794053402" endtime="1794053497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.81" addrtype="ipv4"/>
+<address addr="02:00:00:00:00:81" addrtype="mac"/>
+<hostnames>
+<hostname name="printer.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="jetdirect" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794053402" endtime="1794053497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.82" addrtype="ipv4"/>
+<address addr="24:0A:C4:00:00:52" addrtype="mac" vendor="Espressif"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794053402" endtime="1794053497"><status state="up" reason="syn-ack" reason_ttl="64"/>
+<address addr="192.168.1.83" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="Linux telnetd" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794053402" endtime="1794053497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.84" addrtype="ipv4"/>
+<address addr="02:00:00:00:00:84" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="998">
+<extrareasons reason="reset" count="998" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="udp" portid="5353"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="zeroconf" method="table" conf="3"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794053700" timestr="Sat Nov  7 12:15:00 2026" summary="Nmap done at Sat Nov  7 12:15:00 2026; 256 IP addresses (5 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="5" down="251" total="256"/>
+</runstats>
+</nmaprun>
