@@ -14,10 +14,17 @@
 #   --on SVC[,SVC]     also turn on these toggles of the role (see lab/services.tsv);
 #                      smb and snmp are real daemons and also need --with-packages
 #   --with-packages    let setup.sh apt-install samba/snmpd (needs internet; hotspot data is limited)
+# Tests only: lab/card_role.sh --to-dir DIR <role> [options] writes into a plain folder that stands
+# in for the boot partition (no disk checks, no mount), see lab/tests/test_card_role.py.
 set -euo pipefail
 source "$(dirname "$0")/_card.sh"
 
 [[ $# -ge 2 ]] || { sed -n '2,16p' "$0"; exit 1; }
+TO_DIR=
+if [[ $1 == --to-dir ]]; then
+  [[ $# -ge 3 ]] || die "usage: $0 --to-dir DIR <role> [options]"
+  TO_DIR=$2; shift
+fi
 DEV=$1; ROLE=$2; shift 2; ON=(); ARGS=
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -36,13 +43,17 @@ for svc in "${ON[@]}"; do
   # install on the Pi would fail on every boot.
   [[ $kind != real || -n $ARGS ]] || die "'$svc' needs a real daemon: add --with-packages"
 done
-check_card "$DEV"
-
-BOOT=$(part "$DEV" 1)
-[[ $(lsblk -no LABEL "$BOOT") == bootfs ]] || die "$BOOT is not a Pi OS boot partition"
-MNT=$(lsblk -no MOUNTPOINTS "$BOOT" | head -n1)
-if [[ -z $MNT ]]; then
-  MNT=$(udisksctl mount -b "$BOOT" | sed 's/.* at //')
+if [[ -n $TO_DIR ]]; then
+  [[ -d $TO_DIR ]] || die "$TO_DIR is not a folder"
+  BOOT=; MNT=$TO_DIR
+else
+  check_card "$DEV"
+  BOOT=$(part "$DEV" 1)
+  [[ $(lsblk -no LABEL "$BOOT") == bootfs ]] || die "$BOOT is not a Pi OS boot partition"
+  MNT=$(lsblk -no MOUNTPOINTS "$BOOT" | head -n1)
+  if [[ -z $MNT ]]; then
+    MNT=$(udisksctl mount -b "$BOOT" | sed 's/.* at //')
+  fi
 fi
 [[ -f $MNT/cmdline.txt && -w $MNT/cmdline.txt ]] || die "can't write $MNT/cmdline.txt"
 
@@ -123,7 +134,9 @@ sync
 
 echo "DONE: the card will install the '$ROLE' role on its next boot${ON[*]:+, with ${ON[*]} on}."
 echo "  It boots, reboots, then installs once online. Check on the Pi: journalctl -u lab-install"
-if command -v udisksctl >/dev/null && udisksctl unmount -b "$BOOT" >/dev/null 2>&1; then
+if [[ -z $BOOT ]]; then
+  :  # --to-dir: nothing to unmount
+elif command -v udisksctl >/dev/null && udisksctl unmount -b "$BOOT" >/dev/null 2>&1; then
   echo "Unmounted $BOOT; safe to remove the card."
 else
   echo "Unmount $BOOT (eject the card) before removing it."
