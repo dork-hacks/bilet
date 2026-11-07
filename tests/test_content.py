@@ -156,6 +156,37 @@ def test_lookup_returns_the_entry():
     assert not text.is_generic
 
 
+@pytest.mark.parametrize("code", sorted(CATALOG_CODES))
+@pytest.mark.parametrize("lang", LANGS)
+def test_generic_steps_mark_one_fix_and_use_it_as_the_first_action(code, lang):
+    from tool.content import fix_steps
+    from tool.content.device_steps import FIX_PREFIXES
+    from tool.web.view import first_fix_step
+
+    prefix = FIX_PREFIXES[lang]
+    steps = fix_steps(code, lang, "unknown")
+    marked = [step for step in steps if step.startswith(prefix)]
+    assert len(marked) == 1, (code, lang)
+    assert first_fix_step({}, {"code": code}, lang) == marked[0].removeprefix(prefix)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_generic_http_and_mqtt_prioritize_removing_the_exposure(lang):
+    from tool.content.device_steps import FIX_PREFIXES
+
+    prefix = FIX_PREFIXES[lang]
+    http = finding_text("HTTP_ADMIN_CLEARTEXT", lang).steps
+    mqtt = finding_text("MQTT_EXPOSED", lang).steps
+    assert http[0].startswith(prefix)
+    assert "HTTPS" in http[0] and "HTTP" in http[0]
+    assert ("opriți" if lang == "ro" else "turn off") in http[0]
+    assert ("parola" if lang == "ro" else "password") in http[1]
+    assert mqtt[1].startswith(prefix)
+    assert "MQTT" in mqtt[1]
+    assert ("dezactivați" if lang == "ro" else "turn it off") in mqtt[1]
+    assert ("avertismentul rămâne" if lang == "ro" else "warning stays") in mqtt[2]
+
+
 def test_unknown_code_or_language_falls_back_without_crashing():
     text = finding_text("NOT_A_CODE", "de")
     assert text.is_generic

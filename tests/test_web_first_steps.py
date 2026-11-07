@@ -70,9 +70,12 @@ def test_unavailable_ai_plan_keeps_local_actions_and_prompt_stays_generic(lang):
 
 
 @pytest.mark.parametrize("lang", ["ro", "en"])
-def test_report_without_device_context_uses_generic_step(lang):
+def test_report_without_device_context_uses_generic_fixing_step(lang):
     result = analyze_file(FIXTURES / "V4_legacy.xml", salt=b"test").to_dict()
     result["devices"] = []
     report = report_view(result, lang)
     finding = max(result["findings"], key=lambda f: f["points"])
-    assert report["findings"][0]["step"] == finding_text(finding["code"], lang).steps[0]
+    prefix = FIX_PREFIXES[lang]
+    steps = finding_text(finding["code"], lang).steps
+    fixing = next(step.removeprefix(prefix) for step in steps if step.startswith(prefix))
+    assert report["findings"][0]["step"] == fixing
