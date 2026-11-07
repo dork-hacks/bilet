@@ -130,6 +130,101 @@ UI = {
             "The list below shows everything the scan found."
         ),
     },
+    # History screen (#65): score trend, compare two checks, delete my history.
+    "history_link": {"ro": "Vezi istoricul verificărilor", "en": "See your check history"},
+    "history_title": {"ro": "Istoricul verificărilor", "en": "Check history"},
+    "back_home": {"ro": "Înapoi la pagina principală", "en": "Back to the home page"},
+    "history_off": {
+        "ro": "Istoricul nu este pornit pe acest calculator.",
+        "en": "History is not turned on on this computer.",
+    },
+    "history_empty": {
+        "ro": "Încă nu ai nicio verificare salvată. După prima verificare, o vei vedea aici.",
+        "en": "You have no saved checks yet. After your first check, you will see it here.",
+    },
+    "history_one": {
+        "ro": (
+            "Ai o singură verificare salvată. După ce repari ceva, fă încă o verificare "
+            "ca să vezi ce s-a schimbat."
+        ),
+        "en": (
+            "You have only one saved check. After you fix something, run another check "
+            "to see what changed."
+        ),
+    },
+    "history_no_time": {"ro": "Oră necunoscută", "en": "Unknown time"},
+    "history_unreadable": {"ro": "Nu a putut fi citită", "en": "Could not be read"},
+    "trend_heading": {"ro": "Cum s-a schimbat scorul", "en": "How your score changed"},
+    "trend_up": {
+        "ro": "Scorul a crescut de la {a} la {b}.",
+        "en": "Your score went up from {a} to {b}.",
+    },
+    "trend_down": {
+        "ro": "Scorul a scăzut de la {a} la {b}.",
+        "en": "Your score went down from {a} to {b}.",
+    },
+    "trend_same": {
+        "ro": "Scorul a rămas {b}.",
+        "en": "Your score stayed at {b}.",
+    },
+    "chart_label": {
+        "ro": "Graficul scorului, de la cea mai veche la cea mai nouă verificare",
+        "en": "Score chart, from the oldest check to the newest",
+    },
+    "scans_heading": {"ro": "Verificările tale", "en": "Your checks"},
+    "col_when": {"ro": "Când", "en": "When"},
+    "col_file": {"ro": "Fișier", "en": "File"},
+    "col_score": {"ro": "Scor", "en": "Score"},
+    "col_state": {"ro": "Stare", "en": "State"},
+    "compare_heading": {"ro": "Compară două verificări", "en": "Compare two checks"},
+    "compare_before": {"ro": "Înainte", "en": "Before"},
+    "compare_after": {"ro": "După", "en": "After"},
+    "compare_button": {"ro": "Compară", "en": "Compare"},
+    "compare_same": {
+        "ro": "Alege două verificări diferite ca să le compari.",
+        "en": "Choose two different checks to compare them.",
+    },
+    "diff_score_up": {
+        "ro": "Scorul a crescut de la {a} la {b}.",
+        "en": "The score went up from {a} to {b}.",
+    },
+    "diff_score_down": {
+        "ro": "Scorul a scăzut de la {a} la {b}.",
+        "en": "The score went down from {a} to {b}.",
+    },
+    "diff_score_same": {"ro": "Scorul a rămas {b}.", "en": "The score stayed at {b}."},
+    "diff_unchanged": {
+        "ro": "Nu s-a schimbat nimic între aceste două verificări.",
+        "en": "Nothing changed between these two checks.",
+    },
+    "diff_resolved": {"ro": "Probleme rezolvate", "en": "Problems you fixed"},
+    "diff_new_findings": {"ro": "Probleme noi", "en": "New problems"},
+    "diff_new_devices": {"ro": "Dispozitive noi", "en": "New devices"},
+    "diff_removed_devices": {
+        "ro": "Dispozitive care nu mai apar",
+        "en": "Devices that are no longer there",
+    },
+    "diff_opened": {"ro": "Porturi deschise acum", "en": "Ports that are now open"},
+    "diff_closed": {"ro": "Porturi închise", "en": "Ports that are now closed"},
+    "delete_heading": {"ro": "Șterge istoricul meu", "en": "Delete my history"},
+    "delete_note": {
+        "ro": (
+            "Șterge toate verificările salvate pe acest calculator, plus explicațiile AI "
+            "păstrate. Nu se poate anula."
+        ),
+        "en": (
+            "This deletes every check saved on this computer, and the saved AI "
+            "explanations. It can't be undone."
+        ),
+    },
+    "delete_button": {"ro": "Șterge istoricul", "en": "Delete my history"},
+    "delete_confirm": {
+        "ro": "Sigur vrei să ștergi tot istoricul? Nu îl vei mai putea recupera.",
+        "en": "Are you sure you want to delete all your history? You can't get it back.",
+    },
+    "delete_yes": {"ro": "Da, șterge tot", "en": "Yes, delete everything"},
+    "delete_no": {"ro": "Nu, păstrează istoricul", "en": "No, keep my history"},
+    "deleted_done": {"ro": "Istoricul tău a fost șters.", "en": "Your history was deleted."},
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}

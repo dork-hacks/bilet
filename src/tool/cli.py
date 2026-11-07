@@ -152,9 +152,13 @@ def serve(args: argparse.Namespace) -> int:
         cache_dir=data_dir() / "ai_cache",
         rejection_log=data_dir() / "ai_rejections.jsonl",
     )
+    from tool.history import History
+
     result_path = args.result
     app = create_app(
-        lambda: load_json_file(result_path) if result_path else None, explainer=explainer
+        lambda: load_json_file(result_path) if result_path else None,
+        explainer=explainer,
+        history=History(),  # local SQLite in the data folder (#21), read by /history
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0

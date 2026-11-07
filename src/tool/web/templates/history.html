@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="{{ view.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ui.history_title }} · {{ display_name }}</title>
+{% include "_style.html" %}
+</head>
+<body class="history">
+  <a class="skip" href="#main">{{ ui.history_title }}</a>
+  <header>
+    <h1>{{ ui.history_title }}</h1>
+    <nav aria-label="{{ ui.language }}">
+      <ul>
+        {% for code, name in langs %}
+        <li><a href="/history?lang={{ code }}{% if view.old_id is not none %}&amp;old={{ view.old_id }}&amp;new={{ view.new_id }}{% endif %}"
+               lang="{{ code }}" hreflang="{{ code }}"
+               {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </header>
+  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+
+  <main id="main">
+  {% if view.message %}<p class="notice" role="status">{{ view.message }}</p>{% endif %}
+
+  {% if not view.enabled %}
+    <p>{{ ui.history_off }}</p>
+
+  {% elif view.confirm_delete %}
+    <section aria-labelledby="delete-heading">
+      <h2 id="delete-heading">{{ ui.delete_heading }}</h2>
+      <p role="alert">{{ ui.delete_confirm }}</p>
+      <form method="post" action="/history/delete">
+        <input type="hidden" name="lang" value="{{ view.lang }}">
+        <input type="hidden" name="confirm" value="yes">
+        <button class="button danger" type="submit">{{ ui.delete_yes }}</button>
+      </form>
+      <p><a class="button" href="/history?lang={{ view.lang }}">{{ ui.delete_no }}</a></p>
+    </section>
+
+  {% else %}
+    {% if not view.scans %}
+    <p>{{ ui.history_empty }}</p>
+    {% else %}
+
+    <section aria-labelledby="trend-heading">
+      <h2 id="trend-heading">{{ ui.trend_heading }}</h2>
+      {% if view.trend_summary %}<p><strong>{{ view.trend_summary }}</strong></p>{% endif %}
+      {% if view.choices|length < 2 %}<p>{{ ui.history_one }}</p>{% endif %}
+      {% if view.chart %}
+      {% set c = view.chart %}
+      <svg class="chart" viewBox="0 0 {{ c.width }} {{ c.height }}" role="img"
+           aria-labelledby="chart-title" focusable="false">
+        <title id="chart-title">{{ ui.chart_label }}. {{ view.trend_summary }}</title>
+        {% for mark in (0, 50, 80, 100) %}
+        <line x1="30" x2="{{ c.width - 30 }}" y1="{{ c.y_for(mark) }}" y2="{{ c.y_for(mark) }}"
+              stroke="#c8c8c8" stroke-dasharray="4 4"/>
+        <text x="2" y="{{ c.y_for(mark) + 5 }}">{{ mark }}</text>
+        {% endfor %}
+        <polyline points="{{ c.polyline }}" fill="none" stroke="#0b4f9c" stroke-width="3"/>
+        {% for p in c.points %}
+        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="6" fill="#0b4f9c"><title>{{ p.when }}: {{ p.score }}</title></circle>
+        <text x="{{ p.x }}" y="{{ p.y - 12 }}" text-anchor="middle">{{ p.score }}</text>
+        {% endfor %}
+      </svg>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="scans-heading">
+      <h2 id="scans-heading">{{ ui.scans_heading }}</h2>
+      <table>
+        <thead><tr><th scope="col">{{ ui.col_when }}</th><th scope="col">{{ ui.col_file }}</th>
+          <th scope="col">{{ ui.col_score }}</th><th scope="col">{{ ui.col_state }}</th></tr></thead>
+        <tbody>
+        {% for row in view.scans %}
+          <tr id="scan-{{ row.id }}">
+            <td>{{ row.when }}</td>
+            <td>{{ row.file }}</td>
+            <td>{% if row.ok %}{{ row.score }}{% else %}–{% endif %}</td>
+            <td>{% if row.band %}<span class="chip {{ row.band.key }}"><span aria-hidden="true">{{ row.band.icon }}</span> {{ row.band.label }}</span>{% else %}{{ ui.history_unreadable }}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    {% if view.choices|length >= 2 %}
+    <section class="picker" aria-labelledby="compare-heading">
+      <h2 id="compare-heading">{{ ui.compare_heading }}</h2>
+      <form method="get" action="/history">
+        <input type="hidden" name="lang" value="{{ view.lang }}">
+        <label for="old">{{ ui.compare_before }}</label>
+        <select id="old" name="old">
+          {% for row in view.choices %}
+          <option value="{{ row.id }}" {% if row.id == view.old_id %}selected{% endif %}>{{ row.when }} · {{ row.file }} · {{ row.score }}</option>
+          {% endfor %}
+        </select>
+        <label for="new">{{ ui.compare_after }}</label>
+        <select id="new" name="new">
+          {% for row in view.choices %}
+          <option value="{{ row.id }}" {% if row.id == view.new_id %}selected{% endif %}>{{ row.when }} · {{ row.file }} · {{ row.score }}</option>
+          {% endfor %}
+        </select>
+        <div><button class="button" type="submit">{{ ui.compare_button }}</button></div>
+      </form>
+
+      {% if view.comparison %}
+      {% set cmp = view.comparison %}
+      <div class="changes" aria-live="polite">
+        <p><strong>{{ cmp.score_line }}</strong></p>
+        {% if cmp.unchanged %}<p>{{ ui.diff_unchanged }}</p>{% endif %}
+        {% for heading, lines in cmp.sections %}
+        <h3>{{ heading }} ({{ lines|length }})</h3>
+        <ul>
+          {% for line in lines %}<li>{{ line.text }}{% if line.extra %} (<span class="muted">{{ line.extra }}</span>){% endif %}</li>{% endfor %}
+        </ul>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+    {% endif %}
+
+    <section aria-labelledby="delete-heading">
+      <h2 id="delete-heading">{{ ui.delete_heading }}</h2>
+      <p>{{ ui.delete_note }}</p>
+      <form method="post" action="/history/delete">
+        <input type="hidden" name="lang" value="{{ view.lang }}">
+        <button class="button danger" type="submit">{{ ui.delete_button }}</button>
+      </form>
+    </section>
+  {% endif %}
+  </main>
+</body>
+</html>
