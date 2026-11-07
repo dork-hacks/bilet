@@ -18,6 +18,10 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
 - [ ] The Pi 5 (OpenWrt, MASTERPLAN §4.2) runs the hotspot **`RSH-dork_unit`**: WPA2 or
       WPA3, a strong password, **2.4 GHz** band. Its uplink (team phone over USB, or
       Ethernet) is a second interface, not the access point's radio.
+- [ ] **Data limit on the uplink phone:** check how much mobile data is left and set a limit
+      or warning in the phone's settings. Scans stay on the hotspot and use none, but the AI
+      calls, `git push`/`pull` and any package download go out through the phone. Download
+      packages and images at home (see above), never over the hotspot.
 - [ ] The scanner laptop joins `RSH-dork_unit` **and nothing else**: Ethernet unplugged,
       venue Wi-Fi forgotten, VPN off. `.venv/bin/tool detect --lang en` must show a single
       network with a private subnet no larger than a /24.
