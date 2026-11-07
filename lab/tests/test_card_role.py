@@ -135,7 +135,8 @@ class CardRoleTest(unittest.TestCase):
     def test_running_twice_does_not_stack_hooks(self):
         self.assertEqual(self.card_role("camera").returncode, 0)
         once = (self.boot / "cmdline.txt").read_text()
-        self.assertEqual(self.card_role("hub", "--on", "snmp").returncode, 0)
+        # A fake toggle, so this test doesn't depend on --with-packages (#96).
+        self.assertEqual(self.card_role("hub", "--on", "ssdp").returncode, 0)
         twice = (self.boot / "cmdline.txt").read_text()
         self.assertEqual(once, twice)
         self.assertEqual(twice.count("systemd.run="), 1)
