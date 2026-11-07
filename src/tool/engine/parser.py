@@ -2,8 +2,9 @@
 
 Turns one nmap XML file into plain host and port records, or raises ParseError
 with one of the error codes from docs/contracts/data-model.md. Every string
-copied from the file is RAW: capped and stripped of control characters, nothing
-more. Callers must escape it before display and never pass it to an LLM as is.
+copied from the file is RAW: capped and stripped of control and format
+characters, nothing more. Callers must escape it before display and never pass
+it to an LLM as is.
 """
 
 import ipaddress
@@ -19,6 +20,9 @@ import defusedxml.ElementTree as SafeET
 
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_RAW_CHARS = 256
+# Titles stay longer here so a keyword past character 256 still reaches the rules.
+# Output (the contract's evidence) caps them to MAX_RAW_CHARS like every RAW field.
+MAX_TITLE_CHARS = 4096
 
 EMPTY_FILE = "EMPTY_FILE"
 TOO_LARGE = "TOO_LARGE"
@@ -43,7 +47,7 @@ class RawPort:
     version: str | None
     tunnel: str | None
     method: str | None  # "probed" | "table" | None
-    http_title: str | None
+    http_title: str | None  # capped at MAX_TITLE_CHARS, not MAX_RAW_CHARS
 
 
 @dataclass(frozen=True)
@@ -87,8 +91,9 @@ def parse_bytes(data: bytes, file: str) -> ParsedScan:
         root = SafeET.fromstring(data, forbid_dtd=False, forbid_entities=True, forbid_external=True)
     except defusedxml.DefusedXmlException as exc:
         raise ParseError(UNSAFE_XML, type(exc).__name__) from exc
-    except ET.ParseError as exc:
-        raise ParseError(NOT_XML, str(exc)) from exc
+    except (ET.ParseError, ValueError, LookupError) as exc:
+        # ValueError: e.g. a multi-byte encoding expat refuses. LookupError: unknown encoding.
+        raise ParseError(NOT_XML, f"{type(exc).__name__}: {exc}") from exc
     if root.tag != "nmaprun":
         raise ParseError(NOT_NMAP, f"root element is <{_raw(root.tag)}>")
 
@@ -107,7 +112,7 @@ def parse_bytes(data: bytes, file: str) -> ParsedScan:
 
 
 def _parse_host(el: ET.Element) -> RawHost | None:
-    status = el.find("status")
+    status = el.find("status")  # nmap always writes one; a host without it counts as up
     if status is not None and status.get("state") != "up":
         return None
 
@@ -159,7 +164,7 @@ def _parse_port(el: ET.Element) -> RawPort | None:
     title = None
     for script in el.findall("script"):
         if script.get("id") == "http-title":
-            title = _raw(script.get("output"))
+            title = _raw(script.get("output"), MAX_TITLE_CHARS)
             break
     return RawPort(
         port=number,
@@ -185,12 +190,16 @@ def _merge(first: RawHost, other: RawHost) -> RawHost:
     )
 
 
-def _raw(value: str | None) -> str | None:
-    """Cap and clean a string copied from the file. Empty becomes None."""
+def _raw(value: str | None, limit: int = MAX_RAW_CHARS) -> str | None:
+    """Cap and clean a string copied from the file. Empty becomes None.
+
+    Control characters (Cc) and format characters (Cf: right-to-left override,
+    zero-width spaces) become spaces, so a banner can't reorder or hide UI text.
+    """
     if value is None:
         return None
-    cleaned = "".join(" " if unicodedata.category(ch) == "Cc" else ch for ch in value)
-    cleaned = " ".join(cleaned.split())[:MAX_RAW_CHARS]
+    cleaned = "".join(" " if unicodedata.category(ch) in ("Cc", "Cf") else ch for ch in value)
+    cleaned = " ".join(cleaned.split())[:limit]
     return cleaned or None
 
 

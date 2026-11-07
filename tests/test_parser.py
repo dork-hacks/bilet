@@ -200,3 +200,40 @@ def test_blank_strings_become_none():
 @pytest.mark.parametrize("start", ["", "soon", "99999999999999999999"])
 def test_invalid_start_gives_no_scan_start(start):
     assert parse_bytes(nmap(host(), start=start), "x.xml").scan_start is None
+
+
+# --- review on #35 ---------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("encoding", ["shift_jis", "bogus-enc", "utf-7"])
+def test_odd_encoding_declarations_never_crash(encoding):
+    data = f'<?xml version="1.0" encoding="{encoding}"?><nmaprun/>'.encode()
+    try:
+        parse_bytes(data, "x.xml")
+    except ParseError as exc:
+        assert exc.code == parser.NOT_XML
+
+
+def test_unknown_and_multibyte_encodings_are_not_xml():
+    for encoding in ("shift_jis", "bogus-enc"):
+        data = f'<?xml version="1.0" encoding="{encoding}"?><nmaprun/>'.encode()
+        assert error_code(data) == parser.NOT_XML
+
+
+def test_long_http_title_keeps_a_keyword_past_256_characters():
+    title = "x" * 300 + " Router Login"
+    data = nmap(
+        host(
+            '<port protocol="tcp" portid="80"><state state="open"/><service name="http"/>'
+            f'<script id="http-title" output="{title}"/></port>'
+        )
+    )
+    kept = parse_bytes(data, "x.xml").hosts[0].ports[0].http_title
+    assert kept.endswith("Router Login")
+    assert len(kept) <= parser.MAX_TITLE_CHARS
+
+
+def test_format_characters_are_stripped():
+    # U+202E right-to-left override, U+200B zero-width space
+    data = nmap(host(port(service='name="http" product="ab&#x202E;cd&#x200B;ef"')))
+    assert parse_bytes(data, "x.xml").hosts[0].ports[0].product == "ab cd ef"
