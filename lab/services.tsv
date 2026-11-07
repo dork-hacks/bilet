@@ -1,0 +1,16 @@
+# Weak services per Raspberry Pi role (MASTERPLAN §4.1). Single source of truth for
+# setup.sh and labctl. Tab-separated. "default" = on in the starting lab (score 25).
+# kind: fake = lab/fakes/fakesvc.py under systemd; real = a locked-down real daemon;
+#       identity = no service, the Pi's own identity (random MAC, no hostname).
+#service	role	kind	unit	port	codes	points	default
+telnet	camera	fake	lab-fake@telnet	2323/tcp	TELNET_OPEN	20	on
+http	camera	fake	lab-fake@http	80/tcp	HTTP_ADMIN_CLEARTEXT	10	on
+rtsp	camera	fake	lab-fake@rtsp	554/tcp	CAMERA_STREAM_EXPOSED	20	off
+ftp	server	fake	lab-fake@ftp	21/tcp	FTP_CLEARTEXT+OUTDATED_SERVICE	30	on
+redis	server	fake	lab-fake@redis	6379/tcp	DB_EXPOSED	20	off
+smb	server	real	smbd	445/tcp	SMB_EXPOSED	10	off
+mqtt	hub	fake	lab-fake@mqtt	1883/tcp	MQTT_EXPOSED	10	on
+ssdp	hub	fake	lab-fake@ssdp	1900/udp	UPNP_EXPOSED	10	off
+snmp	hub	real	snmpd	161/udp	SNMP_EXPOSED	10	off
+jetdirect	hub	fake	lab-fake@jetdirect	9100/tcp	PRINTER_RAW_EXPOSED	5	off
+unknown	hub	identity	-	-	UNKNOWN_DEVICE	5	on
