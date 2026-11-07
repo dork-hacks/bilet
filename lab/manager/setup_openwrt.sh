@@ -4,12 +4,16 @@
 #
 #   scp -O -r lab root@<pi5>:/tmp/lab        (on the laptop; -O because dropbear has no sftp)
 #   sh /tmp/lab/manager/setup_openwrt.sh      (on the router)
+#   sh /tmp/lab/manager/setup_openwrt.sh --hotspot 192.168.50.1
 #   sh /tmp/lab/manager/setup_openwrt.sh remove
 #
 # It needs python3 (a few MB over the router's uplink; OpenWrt 25.12 uses apk, older ones opkg):
 #   apk add python3-light python3-email python3-urllib python3-logging python3-codecs
 # It uses OpenWrt's own dropbear client, so no openssh packages. It runs as the user
 # labmanager and listens on 127.0.0.1:8090 only, so it never shows up in a scan of the hotspot.
+# With --hotspot ADDR (the router's own address on RSH-dork_unit) it listens there instead and
+# every page needs the access code printed at the end. A scan then sees plain http on 8090
+# titled "Lab manager" (no admin word: no finding). Run again without it to go back to loopback.
 set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -29,7 +33,15 @@ if [ "${1:-}" = remove ]; then
 	echo "Removed. Kept on purpose: $CONF (your Pi list and the key)."
 	exit 0
 fi
-[ $# -eq 0 ] || die "usage: sh setup_openwrt.sh [remove]"
+BIND=127.0.0.1
+case $# in
+0) ;;
+2) [ "$1" = --hotspot ] || die "usage: sh setup_openwrt.sh [--hotspot ADDRESS | remove]"
+	BIND=$2
+	ip -4 -o addr show | grep -q " inet $BIND/" || die "$BIND is not an address of this router"
+	;;
+*) die "usage: sh setup_openwrt.sh [--hotspot ADDRESS | remove]" ;;
+esac
 
 # python3-light alone lacks email, urllib, logging and the idna codec, which http.server needs.
 if command -v apk >/dev/null; then
@@ -65,6 +77,13 @@ if [ ! -s $STATE/id_dropbear ]; then
 	dropbearkey -t ed25519 -f $STATE/id_dropbear >/dev/null 2>&1 \
 		|| dropbearkey -t ecdsa -s 256 -f $STATE/id_dropbear >/dev/null
 fi
+# The sign-in code for --hotspot: like the Pis' device IDs, kept across reinstalls.
+if ! grep -qE '^LAB-[A-Z2-7]{4}-[A-Z2-7]{4}$' $STATE/access-code 2>/dev/null; then
+	c=$(tr -dc 'A-Z2-7' </dev/urandom | head -c 8)
+	printf 'LAB-%s-%s\n' "${c%????}" "${c#????}" > $STATE/access-code
+fi
+chmod 0600 $STATE/access-code
+if [ "$BIND" = 127.0.0.1 ]; then rm -f $CONF/bind; else echo "$BIND" > $CONF/bind; fi
 chown -R labmanager:labmanager $STATE
 chmod 0700 $STATE $STATE/.ssh
 chmod 0600 $STATE/id_dropbear
@@ -82,5 +101,9 @@ Lab manager installed. Next:
   2. Save this public key as lab-manager.pub and copy it to each lab Pi:
 $PUB
      then on each Pi: sudo lab/setup.sh <role> --manager-key lab-manager.pub
-  3. From the laptop: ssh -L 8090:127.0.0.1:8090 root@<this router>, then open http://127.0.0.1:8090/
 EOM
+if [ "$BIND" = 127.0.0.1 ]; then
+	echo "  3. From the laptop: ssh -L 8090:127.0.0.1:8090 root@<this router>, then open http://127.0.0.1:8090/"
+else
+	echo "  3. On the hotspot: open http://$BIND:8090/ with the access code $(cat $STATE/access-code)"
+fi

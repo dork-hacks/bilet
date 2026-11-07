@@ -285,18 +285,132 @@ class HttpTests(unittest.TestCase):
             )
             self.assertEqual(done.returncode, 0, f"{name}: {done.stderr}")
         init = (LAB / "manager" / "lab-manager.init").read_text()
-        self.assertIn("--bind 127.0.0.1", init)
+        self.assertIn("local bind=127.0.0.1", init)
+        self.assertIn('--bind "$bind"', init)
         self.assertIn("--ssh-client dropbear", init)
         self.assertIn("procd_set_param user labmanager", init)
         setup = (LAB / "manager" / "setup_openwrt.sh").read_text()
         self.assertNotIn("bash", setup.splitlines()[0])
 
-    def test_the_manager_only_binds_loopback(self):
-        with self.assertRaises(SystemExit):
-            manager.main(["--bind", "0.0.0.0", "--config", "/dev/null"])
+    def test_the_manager_binds_loopback_or_one_private_hotspot_address(self):
+        self.assertEqual(manager.check_bind("127.0.0.1"), "127.0.0.1")
+        self.assertEqual(manager.check_bind("192.168.50.1"), "192.168.50.1")
+        for bad in ("0.0.0.0", "8.8.8.8", "100.64.0.1", "169.254.1.1", "127.0.0.2", "::1", "pi5"):
+            with self.assertRaises(SystemExit, msg=bad):
+                manager.main(["--bind", bad, "--config", "/dev/null"])
+        setup = (LAB / "manager" / "setup_openwrt.sh").read_text()
+        self.assertIn("is not an address of this router", setup)
         unit = (LAB / "manager" / "lab-manager.service").read_text()
         self.assertIn("--bind 127.0.0.1", unit)
         self.assertNotRegex(unit, r"--bind (?!127\.0\.0\.1)")
+
+
+class SignInTests(unittest.TestCase):
+    """--bind on the hotspot: every page needs the access code (#155)."""
+
+    CODE = "LAB-ABCD-EF23"
+
+    def setUp(self):
+        self.mgr, self.fake = make()
+        self.now = 1000.0
+        self.access = manager.Access(self.CODE, clock=lambda: self.now)
+        self.server = manager.ThreadingHTTPServer(("127.0.0.1", 0), lambda *a: None)
+        self.port = self.server.server_address[1]
+        self.host = f"192.168.50.1:{self.port}"
+        self.server.RequestHandlerClass = manager.make_handler(
+            self.mgr, self.port, "192.168.50.1", self.access
+        )
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        manager.SIGNIN_FAIL_DELAY, self.delay = 0.0, manager.SIGNIN_FAIL_DELAY
+
+    def tearDown(self):
+        manager.SIGNIN_FAIL_DELAY = self.delay
+        self.server.shutdown()
+        self.server.server_close()
+
+    def request(self, method, path, body="", cookie=None, host=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+        headers = {"Host": host or self.host}
+        if cookie:
+            headers["Cookie"] = cookie
+        if method == "POST":
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
+        conn.request(method, path, body=body.encode(), headers=headers)
+        r = conn.getresponse()
+        return r.status, r.getheader("Location"), r.getheader("Set-Cookie"), r.read().decode()
+
+    def sign_in(self, code=CODE):
+        return self.request("POST", "/signin", f"csrf={self.mgr.csrf}&code={code}")
+
+    def test_without_the_code_only_the_sign_in_page_shows(self):
+        status, _, _, page = self.request("GET", "/")
+        self.assertEqual(status, 200)
+        self.assertIn('action="/signin"', page)
+        self.assertNotIn("What the lab should score", page)
+        self.assertNotIn("192.168.50.12", page)
+        self.assertEqual(self.fake.calls, [])
+        body = f"csrf={self.mgr.csrf}&pi=pi2&op=fix&arg=telnet"
+        self.assertEqual(self.request("POST", "/do", body)[0], 403)
+        self.assertEqual(self.request("POST", "/do", body, cookie="lab-session=guess")[0], 403)
+        self.assertEqual(self.fake.calls, [])
+
+    def test_a_scan_sees_no_admin_word_in_the_title(self):
+        for page in (self.request("GET", "/")[3], manager.PAGE):
+            title = re.search(r"<title>(.*?)</title>", page).group(1).lower()
+            for word in ("login", "admin", "config", "setup", "router", "settings"):
+                self.assertNotIn(word, title)
+
+    def test_a_wrong_code_gives_no_session(self):
+        status, location, cookie, _ = self.sign_in("LAB-AAAA-AAAA")
+        self.assertEqual((status, location, cookie), (303, "/?m=badcode", None))
+        self.assertIn("access code is wrong", self.request("GET", "/?m=badcode")[3])
+        self.assertEqual(self.sign_in("")[1], "/?m=badcode")
+        self.assertEqual(self.request("POST", "/signin", f"code={self.CODE}")[0], 403)  # no csrf
+
+    def test_the_code_opens_the_page_and_sign_out_closes_it(self):
+        status, location, cookie, _ = self.sign_in(self.CODE.lower())
+        self.assertEqual((status, location), (303, "/"))
+        self.assertIn("HttpOnly", cookie)
+        self.assertIn("SameSite=Strict", cookie)
+        session = cookie.split(";")[0]
+        page = self.request("GET", "/", cookie=session)[3]
+        self.assertIn("What the lab should score", page)
+        self.assertIn('action="/signout"', page)
+        body = f"csrf={self.mgr.csrf}&pi=pi2&op=fix&arg=telnet"
+        self.assertEqual(self.request("POST", "/do", body, cookie=session)[1], "/?m=done#pi-pi2")
+        self.request("POST", "/signout", f"csrf={self.mgr.csrf}", cookie=session)
+        self.assertIn('action="/signin"', self.request("GET", "/", cookie=session)[3])
+
+    def test_sessions_expire_and_are_capped(self):
+        session = self.sign_in()[2].split(";")[0]
+        self.now += manager.SESSION_TTL + 1
+        self.assertIn('action="/signin"', self.request("GET", "/", cookie=session)[3])
+        tokens = [self.access.sign_in(self.CODE) for _ in range(manager.MAX_SESSIONS + 1)]
+        self.assertEqual(len(self.access.sessions), manager.MAX_SESSIONS)
+        self.assertFalse(self.access.valid(tokens[0]))
+        self.assertTrue(self.access.valid(tokens[-1]))
+
+    def test_other_host_names_are_still_refused(self):
+        self.assertEqual(self.request("GET", "/", host="evil.example")[0], 403)
+        self.assertEqual(self.request("GET", "/", host=f"127.0.0.1:{self.port}")[0], 200)
+
+    def test_the_hotspot_needs_an_access_code_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            conf = pathlib.Path(tmp, "pis.conf")
+            conf.write_text("pi2 192.168.50.12\n")
+            args = ["--bind", "192.168.50.1", "--config", str(conf), "--state-dir", tmp]
+            self.assertEqual(manager.main(args), 1)
+            pathlib.Path(tmp, "access-code").write_text("hunter2\n")
+            self.assertEqual(manager.main(args), 1)
+        self.assertEqual(manager.load_access_code(self._code_file()), self.CODE)
+
+    def _code_file(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = pathlib.Path(tmp.name, "access-code")
+        path.write_text(self.CODE.lower() + "\n")
+        return path
 
 
 class RemoteTests(unittest.TestCase):

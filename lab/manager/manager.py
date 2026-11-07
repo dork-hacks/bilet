@@ -10,9 +10,12 @@ is restricted to lab/remote.py, which hands the request to the lab-switch helper
 are checked here and again by the helper: "status", "fix SERVICE", "break SERVICE" and
 "preset NAME", nothing else.
 
-It listens on 127.0.0.1 only, so it never shows up in a scan of the hotspot and the router
-keeps adding 0 points (MASTERPLAN §4.2). Open it from the laptop through SSH:
+By default it listens on 127.0.0.1 only; open it from the laptop through SSH:
     ssh -L 8090:127.0.0.1:8090 <user>@<pi5>    then browse to http://127.0.0.1:8090/
+With --bind <the router's hotspot address> anyone on the hotspot can reach it, so every page
+then needs the access code from --access-code-file (made by setup_openwrt.sh). It then shows
+up in a scan as plain http whose page title is "Lab manager": no admin word, so no
+HTTP_ADMIN_CLEARTEXT and the router still adds 0 points (MASTERPLAN §4.2).
 
 Standard library only, Python 3.11+.
 """
@@ -27,6 +30,7 @@ import secrets
 import subprocess
 import sys
 import threading
+import time
 import urllib.parse
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -43,6 +47,12 @@ ROLES = ("camera", "server", "hub")
 NAME = re.compile(r"[a-z][a-z0-9-]{0,15}")
 SERVICE = re.compile(r"[a-z][a-z0-9]{0,15}")
 CGNAT = ipaddress.ip_network("100.64.0.0/10")
+LOOPBACK = "127.0.0.1"
+ACCESS_CODE = re.compile(r"LAB-[A-Z2-7]{4}-[A-Z2-7]{4}")
+SESSION_TTL = 30 * 60.0  # seconds
+MAX_SESSIONS = 8  # the oldest one is dropped when a ninth signs in
+SIGNIN_FAIL_DELAY = 1.0  # seconds; slows down guessing
+COOKIE = "lab-session"
 
 Runner = Callable[[list[str], float], tuple[int, str]]
 
@@ -266,7 +276,7 @@ form{{display:inline}} .row{{margin:.5em 0}}
 <p class="score">What the lab should score: <strong>{score}</strong> ({points} points switched on{partial}).
 The tool's own scan is the real answer; this only adds up <code>services.tsv</code>.</p>
 <p>{message}</p>
-<p><a href="/">Refresh</a></p>
+<p><a href="/">Refresh</a> {signout}</p>
 <div class="pis">{cards}</div>
 </body></html>
 """
@@ -283,7 +293,9 @@ def _button(csrf: str, pi: str, op: str, arg: str, label: str) -> str:
     )
 
 
-def render(manager: Manager, states: list[PiState], message: str = "") -> bytes:
+def render(
+    manager: Manager, states: list[PiState], message: str = "", sign_out: bool = False
+) -> bytes:
     csrf = manager.csrf
     cards = []
     for st in states:
@@ -329,7 +341,14 @@ def render(manager: Manager, states: list[PiState], message: str = "") -> bytes:
     partial = "" if all(s.reachable for s in states) else ", unreachable Pis not counted"
     if not states:
         cards.append("<p>No Pis configured. Add them to /etc/lab-manager/pis.conf.</p>")
+    signout = (
+        '<form method="post" action="/signout">'
+        f'<input type="hidden" name="csrf" value="{csrf}"><button>Sign out</button></form>'
+        if sign_out
+        else ""
+    )
     return PAGE.format(
+        signout=signout,
         score=score,
         points=points,
         partial=partial,
@@ -338,13 +357,105 @@ def render(manager: Manager, states: list[PiState], message: str = "") -> bytes:
     ).encode()
 
 
+SIGNIN_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab manager</title>
+<style>
+body{{font:17px/1.5 system-ui,sans-serif;margin:0 auto;max-width:30em;padding:0 16px;color:#111;background:#fff}}
+input,button{{font:inherit;padding:.3em .7em}} .err{{color:#a00;font-weight:700}}
+@media (prefers-color-scheme: dark){{body{{background:#111;color:#eee}} .err{{color:#f88}}}}
+</style></head>
+<body><h1>Lab manager</h1>
+<p>Type the access code that the router's setup printed (LAB-XXXX-XXXX).</p>
+<p class="err">{message}</p>
+<form method="post" action="/signin">
+<input type="hidden" name="csrf" value="{csrf}">
+<label>Access code <input name="code" autocomplete="off" autofocus></label>
+<button>Open</button></form>
+</body></html>
+"""
+
+
+def check_bind(address: str) -> str:
+    """--bind: loopback, or one private IPv4 address of this router (the hotspot side).
+    Never 0.0.0.0, which would also listen on the uplink."""
+    try:
+        ip = ipaddress.IPv4Address(address)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{address!r} is not an IPv4 address") from None
+    if str(ip) == LOOPBACK:
+        return LOOPBACK
+    if not ip.is_private or ip in CGNAT or ip.is_loopback or ip.is_link_local or ip.is_unspecified:
+        raise argparse.ArgumentTypeError(f"{address} is not a private hotspot address")
+    return str(ip)
+
+
+def load_access_code(path: Path) -> str:
+    code = path.read_text(encoding="ascii", errors="replace").strip().upper()
+    if not ACCESS_CODE.fullmatch(code):
+        raise ConfigError(f"{path}: no access code (LAB-XXXX-XXXX)")
+    return code
+
+
+class Access:
+    """Sign-in for a manager that the hotspot can reach. code=None: loopback, no sign-in."""
+
+    def __init__(self, code: str | None = None, clock: Callable[[], float] = time.monotonic):
+        self.code = code
+        self.clock = clock
+        self.sessions: dict[str, float] = {}  # token -> expiry
+        self.lock = threading.Lock()
+
+    @property
+    def required(self) -> bool:
+        return self.code is not None
+
+    def sign_in(self, code: str) -> str | None:
+        """A new session token for the right code, else None."""
+        if self.code is None:
+            return None
+        typed = code.strip().upper().encode("ascii", "replace")
+        if not secrets.compare_digest(typed, self.code.encode("ascii")):
+            return None
+        token = secrets.token_urlsafe(32)
+        with self.lock:
+            self._expire()
+            while len(self.sessions) >= MAX_SESSIONS:
+                del self.sessions[min(self.sessions, key=self.sessions.get)]
+            self.sessions[token] = self.clock() + SESSION_TTL
+        return token
+
+    def valid(self, token: str) -> bool:
+        if self.code is None:
+            return True
+        with self.lock:
+            self._expire()
+            return any(secrets.compare_digest(token, t) for t in self.sessions)
+
+    def sign_out(self, token: str) -> None:
+        with self.lock:
+            self.sessions.pop(token, None)
+
+    def _expire(self) -> None:
+        now = self.clock()
+        for token in [t for t, until in self.sessions.items() if until <= now]:
+            del self.sessions[token]
+
+
 # --- HTTP ------------------------------------------------------------------------------
 
-MESSAGES = {"done": "Done.", "refused": "That didn't work: the Pi refused or didn't answer."}
+MESSAGES = {
+    "done": "Done.",
+    "refused": "That didn't work: the Pi refused or didn't answer.",
+    "badcode": "That access code is wrong.",
+}
 
 
-def make_handler(manager: Manager, port: int):
-    allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+def make_handler(manager: Manager, port: int, bind: str = LOOPBACK, access: Access | None = None):
+    # Loopback names stay allowed for an SSH tunnel to the hotspot address.
+    allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}", f"{bind}:{port}"}
+    access = access or Access()
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "lab-manager"
@@ -354,17 +465,35 @@ def make_handler(manager: Manager, port: int):
             pass
 
         def _host_ok(self) -> bool:
-            # Only a browser on this machine (through the SSH tunnel). This also stops DNS
-            # rebinding: a page on another name can't drive the manager.
+            # Only our own address names. This stops DNS rebinding: a page on another name
+            # can't drive the manager.
             if self.headers.get("Host", "") not in allowed_hosts:
                 return False
             origin = self.headers.get("Origin")
             return origin is None or urllib.parse.urlsplit(origin).netloc in allowed_hosts
 
-        def _send(self, status: int, body: bytes = b"", location: str | None = None):
+        def _token(self) -> str:
+            for part in self.headers.get("Cookie", "").split(";"):
+                name, _, value = part.strip().partition("=")
+                if name == COOKIE:
+                    return value
+            return ""
+
+        def _signed_in(self) -> bool:
+            return access.valid(self._token())
+
+        def _send(
+            self,
+            status: int,
+            body: bytes = b"",
+            location: str | None = None,
+            cookie: str | None = None,
+        ):
             self.send_response(status)
             if location:
                 self.send_header("Location", location)
+            if cookie is not None:
+                self.send_header("Set-Cookie", cookie)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
@@ -384,12 +513,16 @@ def make_handler(manager: Manager, port: int):
                 return self._send(404, b"Not Found\n")
             query = urllib.parse.parse_qs(url.query)
             message = MESSAGES.get(query.get("m", [""])[0], "")
-            self._send(200, render(manager, manager.all_status(), message))
+            if not self._signed_in():
+                page = SIGNIN_PAGE.format(csrf=manager.csrf, message=html.escape(message))
+                return self._send(200, page.encode())
+            self._send(200, render(manager, manager.all_status(), message, access.required))
 
         def do_POST(self):  # noqa: N802
             if not self._host_ok():
                 return self._send(403, b"Forbidden\n")
-            if urllib.parse.urlsplit(self.path).path != "/do":
+            path = urllib.parse.urlsplit(self.path).path
+            if path not in ("/do", "/signin", "/signout"):
                 return self._send(404, b"Not Found\n")
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -404,6 +537,19 @@ def make_handler(manager: Manager, port: int):
                 ).items()
             }
             if not secrets.compare_digest(form.get("csrf", ""), manager.csrf):
+                return self._send(403, b"Forbidden\n")
+            if path == "/signin":
+                token = access.sign_in(form.get("code", ""))
+                if token is None:
+                    time.sleep(SIGNIN_FAIL_DELAY)
+                    return self._send(303, location="/?m=badcode")
+                cookie = f"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict"
+                return self._send(303, location="/", cookie=cookie)
+            if path == "/signout":
+                access.sign_out(self._token())
+                cookie = f"{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict"
+                return self._send(303, location="/", cookie=cookie)
+            if not self._signed_in():
                 return self._send(403, b"Forbidden\n")
             pi, op, arg = form.get("pi", ""), form.get("op", ""), form.get("arg", "")
             ok = manager.act(pi, op, arg)
@@ -430,12 +576,22 @@ def run_ssh(argv: list[str], timeout: float, home: Path | None = None) -> tuple[
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Lab manager for the hotspot lab (#155).")
-    parser.add_argument("--bind", default="127.0.0.1", choices=("127.0.0.1",))  # never the hotspot
+    parser.add_argument(
+        "--bind",
+        type=check_bind,
+        default=LOOPBACK,
+        help="127.0.0.1 (default, SSH tunnel) or the router's private hotspot address",
+    )
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--lab-dir", type=Path, default=HERE)
     parser.add_argument(
         "--state-dir", type=Path, default=STATE, help="where the key and known hosts live"
+    )
+    parser.add_argument(
+        "--access-code-file",
+        type=Path,
+        help="the sign-in code, needed unless --bind is 127.0.0.1 (default: STATE/access-code)",
     )
     parser.add_argument(
         "--ssh-client",
@@ -448,6 +604,9 @@ def main(argv: list[str] | None = None) -> int:
         pis = load_config(args.config)
         services = load_services(args.lab_dir / "services.tsv")
         presets = load_presets(args.lab_dir / "services.tsv", args.lab_dir / "presets.tsv")
+        code = None
+        if args.bind != LOOPBACK:
+            code = load_access_code(args.access_code_file or args.state_dir / "access-code")
     except (OSError, ConfigError) as exc:
         print(f"lab-manager: {exc}", file=sys.stderr)
         return 1
@@ -461,7 +620,8 @@ def main(argv: list[str] | None = None) -> int:
         known_hosts=args.state_dir / "known_hosts",
         client=args.ssh_client,
     )
-    server = ThreadingHTTPServer((args.bind, args.port), make_handler(manager, args.port))
+    handler = make_handler(manager, args.port, args.bind, Access(code))
+    server = ThreadingHTTPServer((args.bind, args.port), handler)
     print(f"lab-manager: http://{args.bind}:{args.port}/ ({len(pis)} Pis)", file=sys.stderr)
     try:
         server.serve_forever()

@@ -14,9 +14,17 @@ One page on the Pi 5 (the hotspot router) that controls what every lab Pi plays:
 
 ## Safety
 
-- It listens on **127.0.0.1:8090 only**, so it never appears in a scan, and the router still
-  adds 0 points (MASTERPLAN §4.2). Requests whose `Host` isn't the loopback are refused, and
-  every button carries a CSRF token.
+- By default it listens on **127.0.0.1:8090 only**, so it never appears in a scan.
+- With `--hotspot` it listens on the router's hotspot address instead (never `0.0.0.0`, which
+  would include the uplink), and every page needs the **access code** printed by the setup.
+  Anyone on `RSH-dork_unit` can reach the sign-in page, jury included, so keep the code off
+  slides and screenshots. Sessions are HttpOnly, SameSite=Strict cookies that last 30 minutes;
+  a wrong code waits 1 s.
+- A scan then shows `http` on 8090 titled "Lab manager". It has no admin word, so there's no
+  HTTP_ADMIN_CLEARTEXT and the router still adds 0 points (MASTERPLAN §4.2). The sign-in page
+  is served at `/` directly, not through a redirect, so `http-title` sees that title.
+- Requests whose `Host` isn't one of our own addresses are refused (DNS rebinding), and every
+  form carries a CSRF token.
 - It reaches each Pi as `labmgr` over SSH (already open: SSH_OPEN, 0 points) with its own
   key. On the Pi that key is `restrict`ed to `remote.py`, so it gets no shell, no PTY and no
   forwarding. `remote.py` hands one line to the lab-switch helper, which accepts only
@@ -70,6 +78,15 @@ ssh -L 8090:127.0.0.1:8090 root@<pi5>
 ```
 
 Then open http://127.0.0.1:8090/.
+
+To open it from any device on the hotspot instead (no tunnel), run the setup again with the
+router's hotspot address. It prints the access code (kept in `/etc/lab-manager/state/access-code`):
+
+```bash
+sh /tmp/lab/manager/setup_openwrt.sh --hotspot 192.168.50.1
+```
+
+Then open http://192.168.50.1:8090/. Running the setup without `--hotspot` goes back to loopback.
 
 `pis.conf` stays on the router: it isn't committed (MASTERPLAN §3.5).
 
