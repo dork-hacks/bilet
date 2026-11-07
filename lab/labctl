@@ -47,7 +47,8 @@ identity_active() {
   local mac host
   mac=$(nmcli -g 802-11-wireless.cloned-mac-address connection show "$con")
   host=$(nmcli -g ipv4.dhcp-send-hostname connection show "$con")
-  [[ $mac =~ ^(stable|random)$ && $host == no ]]
+  # Older NetworkManager prints "no"; 1.52 (Debian trixie) prints the ternary "0".
+  [[ $mac =~ ^(stable|random)$ && $host =~ ^(no|0)$ ]]
 }
 
 identity_set() { # on|off, reconnect yes|no
