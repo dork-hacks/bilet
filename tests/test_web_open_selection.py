@@ -22,7 +22,10 @@ def test_opened_selection_survives_language_and_ai_controls(tmp_path, filename):
     history = History(tmp_path / "history")
     history.add(analyze_file(FIXTURES / "V6a_before.xml", salt=b"test").to_dict())
     provider = Mock(name="offline", complete=Mock(side_effect=ProviderUnavailable("offline")))
-    client = TestClient(create_app(lambda: None, history=history, explainer=Explainer(provider)))
+    client = TestClient(
+        create_app(lambda: None, history=history, explainer=Explainer(provider)),
+        base_url="http://127.0.0.1",
+    )
     html = client.post(
         "/open",
         data={"lang": "en"},
@@ -48,7 +51,7 @@ def test_opened_selection_survives_language_and_ai_controls(tmp_path, filename):
 
 def test_missing_or_evicted_opened_selection_never_falls_back_to_current_scan():
     current = analyze_file(FIXTURES / "V6a_before.xml", salt=b"test").to_dict()
-    client = TestClient(create_app(lambda: current))
+    client = TestClient(create_app(lambda: current), base_url="http://127.0.0.1")
 
     def open_file():
         html = client.post(

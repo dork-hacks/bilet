@@ -17,7 +17,11 @@ SCAN = json.loads((FIXTURES / "example_scan.json").read_text(encoding="utf-8"))
 
 
 def page(result, lang="en"):
-    return TestClient(create_app(lambda: result)).get("/", params={"lang": lang}).text
+    return (
+        TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
+        .get("/", params={"lang": lang})
+        .text
+    )
 
 
 # --- view logic -------------------------------------------------------------------------

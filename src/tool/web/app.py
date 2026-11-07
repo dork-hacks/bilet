@@ -41,7 +41,7 @@ from tool.web.history_view import HistoryView, history_view
 from tool.web.map_view import network_map
 from tool.web.report import report_view
 from tool.web.risks_view import risks_view
-from tool.web.scan_view import ScanRunner, local_scan_client, scan_status
+from tool.web.scan_view import ScanRunner, local_scan_client, loopback_host, scan_status
 from tool.web.view import HomeView, home_view, pick_lang
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -210,6 +210,17 @@ def create_app(
     the newest readable scan in the history (#87).
     """
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.middleware("http")
+    async def protect_local_ui(request: Request, call_next):
+        if not loopback_host(request, allow_localhost=True):
+            response = PlainTextResponse("Forbidden", status_code=403)
+        else:
+            response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+        return response
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # Opened files have no history ID. Keep analyzed results (never uploaded XML)

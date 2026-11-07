@@ -47,7 +47,7 @@ class TaskProvider:
 
 
 def client(explainer):
-    return TestClient(create_app(lambda: SCAN, explainer=explainer))
+    return TestClient(create_app(lambda: SCAN, explainer=explainer), base_url="http://127.0.0.1")
 
 
 def ask(provider, **form):

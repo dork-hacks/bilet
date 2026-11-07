@@ -36,7 +36,7 @@ def before_after(history):
 
 
 def client(history):
-    return TestClient(create_app(lambda: None, history=history))
+    return TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
 
 
 def text_of(html: str) -> str:
@@ -138,13 +138,17 @@ def test_single_scan_shows_a_helpful_message(history):
 
 
 def test_app_without_history_says_it_is_off():
-    res = TestClient(create_app(lambda: None)).get("/history", params={"lang": "en"})
+    res = TestClient(create_app(lambda: None), base_url="http://127.0.0.1").get(
+        "/history", params={"lang": "en"}
+    )
     assert res.status_code == 200
     assert UI["history_off"]["en"] in res.text
 
 
 def test_home_links_to_the_history_screen():
-    res = TestClient(create_app(lambda: None)).get("/", params={"lang": "en"})
+    res = TestClient(create_app(lambda: None), base_url="http://127.0.0.1").get(
+        "/", params={"lang": "en"}
+    )
     assert 'href="/history?lang=en"' in res.text
     assert UI["history_link"]["en"] in res.text
 
@@ -226,7 +230,7 @@ def test_cross_site_post_cannot_delete(before_after):
     res = c.post(
         "/history/delete",
         data={"confirm": "yes"},
-        headers={"origin": "http://testserver", "sec-fetch-site": "same-origin"},
+        headers={"origin": "http://127.0.0.1", "sec-fetch-site": "same-origin"},
         follow_redirects=False,
     )
     assert res.status_code == 303 and history.scans() == []

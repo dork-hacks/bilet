@@ -24,7 +24,7 @@ SCAN = json.loads((FIXTURES / "contract/example_scan.json").read_text())
 @pytest.mark.parametrize("lang", ["ro", "en"])
 def test_report_priorities_counts_language_and_no_ai(lang):
     explainer = Mock()
-    client = TestClient(create_app(lambda: SCAN, explainer=explainer))
+    client = TestClient(create_app(lambda: SCAN, explainer=explainer), base_url="http://127.0.0.1")
     response = client.get(f"/report?lang={lang}&ai=1")
     html = response.text
     assert response.status_code == 200
@@ -61,7 +61,11 @@ def test_only_whitelisted_fields_reach_html_and_projection_does_not_mutate():
         device["mac_masked"] = "AA:BB:CC:DD:EE:FF"
     scan["devices"][1]["mac_masked"] = "B8:27:EB:xx:xx:xx"
     before = copy.deepcopy(scan)
-    html = TestClient(create_app(lambda: scan)).get("/report?lang=en").text
+    html = (
+        TestClient(create_app(lambda: scan), base_url="http://127.0.0.1")
+        .get("/report?lang=en")
+        .text
+    )
     assert "B8:27:EB:xx:xx:xx" in html
     for secret in [
         "/private/",
@@ -83,7 +87,7 @@ def test_only_whitelisted_fields_reach_html_and_projection_does_not_mutate():
 def test_jinja_escapes_untrusted_display_values():
     scan = copy.deepcopy(SCAN)
     scan["findings"][3]["ip"] = '<img src=x onerror="x">'
-    html = TestClient(create_app(lambda: scan)).get("/report").text
+    html = TestClient(create_app(lambda: scan), base_url="http://127.0.0.1").get("/report").text
     assert "<img src=x" not in html
     assert "&lt;img src=x" in html
 
@@ -97,14 +101,16 @@ def test_jinja_escapes_untrusted_display_values():
     ],
 )
 def test_empty_error_and_malformed_results_are_graceful(result, message):
-    response = TestClient(create_app(lambda: result)).get("/report?lang=en")
+    response = TestClient(create_app(lambda: result), base_url="http://127.0.0.1").get(
+        "/report?lang=en"
+    )
     assert response.status_code == 200
     assert message in response.text
 
 
 def test_empty_readable_scan_and_language_fallback():
     scan = {"status": "ok", "score": 100, "devices": [], "findings": []}
-    client = TestClient(create_app(lambda: scan))
+    client = TestClient(create_app(lambda: scan), base_url="http://127.0.0.1")
     assert "We found no problems" in client.get("/report?lang=en").text
     assert '<html lang="ro">' in client.get("/report?lang=xx").text
 
@@ -132,17 +138,17 @@ def test_loaded_result_wins_and_latest_history_refreshes(tmp_path):
     history = History(tmp_path / "history")
     before = analyze_file(FIXTURES / "validation/V6a_before.xml", salt=b"test").to_dict()
     after = analyze_file(FIXTURES / "validation/V6b_after.xml", salt=b"test").to_dict()
-    client = TestClient(create_app(lambda: None, history=history))
+    client = TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
     history.add(before)
     assert f'>{before["score"]}</span>' in client.get("/report").text
     history.add(after)
     assert f'>{after["score"]}</span>' in client.get("/report").text
-    loaded = TestClient(create_app(lambda: SCAN, history=history))
+    loaded = TestClient(create_app(lambda: SCAN, history=history), base_url="http://127.0.0.1")
     assert ">35</span>" in loaded.get("/report").text
 
 
 def test_opened_scan_report_stays_selected_and_tokens_expire():
-    client = TestClient(create_app(lambda: SCAN))
+    client = TestClient(create_app(lambda: SCAN), base_url="http://127.0.0.1")
     data = (FIXTURES / "validation/V6b_after.xml").read_bytes()
 
     def open_report_link():
