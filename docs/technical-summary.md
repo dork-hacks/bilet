@@ -5,7 +5,7 @@ bilet scans a network you own, scores it against the official catalog and explai
 ## Lab setup
 
 - **Hotspot:** a Raspberry Pi 5 on OpenWrt serves `RSH-dork_unit` (WPA2/WPA3), locked down to key-only SSH.
-- **Targets:** three Pi 4s play a camera, an old office server and a "mystery" smart hub. Their weak services are **simulated** (`lab/`): no login ever works.
+- **Targets:** three Pi 4s play a camera, an old office server and a "mystery" smart hub. Their weak services are **simulated** (`lab/`): no login on them ever works.
 - **Default lab:** score 25 with 7 finding types. `labctl fix telnet` and `labctl fix http` raise it to 55.
 - **Scanner:** a laptop on the hotspot and nothing else.
 
