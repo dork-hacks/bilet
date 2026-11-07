@@ -97,17 +97,19 @@ def parse_bytes(data: bytes, file: str) -> ParsedScan:
     if root.tag != "nmaprun":
         raise ParseError(NOT_NMAP, f"root element is <{_raw(root.tag)}>")
 
-    hosts: dict[str, RawHost] = {}
+    hosts: dict[str, _Merged] = {}
     for host_el in root.iter("host"):
         host = _parse_host(host_el)
         if host is None:
             continue
         if host.ip in hosts:  # the same IP twice: keep the first, add ports it didn't have
-            hosts[host.ip] = _merge(hosts[host.ip], host)
+            hosts[host.ip].add(host)
         else:
-            hosts[host.ip] = host
+            hosts[host.ip] = _Merged(host)
     return ParsedScan(
-        file=file, scan_start=_scan_start(root.get("start")), hosts=tuple(hosts.values())
+        file=file,
+        scan_start=_scan_start(root.get("start")),
+        hosts=tuple(merged.host() for merged in hosts.values()),
     )
 
 
@@ -192,16 +194,38 @@ def _http_title(script: ET.Element) -> str | None:
     return output
 
 
-def _merge(first: RawHost, other: RawHost) -> RawHost:
-    have = {(p.protocol, p.port) for p in first.ports}
-    extra = tuple(p for p in other.ports if (p.protocol, p.port) not in have)
-    return RawHost(
-        ip=first.ip,
-        mac=first.mac or other.mac,
-        vendor=first.vendor or other.vendor,
-        hostnames=first.hostnames + tuple(h for h in other.hostnames if h not in first.hostnames),
-        ports=first.ports + extra,
-    )
+class _Merged:
+    """Every <host> for one IP, merged in file order: the first MAC and vendor win, and
+    later entries only add hostnames and ports not seen yet. Each add costs only the size
+    of the entry added, so a file that repeats one IP thousands of times still parses in
+    seconds (NFR-07, #185)."""
+
+    def __init__(self, first: RawHost):
+        self.ip, self.mac, self.vendor = first.ip, first.mac, first.vendor
+        self.hostnames = list(first.hostnames)
+        self.ports = list(first.ports)
+        self._names = set(first.hostnames)
+        self._ports = {(p.protocol, p.port) for p in first.ports}
+
+    def add(self, other: RawHost) -> None:
+        self.mac = self.mac or other.mac
+        self.vendor = self.vendor or other.vendor
+        new_names = [h for h in other.hostnames if h not in self._names]
+        self.hostnames += new_names
+        self._names.update(new_names)
+        for p in other.ports:  # already unique within `other`
+            if (p.protocol, p.port) not in self._ports:
+                self._ports.add((p.protocol, p.port))
+                self.ports.append(p)
+
+    def host(self) -> RawHost:
+        return RawHost(
+            ip=self.ip,
+            mac=self.mac,
+            vendor=self.vendor,
+            hostnames=tuple(self.hostnames),
+            ports=tuple(self.ports),
+        )
 
 
 def _raw(value: str | None, limit: int = MAX_RAW_CHARS) -> str | None:
