@@ -84,7 +84,8 @@ python3 -I lab/fakes/fakesvc.py ftp --bind 127.0.0.1 --port 2121
 ## What nmap -sV makes of the fakes
 
 Checked during development with nmap 7.95 against the fakes running locally in containers
-(not on the hotspot). #34 repeats the check against the Pis:
+(not on the hotspot). `lab/verify` repeats the check against the Pis on the hotspot (next
+section):
 
 | Port | Service name | Product / version | `method` |
 |---|---|---|---|
@@ -111,6 +112,35 @@ PRINTER_RAW_EXPOSED and UPNP_EXPOSED could never appear in a real scan.
 Redis answers `-ERR operation not permitted` (older Redis with a password set) because
 nmap recognises that reply; the newer `-NOAUTH` reply is only named from the port table.
 
+## Verifying the Pis and saving captures (#34)
+
+[`CHECKLIST.md`](CHECKLIST.md) is the step-by-step run on the hotspot. Only a human runs it,
+on the scanner laptop; agents never scan.
+
+```bash
+lab/verify --camera IP --server IP --hub IP --confirm      # guarded sudo nmap, then the check
+lab/verify --camera IP --server IP --hub IP --xml FILE     # check a capture, no scan
+lab/sanitize lab/captures/scan_X.xml L1_default.xml --camera IP --server IP --hub IP
+```
+
+- **[`verify`](verify)** refuses anything but private IPs inside the laptop's own subnet
+  (no 100.64.0.0/10, no public IPs, nothing larger than a /24, the laptop on one network
+  only) and needs `--confirm`. It runs as your user; only the nmap subprocess gets `sudo`.
+  It scans just the lab ports (TCP 21,22,80,139,445,554,1883,2323,6379,9100 and UDP
+  161,1900) at `--max-rate 100` into `lab/captures/` (never committed), then prints a
+  PASS/FAIL table: state, service name and `method` per port, toggled-off services that
+  are still open, unexpected open ports, the hub's "no vendor, no hostname" identity and the
+  scanner's own IP. Exit 0 = all passed, 1 = a check failed, 2 = refused or unreadable.
+- **[`sanitize`](sanitize)** copies a capture to `tests/fixtures/lab/`: MACs keep their OUI
+  (the vendor) and get `00:00:01` (camera), `00:00:02` (server) or `00:00:03` (hub) as the
+  device half, real hostnames become the role name wherever they appear, and hosts that
+  aren't lab Pis are removed. It runs the engine's parser on the result when it's importable
+  and prints the expected `findings.csv` rows, worked out from `services.tsv` and the
+  toggles rather than by the engine.
+- Both are Python 3.11+ standard library ([`labcheck.py`](labcheck.py)); defusedxml is
+  used when it's installed. Toggles default to the `default` column of `services.tsv`; pass
+  `--on`/`--off SVC[,SVC]`, or `--status-file` with pasted `labctl status` output.
+
 ## Tests
 
 ```bash
@@ -123,6 +153,8 @@ python3 -m unittest discover -s lab/tests
   (random MAC, no DHCP hostname) are written for Raspberry Pi OS bookworm but haven't run on
   one yet. The systemd units pass `systemd-analyze verify`.
 - SNMP: whether nmap marks the locked-down snmpd as `open` (it should, via the SNMPv3
-  engine-discovery reply) still needs a scan.
-- The scanner laptop scanning itself shows up without a MAC; the analyser must not turn
-  that into a false UNKNOWN_DEVICE (#34).
+  engine-discovery reply) still needs a scan. `lab/verify` fails it with a hint if nmap
+  says `open|filtered`.
+- The scanner laptop scanning itself shows up without a MAC. `lab/verify` scans only the
+  three Pis and warns when a capture holds the laptop with open ports and no MAC, but the
+  analyser must still not turn that into a false UNKNOWN_DEVICE in a whole-subnet scan (#34).
