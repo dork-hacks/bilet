@@ -20,7 +20,7 @@ This creates `.venv/` and installs the pinned dependencies. Then either activate
 tool analyze path/to/folder --out out/
 ```
 
-Writes `out/findings.csv` and `out/scores.csv` for every nmap XML file in the folder, in the organizers' exact format (on the Validation Set the output is byte-identical to their answer key). Unreadable files get `ERROR`, are named on the screen, and the run continues. Add `--json` for one full result per file in `out/json/`, and `--lang en` for English messages (Romanian is the default).
+Writes `out/findings.csv` and `out/scores.csv` for every nmap XML file in the folder, in the organizers' exact format (on the Validation Set the output is byte-identical to their answer key). Unreadable files get `ERROR`, are named on the screen, and the run continues. Add `--json` for one full result per file in `out/json/`. All commands and help use Romanian by default. Select English with `--lang en` before or after the subcommand: `bilet --lang en --help`, `bilet analyze --lang en --help`, or `bilet --lang en detect`. If repeated, the last `--lang` value wins. Flags, paths, catalog/error codes and CSV/JSON output stay the same in both languages.
 
 ## Live scan (your own network only)
 

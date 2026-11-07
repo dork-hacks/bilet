@@ -136,4 +136,4 @@ def test_load_json_file(tmp_path):
 def test_serve_refuses_root(monkeypatch, capsys):
     monkeypatch.setattr("os.geteuid", lambda: 0)
     assert main(["serve"]) == 2
-    assert "as root" in capsys.readouterr().err
+    assert "ca root" in capsys.readouterr().err

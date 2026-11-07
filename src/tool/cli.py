@@ -12,14 +12,9 @@ from pathlib import Path
 
 from tool import __version__
 from tool.config import DISPLAY_NAME
+from tool.content.cli import cli_text, parser_error
 
-# subcommand -> help text. Each one's handler is in HANDLERS, at the end of this file.
-COMMANDS = {
-    "analyze": "analyse a folder of nmap XML files and write findings.csv / scores.csv",
-    "detect": "show the network this computer is connected to",
-    "scan": "scan your own network (needs --confirm and admin rights)",
-    "serve": "start the web interface",
-}
+COMMANDS = {name: cli_text(name, "en") for name in ("analyze", "detect", "scan", "serve")}
 
 
 # The commands that start this CLI (#101). --help shows the one that was typed.
@@ -31,49 +26,88 @@ def program_name() -> str:
     return name if name in PROGRAM_NAMES else "tool"
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog=program_name(), description=f"{DISPLAY_NAME}: a home network security checker"
+class LocalizedParser(argparse.ArgumentParser):
+    """Translate this parser only; never mutate argparse's process-wide gettext."""
+
+    def __init__(self, *args, lang="ro", **kwargs):
+        self.lang = lang
+        super().__init__(*args, add_help=False, **kwargs)
+        self._positionals.title = cli_text("positionals", lang)
+        self._optionals.title = cli_text("options", lang)
+        self.add_argument("-h", "--help", action="help", help=cli_text("help", lang))
+
+    def format_usage(self):
+        return self._localized_usage(super().format_usage())
+
+    def format_help(self):
+        return self._localized_usage(super().format_help())
+
+    def _localized_usage(self, text):
+        return cli_text("usage", self.lang) + text.removeprefix("usage: ")
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(
+            2,
+            f"{self.prog}: {cli_text('error', self.lang)}: "
+            f"{parser_error(message, self.lang)}\n",
+        )
+
+
+def selected_language(argv: list[str]) -> str:
+    """Read language before argparse handles early exits such as --help.
+
+    The preliminary parser honours -- and --lang=value. Full validation remains
+    with the actual command parser, including invalid/missing language values.
+    """
+    selector = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    selector.add_argument("--lang", action="append", default=[])
+    args = argparse.Namespace(lang=[])
+    try:
+        selector.parse_known_args(argv, namespace=args)
+    except argparse.ArgumentError:
+        pass  # Keep earlier choices when a trailing --lang is missing its value.
+    return next((lang for lang in reversed(args.lang) if lang in ("ro", "en")), "ro")
+
+
+def build_parser(lang: str = "ro") -> argparse.ArgumentParser:
+    parser = LocalizedParser(
+        prog=program_name(),
+        lang=lang,
+        description=f"{DISPLAY_NAME}: {cli_text('description', lang)}",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help=cli_text("version", lang),
+    )
+    parser.add_argument("--lang", choices=("ro", "en"), default=lang, help=cli_text("lang", lang))
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
-    for name, help_text in COMMANDS.items():
-        cmd = sub.add_parser(name, help=help_text)
+    for name in COMMANDS:
+        cmd = sub.add_parser(
+            name, lang=lang, help=cli_text(name, lang), description=cli_text(name, lang)
+        )
+        cmd.add_argument(
+            "--lang", choices=("ro", "en"), default=argparse.SUPPRESS, help=cli_text("lang", lang)
+        )
         if name == "serve":
-            cmd.add_argument(
-                "--result", type=Path, help="show this ScanResult JSON, not the latest saved scan"
-            )
-            cmd.add_argument("--host", default="127.0.0.1", help="default: this computer only")
-            cmd.add_argument("--port", type=int, default=8000)
+            cmd.add_argument("--result", type=Path, help=cli_text("result", lang))
+            cmd.add_argument("--host", default="127.0.0.1", help=cli_text("host", lang))
+            cmd.add_argument("--port", type=int, default=8000, help=cli_text("port", lang))
         if name == "scan":
+            cmd.add_argument("targets", nargs="*", help=cli_text("targets", lang))
+            cmd.add_argument("--confirm", action="store_true", help=cli_text("confirm", lang))
             cmd.add_argument(
-                "targets", nargs="*", help="addresses or ranges (default: the connected subnet)"
-            )
-            cmd.add_argument(
-                "--confirm", action="store_true", help="confirm this is your own network"
-            )
-            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
-            cmd.add_argument(
-                "--scans-dir",
-                type=Path,
-                default=Path("scans"),
-                help="where to save the nmap XML (default: scans/, git-ignored)",
+                "--scans-dir", type=Path, default=Path("scans"), help=cli_text("scans_dir", lang)
             )
         if name == "analyze":
-            cmd.add_argument("folder", type=Path, help="folder with nmap XML files")
-            cmd.add_argument(
-                "--out", type=Path, default=Path("out"), help="where to write the CSVs"
-            )
-            cmd.add_argument(
-                "--json", action="store_true", help="also write one ScanResult JSON per file"
-            )
-            cmd.add_argument(
-                "--save", action="store_true", help="also store the scans in the local history"
-            )
-            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
+            cmd.add_argument("folder", type=Path, help=cli_text("folder", lang))
+            cmd.add_argument("--out", type=Path, default=Path("out"), help=cli_text("out", lang))
+            cmd.add_argument("--json", action="store_true", help=cli_text("json_results", lang))
+            cmd.add_argument("--save", action="store_true", help=cli_text("save", lang))
         if name == "detect":
-            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
-            cmd.add_argument("--json", action="store_true", help="machine-readable output")
+            cmd.add_argument("--json", action="store_true", help=cli_text("json", lang))
     return parser
 
 
@@ -180,7 +214,7 @@ def analyze_command(args: argparse.Namespace) -> int:
 
     folder: Path = args.folder
     if not folder.is_dir():
-        print(f"{folder}: not a folder", file=sys.stderr)
+        print(f"{folder}: {cli_text('not_folder', args.lang)}", file=sys.stderr)
         return 2
     json_dir = args.out / "json" if args.json else None
     # History keys devices with the private local salt; CSV-only runs never need it.
@@ -199,8 +233,14 @@ def analyze_command(args: argparse.Namespace) -> int:
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
     print(
-        f"{report.files} files, {report.findings} findings, {len(report.errors)} unreadable"
-        f" -> {args.out / 'findings.csv'}, {args.out / 'scores.csv'}"
+        cli_text(
+            "totals",
+            args.lang,
+            files=report.files,
+            findings=report.findings,
+            errors=len(report.errors),
+        )
+        + f" -> {args.out / 'findings.csv'}, {args.out / 'scores.csv'}"
     )
     if args.save:
         save_and_alert(report.results, args.lang)
@@ -233,7 +273,7 @@ def _save_and_alert(results: list, lang: str) -> None:
 
     history = History()
     ids = [history.add(r) for r in results]
-    print(f"saved {len(ids)} scans to the local history")
+    print(cli_text("saved", lang, count=len(ids)))
     readable = [i for i, r in zip(ids, results, strict=True) if r.status == "ok"]
     if not readable:
         return
@@ -273,7 +313,7 @@ def serve(args: argparse.Namespace) -> int:
     # Least privilege (MASTERPLAN §3.7): only the live scan step may run as root.
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         print(
-            "Refusing to start the web interface as root. Run it as a normal user.",
+            cli_text("serve_root", getattr(args, "lang", "ro")),
             file=sys.stderr,
         )
         return 2
@@ -304,7 +344,8 @@ def serve(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    parser = build_parser(selected_language(argv))
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
