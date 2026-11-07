@@ -7,8 +7,10 @@ timeout, error, unparseable reply or rejection, the hand-written text from
 findings, severities or scores.
 
 Accepted answers are cached on disk by a hash of (evidence, task, provider), so
-repeated runs and the demo are fast and identical. Rejections are counted in a local
-log (reason only, never the rejected text).
+repeated runs and the demo are fast and identical. A cached answer is checked again on
+every read (#218); one that fails is ignored and the provider is asked again, so only
+checked text is ever shown and a failure still ends in the built-in text. Rejections
+are counted in a local log (reason only, never the rejected text).
 """
 
 import concurrent.futures
@@ -253,7 +255,11 @@ class Explainer:
         key = self._cache_key(evidence, task)
         cached = self._cache_get(key)
         if cached is not None:
-            return Explanation(cached["en"], cached["ro"], SOURCE_AI, "cache")
+            # Check the cached text again: it may predate stricter rules (#218).
+            verdict = check({**cached, "cites": [evidence_id]}, evidence)
+            if verdict.ok:
+                return Explanation(cached["en"], cached["ro"], SOURCE_AI, "cache")
+            self._log_rejection(f"cache:{verdict.reason}")
 
         prompt = json.dumps({"evidence": evidence.payload, **task}, sort_keys=True)
         try:
@@ -354,8 +360,18 @@ class Explainer:
         key = self._cache_key(evidence, task)
         cached = self._cache_get(key)
         if cached is not None:
-            cites = tuple(c for c in cached.get("cites") or () if isinstance(c, str))
-            return Explanation(cached["en"], cached["ro"], SOURCE_AI, "cache", cites), "cache"
+            # Check the cached text again: it may predate stricter rules (#218).
+            verdict = check(
+                cached,
+                evidence,
+                max_sentences=max_sentences,
+                max_chars=LONG_TEXT_CHARS,
+                trusted_texts=trusted_texts,
+            )
+            if verdict.ok:
+                cites = tuple(cached["cites"])
+                return Explanation(cached["en"], cached["ro"], SOURCE_AI, "cache", cites), "cache"
+            self._log_rejection(f"cache:{verdict.reason}")
         prompt = json.dumps({"evidence": evidence.payload, **task}, sort_keys=True)
         try:
             reply = self._call(prompt, system)

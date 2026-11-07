@@ -173,3 +173,154 @@ def test_version_numbers_from_evidence_allowed(hostile):
 
 def test_sentence_count_ignores_version_dots():
     assert count_sentences("Update vsftpd 2.3.4 now. It is old.") == 2
+
+
+# -- #218: numbers scoped to cited findings, device names, product words ----------
+
+
+def _two_devices() -> dict:
+    """Device A: a camera with telnet on 2323. Device B: a hub with MQTT on 1883."""
+    return {
+        "score": 70,
+        "devices": [
+            {"device_key": "d_1", "ip": "192.168.1.66", "device_type_guess": "camera"},
+            {"device_key": "d_2", "ip": "192.168.1.77", "device_type_guess": "iot_hub"},
+        ],
+        "findings": [
+            {
+                "id": "f_1",
+                "code": "TELNET_OPEN",
+                "severity": "high",
+                "points": 20,
+                "port": 2323,
+                "protocol": "tcp",
+                "device_key": "d_1",
+                "evidence": {"service_name": "telnet", "product": "BusyBox telnetd"},
+            },
+            {
+                "id": "f_2",
+                "code": "MQTT_EXPOSED",
+                "severity": "medium",
+                "points": 10,
+                "port": 1883,
+                "protocol": "tcp",
+                "device_key": "d_2",
+                "evidence": {"service_name": "mqtt", "product": "Mosquitto", "version": "1.6"},
+            },
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    ("en", "ro"),
+    [
+        (
+            "Device A also listens on port 1883.",
+            "Dispozitivul A ascultă și pe portul 1883.",
+        ),
+        (
+            "Device A runs version 1.6, which is old.",
+            "Dispozitivul A are versiunea 1.6, care este veche.",
+        ),
+    ],
+)
+def test_number_of_another_device_rejected(en, ro):
+    ev = build_evidence(_two_devices())
+    assert check({"en": en, "ro": "Text bun.", "cites": ["E1"]}, ev).reason == "en:number"
+    assert check({"en": "Text ok.", "ro": ro, "cites": ["E1"]}, ev).reason == "ro:number"
+
+
+def test_numbers_of_cited_findings_and_score_allowed():
+    ev = build_evidence(_two_devices())
+    en = "Device A has port 2323 open and Device B has port 1883; your score is 70."
+    ro = "Dispozitivul A are portul 2323 deschis, iar Dispozitivul B portul 1883; scorul este 70."
+    assert check({"en": en, "ro": ro, "cites": ["E1", "E2"]}, ev).ok
+
+
+@pytest.mark.parametrize(
+    ("en", "ro"),
+    [
+        ("Device Q is also at risk.", "Dispozitivul Q este și el în pericol."),
+        ("Device AB is also at risk.", "Dispozitivului AB i se întâmplă la fel."),
+        # #219 review: lower and mixed case must not bypass the check.
+        ("Device q is also at risk.", "Dispozitivul q este și el în pericol."),
+        ("device Qx is also at risk.", "DISPOZITIVUL qX este și el în pericol."),
+        ("DEVICE z is also at risk.", "dispozitivului z i se întâmplă la fel."),
+    ],
+)
+def test_invented_device_rejected(en, ro):
+    ev = build_evidence(_two_devices())
+    assert check({"en": en, "ro": "Text bun.", "cites": ["E1"]}, ev).reason == "en:device"
+    assert check({"en": "Text ok.", "ro": ro, "cites": ["E1"]}, ev).reason == "ro:device"
+
+
+def test_known_device_in_lower_case_allowed():
+    ev = build_evidence(_two_devices())
+    en = "Turn off Telnet on device a first, then check device b."
+    ro = "Opriți întâi Telnet pe dispozitivul a, apoi verificați dispozitivul b."
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
+
+
+@pytest.mark.parametrize(
+    ("en", "ro"),
+    [
+        (
+            "The device is at risk, so the device on your Wi-Fi needs a fix.",
+            "Dispozitivul e în pericol, iar dispozitivul nu are o parolă bună.",
+        ),
+        (
+            "Restart the device to apply it.",
+            "Dispozitivul o să repornească, apoi dispozitivul se oprește.",
+        ),
+    ],
+)
+def test_ordinary_words_after_device_allowed(en, ro):
+    ev = build_evidence(_two_devices())
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
+
+
+def test_known_devices_allowed():
+    ev = build_evidence(_two_devices())
+    en = "Turn off Telnet on Device A first."
+    ro = "Opriți întâi Telnet pe dispozitivul A."
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
+
+
+@pytest.mark.parametrize(
+    ("en", "ro"),
+    [
+        (
+            "Your camera looks like a Hikvision model.",
+            "Camera pare a fi un model Hikvision.",
+        ),
+        (
+            "Update the OpenSSH server on Device A.",
+            "Actualizați serverul OpenSSH de pe Dispozitivul A.",
+        ),
+        (
+            "Your router is a TP-Link, so turn off Telnet.",
+            "Routerul este un TP-Link, deci opriți Telnet.",
+        ),
+    ],
+)
+def test_invented_product_rejected(en, ro):
+    ev = build_evidence(_two_devices())
+    assert check({"en": en, "ro": "Text bun.", "cites": ["E1"]}, ev).reason == "en:product"
+    assert check({"en": "Text ok.", "ro": ro, "cites": ["E1"]}, ev).reason == "ro:product"
+
+
+def test_products_from_evidence_and_plain_words_allowed():
+    ev = build_evidence(_two_devices())
+    en = "Device B runs Mosquitto, and anyone on your Wi-Fi can reach it."
+    ro = "Dispozitivul B folosește Mosquitto, iar oricine din rețeaua Wi-Fi îl poate accesa."
+    assert check({"en": en, "ro": ro, "cites": ["E2"]}, ev).ok
+    en = "Your camera uses BusyBox for Telnet, which sends passwords openly."
+    ro = "Camera folosește BusyBox pentru Telnet, care trimite parolele necriptat."
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
+
+
+def test_sentence_start_capital_is_not_a_product():
+    ev = build_evidence(_two_devices())
+    en = "Anyone nearby could log in. Turn it off today."
+    ro = "Oricine din apropiere s-ar putea conecta. Opriți-l astăzi."
+    assert check({"en": en, "ro": ro, "cites": ["E1"]}, ev).ok
