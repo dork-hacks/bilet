@@ -51,7 +51,7 @@ function start(data) {
   const T = data.text;
   const layout = layoutNodes(data.nodes.length);
   const large = data.nodes.length > 32;
-  let renderer;
+  let renderer, contextLost = false;
   try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
   catch { return; }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, large ? 1 : 1.75));
@@ -221,7 +221,7 @@ function start(data) {
         "data-device": node.id, "aria-pressed": String(entry === selected),
         "aria-label": `${node.type_label}, ${node.ip}. ${node.level.label}.` }, [
         iconFor(node.type), el("span", { className: "nm-row-name" }, [
-          el("strong", { text: node.name || node.type_label }), el("span", { text: node.ip }),
+          el("strong", { text: node.type_label }), el("span", { text: node.name ? `${node.ip} · ${node.name}` : node.ip }),
         ]), el("span", { className: `nm-row-status lvl-${node.level.key}`, text: node.level.icon,
           "aria-hidden": "true" }),
       ]);
@@ -243,7 +243,7 @@ function start(data) {
   next.addEventListener("click", () => { page++; renderDirectory(); });
 
   for (const entry of entries) {
-    // Dense maps show only the selection and gateway labels; the directory retains all.
+    // Dense maps keep the worst device, selection and gateway eligible for labels.
     const node = entry.node;
     const label = el("button", { type: "button", className: "nm-label", "aria-pressed": "false",
       "aria-label": node ? `${node.type_label}, ${node.ip}. ${node.level.label}.` : T.map_hub_virtual }, [
@@ -251,9 +251,12 @@ function start(data) {
       el("span", { className: "nm-text" }, [
         el("span", { className: "nm-type", text: node?.type_label || T.map_hub_virtual }),
         el("span", { className: "nm-address", text: node?.ip || "" }),
+        node ? chip(node.level) : null,
+        node?.worst ? el("span", { className: "nm-worst", text: T.map_most_dangerous }) : null,
       ]),
     ]);
     label.style.setProperty("--node-accent", `#${new THREE.Color(node ? COLOURS[node.level.key] : ACCENT).getHexString()}`);
+    label.addEventListener("focus", () => { if (selected !== entry) select(entry); });
     label.addEventListener("click", () => {
       select(entry, true); detail.scrollIntoView({ block: "nearest", behavior: "instant" });
       detail.focus({ preventScroll: true });
@@ -378,21 +381,24 @@ function start(data) {
   const point = new THREE.Vector3();
   function placeLabels() {
     const w = stage.clientWidth, h = stage.clientHeight, occupied = [];
-    const ordered = [...entries].sort((a, b) => (b === selected) - (a === selected) || Number(b.isHub) - Number(a.isHub));
+    const ordered = [...entries].sort((a, b) => Number(!!b.node?.worst) - Number(!!a.node?.worst) || (b === selected) - (a === selected) || Number(b.isHub) - Number(a.isHub));
     for (const entry of ordered) {
       const label = entry.label;
-      if (entries.length > 12 && entry !== selected && !entry.isHub) { label.hidden = true; continue; }
+      if (entries.length > 12 && entry !== selected && !entry.isHub && !entry.node?.worst) { label.hidden = true; continue; }
       point.set(entry.pos.x, entry.height + 0.65, entry.pos.z).project(camera);
       const x = (point.x / 2 + 0.5) * w, y = (-point.y / 2 + 0.5) * h;
       label.hidden = false;
       const width = label.offsetWidth, height = label.offsetHeight;
       const left = Math.min(Math.max(x - width / 2, 8), Math.max(8, w - width - 8));
-      const top = y - height;
-      const box = { left, right: left + width, top, bottom: y };
-      const overlaps = occupied.some(r => box.left < r.right + 4 && box.right > r.left - 4 && box.top < r.bottom + 4 && box.bottom > r.top - 4);
-      const outside = point.z > 1 || point.z < -1 || y < height + 8 || y > h - 70 || x < 0 || x > w;
-      label.hidden = outside || overlaps;
-      if (!label.hidden) { label.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`; occupied.push(box); }
+      // Try a second label row before dropping a colliding label. This keeps
+      // the gateway readable behind the larger most-dangerous-device badge.
+      const candidates = [y - height, y - height - 80, y - height + 80]
+        .map(top => ({ left, right: left + width, top, bottom: top + height }));
+      const box = candidates.find(candidate => candidate.top >= 8 && candidate.bottom <= h - 70 &&
+        !occupied.some(r => candidate.left < r.right + 4 && candidate.right > r.left - 4 && candidate.top < r.bottom + 4 && candidate.bottom > r.top - 4));
+      const outside = point.z > 1 || point.z < -1 || x < 0 || x > w;
+      label.hidden = outside || !box;
+      if (!label.hidden) { label.style.transform = `translate(${Math.round(left)}px, ${Math.round(box.top)}px)`; occupied.push(box); }
     }
   }
   function frame() {
@@ -422,8 +428,15 @@ function start(data) {
   reduceMotion.addEventListener("change", motionChange);
   const visibilityChange = () => { if (!document.hidden) requestFrame(); };
   document.addEventListener("visibilitychange", visibilityChange);
-  canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); show("list"); });
+  const threeButton = switcher.querySelector('[data-view="3d"]');
+  canvas.addEventListener("webglcontextlost", e => {
+    e.preventDefault(); contextLost = true; threeButton.disabled = true; show("list");
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    contextLost = false; threeButton.disabled = false; requestFrame();
+  });
   function show(mode) {
+    if (mode === "3d" && contextLost) return;
     wrap.hidden = mode !== "3d"; list.hidden = mode === "3d";
     fullscreen.hidden = mode !== "3d"; panelLinks.hidden = mode !== "3d";
     for (const b of switcher.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === mode));

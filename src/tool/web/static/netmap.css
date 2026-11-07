@@ -1,7 +1,7 @@
 /* Map-only refinement of agent-B's warm palette. All device data stays text. */
 body:has(#network-map) { max-width: 68rem; }
-body:has(#network-map) > main > .score,
-body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; }
+body:has(#network-map) > main > :not(#network-map),
+body:has(#network-map) > header, body:has(#network-map) > footer { max-width: 46rem; margin-inline: auto; }
 [hidden] { display: none !important; }
 .netmap { padding: 1.5rem; border: 1px solid #e3ddd2; border-radius: 1.5rem;
   background: #ffffff; box-shadow: 0 12px 40px rgba(43, 55, 48, .05); }
@@ -118,3 +118,7 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
 }
 
 body.netmap-expanded { overflow: hidden; }
+
+.nm-label .lvl { font-size: .9rem; }
+.nm-worst { display: block; color: #a8322a; font-size: .9rem; font-weight: 700; }
+.nm-row-name > span { overflow-wrap: anywhere; }

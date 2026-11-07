@@ -60,12 +60,12 @@ UI = {
     "map_heading": {"ro": "Harta rețelei tale", "en": "Your network map"},
     "map_intro": {
         "ro": (
-            "Dispozitivele tale, dintr-o privire. "
-            "Legăturile arată o schemă simplificată, nu conexiuni măsurate."
+            "Harta grupează dispozitivele în jurul routerului; liniile nu sunt cabluri reale. "
+            "Culoarea, semnul și cuvintele arată cât de gravă este o problemă."
         ),
         "en": (
-            "Your devices, at a glance. "
-            "Links show a simplified layout, not measured connections."
+            "The map groups devices around your router; the lines are not real cables. "
+            "The colour, sign and words show how serious a problem is."
         ),
     },
     "map_how": {
@@ -74,9 +74,9 @@ UI = {
     },
     "map_fullscreen": {"ro": "Ecran complet", "en": "Full screen"},
     "map_exit_fullscreen": {"ro": "Închide ecranul complet", "en": "Exit full screen"},
-    "map_focus": {"ro": "Apropie dispozitivul", "en": "Focus device"},
+    "map_focus": {"ro": "Arată dispozitivul de aproape", "en": "Zoom to this device"},
     "map_selected": {"ro": "Dispozitiv selectat", "en": "Selected device"},
-    "map_inspector": {"ro": "Detalii și dispozitive", "en": "Device details and browser"},
+    "map_inspector": {"ro": "Detalii și dispozitive", "en": "Device details and search"},
     "map_search": {"ro": "Găsește un dispozitiv", "en": "Find a device"},
     "map_search_hint": {"ro": "Nume, adresă sau tip", "en": "Name, address or type"},
     "map_count": {"ro": "{shown} din {total} dispozitive", "en": "{shown} of {total} devices"},

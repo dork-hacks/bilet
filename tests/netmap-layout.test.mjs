@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { layoutNodes, matchesDevice } from '../src/tool/web/static/netmap-layout.js';
 
-for (const count of [0, 1, 7, 12, 50, 250]) {
+for (const count of [0, 1, 2, 3, 5, 7, 12, 50, 250]) {
   test(`${count} nodes keep distinct, bounded positions without overlapping plinths`, () => {
     const { points, radius } = layoutNodes(count);
     assert.equal(points.length, count);
@@ -25,4 +25,10 @@ test('search finds devices by address, hostname, translated type or severity', (
   }
   assert.equal(matchesDevice(device, '192.168.50.238'), false);
   assert.equal(matchesDevice({ ip: '10.0.0.2' }, '10.0.0.2'), true);
+});
+
+test('small home networks stay in front of the gateway', () => {
+  for (const count of [1, 2, 3, 4, 5]) {
+    assert.ok(layoutNodes(count).points.every(point => point.z > 0));
+  }
 });

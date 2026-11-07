@@ -18,6 +18,7 @@ from tool.history import History
 from tool.web.app import create_app
 
 STYLE = Path(__file__).parents[1] / "src" / "tool" / "web" / "templates" / "_style.html"
+MAP_STYLE = STYLE.parents[1] / "static" / "netmap.css"
 VALIDATION = Path(__file__).parent / "fixtures" / "validation"
 SALT = b"test-salt"
 ROOT_PX = 18
@@ -26,8 +27,8 @@ AA_TEXT = 4.5
 WHITE = "#ffffff"
 
 
-def css() -> str:
-    text = STYLE.read_text(encoding="utf-8")
+def css(path: Path = STYLE) -> str:
+    text = path.read_text(encoding="utf-8")
     return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
 
 
@@ -50,9 +51,14 @@ def full_hex(colour: str) -> str:
     return colour if len(colour) == 7 else "#" + "".join(c * 2 for c in colour[1:])
 
 
-def colours(prop: str) -> set[str]:
-    pattern = rf"(?<![-\w]){prop}\s*:\s*(#[0-9a-fA-F]{{3,6}})\b"
-    return {full_hex(m) for m in re.findall(pattern, css())}
+def colours(prop: str, styles: str) -> set[str]:
+    # Read the whole declaration so gradient stops count as backgrounds too.
+    declarations = re.findall(rf"(?<![-\w]){prop}\s*:\s*([^;{{}}]+)", styles)
+    return {
+        full_hex(colour)
+        for value in declarations
+        for colour in re.findall(r"#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", value)
+    }
 
 
 def test_contrast_ratio_matches_known_values():
@@ -60,14 +66,22 @@ def test_contrast_ratio_matches_known_values():
     assert contrast("#777777", "#ffffff") == pytest.approx(4.48, abs=0.01)
 
 
-def test_every_text_colour_passes_aa_on_every_background():
+@pytest.mark.parametrize("paths", [(STYLE,), (STYLE, MAP_STYLE)], ids=["shared", "network-map"])
+def test_every_text_colour_passes_aa_on_every_background(paths):
     """A superset of the real pairs: any text colour may end up on any background.
 
     Light backgrounds carry dark text, and dark backgrounds (tags, chips, score icons)
     carry white text. Checking every combination means a new rule can't pair them badly.
     """
-    text = colours("color") | colours("fill")
-    backgrounds = colours("background") | colours("background-color") | {WHITE}
+    # Map rules inherit shared text colours and badge backgrounds, so audit them together.
+    styles = "\n".join(css(path) for path in paths)
+    text = colours("color", styles) | colours("fill", styles)
+    backgrounds = (
+        colours("background", styles)
+        | colours("background-color", styles)
+        | colours("background-image", styles)
+        | {WHITE}
+    )
     light = {b for b in backgrounds if luminance(b) > 0.5}
     dark = backgrounds - light
     dark_text = {t for t in text if t != WHITE}
@@ -82,14 +96,18 @@ def test_every_text_colour_passes_aa_on_every_background():
     assert not failures, failures
 
 
-def test_no_text_smaller_than_16px():
-    sizes = re.findall(r"font-size\s*:\s*([\d.]+)\s*([a-z%]+)", css())
-    assert sizes, "the font-size parser found nothing"
-    for value, unit in sizes:
+@pytest.mark.parametrize("path", [STYLE, MAP_STYLE], ids=["shared", "network-map"])
+def test_no_text_smaller_than_16px(path):
+    sizes = re.findall(r"(?<![-\w])font-size\s*:\s*([^;{}]+)", css(path))
+    assert sizes, f"{path.name}: the font-size parser found nothing"
+    for size in sizes:
         # em and % compound with the parent, so only rem and px are allowed here.
-        assert unit in ("rem", "px"), f"font-size in {unit}: use rem or px"
+        # Match the full value: unsupported expressions must not silently evade the audit.
+        match = re.fullmatch(r"([\d.]+)\s*(rem|px)(?:\s*!important)?\s*", size.strip())
+        assert match, f"{path.name}: font-size {size}: use rem or px"
+        value, unit = match.groups()
         px = float(value) * (ROOT_PX if unit == "rem" else 1)
-        assert px >= MIN_PX, f"font-size {value}{unit} is {px:.1f}px"
+        assert px >= MIN_PX, f"{path.name}: font-size {value}{unit} is {px:.1f}px"
 
 
 def test_root_font_size_is_the_one_the_test_assumes():

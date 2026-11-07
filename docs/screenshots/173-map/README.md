@@ -12,7 +12,7 @@ No real network was scanned. Device addresses/names are synthetic.
 - [Selected device in a 250-device fixture](dense-selected.png): search for Device 237,
   select it, and focus its model. Ten directory rows per page, 25 pages before searching.
 
-Toolbar shortcuts focus the detail card or search; Focus device returns to the map.
+Toolbar shortcuts focus the detail card or search; Zoom to this device returns to the map.
 Both cards grow with their content, and all ten directory rows are visible per page.
 
 Browser assertions passed: native fullscreen enter/exit; denied-fullscreen expansion
@@ -32,7 +32,7 @@ Automated checks:
 .venv/bin/ruff check src tests scripts
 .venv/bin/ruff format --check src tests scripts
 .venv/bin/python scripts/validate.py
-node --test tests/netmap-layout.test.mjs
+make test-map
 uv build --wheel
 ```
 
@@ -42,3 +42,16 @@ vendored Three.js requested successfully through FastAPI's TestClient.
 The full local suite has one unrelated lab failure: the preset test expects `nmcli`
 to be absent but adds `/usr/bin` to its fake-tool PATH. NetworkManager is installed
 on this laptop. Reported to the lab owners on sync issue #1; application tests pass.
+
+Peer-review follow-up: risk words and the most-dangerous badge are restored on map
+labels. The worst label remains eligible in dense mode independently of selection
+(with normal clipping outside the camera view). Small networks fan out in front
+of the gateway, directory rows lead with device type, and keyboard focus selects
+a map label. Home-page prose retains its narrower reading width.
+
+804 application tests and 11 Node checks passed. Accessibility tests now include
+the map CSS and its gradient colours. A separate code review found a WebGL
+restoration defect: 3D is now disabled during context loss and re-enabled with
+a render request on restoration. Both the reviewer and a browser loss/restore
+probe verified the fix. Dense worst-label visibility and keyboard-focus selection
+also passed browser checks.

@@ -2,7 +2,7 @@ PYTHON ?= python3.12
 VENV   ?= .venv
 BIN    := $(VENV)/bin
 
-.PHONY: setup test lint validate clean
+.PHONY: setup test test-map lint validate clean
 
 # One-command setup (NFR-10): creates the virtualenv and installs pinned dependencies.
 setup: $(BIN)/tool
@@ -15,6 +15,10 @@ $(BIN)/tool: pyproject.toml
 
 test: setup
 	$(BIN)/pytest
+
+# Optional map layout checks; the default Python suite does not require Node.
+test-map:
+	node --test tests/netmap-layout.test.mjs
 
 lint: setup
 	$(BIN)/ruff check src tests scripts

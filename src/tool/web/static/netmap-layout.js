@@ -8,7 +8,10 @@ export function layoutNodes(count) {
     const capacity = Math.max(6, Math.floor(2 * Math.PI * radius / 3.3));
     const size = Math.min(remaining, capacity);
     for (let i = 0; i < size; i++) {
-      const angle = Math.PI / 2 + (i / size) * Math.PI * 2 + ring * 0.28;
+      // Small home networks fan out in front of the gateway, not behind it.
+      const front = [0, -0.75, 0.75, -1.5, 1.5];
+      const angle = count <= 5 ? Math.PI / 2 + front[i]
+        : Math.PI / 2 + (i / size) * Math.PI * 2 + ring * 0.28;
       points.push({ x: Math.cos(angle) * radius, z: Math.sin(angle) * radius });
     }
     remaining -= size; ring++;
