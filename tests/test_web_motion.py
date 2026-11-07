@@ -1,5 +1,6 @@
 """Gentle motion (#162 part 2): decoration only, and off for prefers-reduced-motion."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -22,19 +23,22 @@ def scan(name: str) -> dict:
 
 def outside_reduced_motion_guard(css: str) -> str:
     """The stylesheet with the prefers-reduced-motion: no-preference block cut out."""
-    start = css.index("@media (prefers-reduced-motion: no-preference)")
+    start = css.find("@media (prefers-reduced-motion: no-preference)")
+    if start == -1:
+        return css
     depth, i = 0, css.index("{", start)
     while True:
         depth += {"{": 1, "}": -1}.get(css[i], 0)
         if depth == 0:
-            return css[:start] + css[i + 1 :]
+            return outside_reduced_motion_guard(css[:start] + css[i + 1 :])
         i += 1
 
 
 def test_every_animation_and_transition_sits_behind_the_reduced_motion_guard():
     rest = outside_reduced_motion_guard(STYLE)
-    for word in ("animation", "transition", "@keyframes", "transform"):
-        assert word not in rest, word
+    # A map's will-change: transform is only a rendering hint, not motion.
+    assert not re.search(r"(?:^|[;{])\s*(?:animation|transition|transform)\s*:", rest)
+    assert "@keyframes" not in rest
 
 
 @pytest.mark.parametrize("lang", ["en", "ro"])
@@ -45,7 +49,11 @@ def test_the_real_score_stays_visible_and_accessible_without_a_count_up(lang):
     assert f'<span class="number">{score}</span>' in html
     # The numeric score remains ordinary accessible text throughout page load.
     # Motion is CSS-only: no script may replace it with zero/intermediate values.
-    assert "<script" not in html
+    scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", html, re.S)
+    for script in scripts:
+        assert not re.search(r"[\"']\.score\s+\.number[\"']", script)
+    for script in (Path(__file__).parent.parent / "src/tool/web/static").glob("*.js"):
+        assert not re.search(r"[\"']\.score\s+\.number[\"']", script.read_text())
     assert f'<span class="number" aria-hidden="true">{score}</span>' not in html
 
 

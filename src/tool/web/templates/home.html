@@ -62,6 +62,7 @@
       {% endif %}
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+    {# The "Check again" button (#135) goes here, right under "Do this first". #}
 
     {% if view.alerts %}
     <section class="alerts" aria-labelledby="alerts-heading">
@@ -70,6 +71,61 @@
         {% for text in view.alerts %}<li>{{ text }}</li>
         {% endfor %}
       </ul>
+    </section>
+    {% endif %}
+
+    {% if netmap %}
+    {#- The network map (#170). The plain list below is the map without JS or WebGL; the
+        script draws the 3D view on top of it and lets the user switch between the two.
+        Every level is written as text with its sign, so colour is never the only signal. -#}
+    {% macro level_chip(level) -%}
+      <span class="lvl lvl-{{ level.key }}"><span aria-hidden="true">{{ level.icon }}</span> {{ level.label }}</span>
+    {%- endmacro %}
+    <section class="netmap" id="network-map" aria-labelledby="map-heading">
+      <h2 id="map-heading">{{ ui.map_heading }}</h2>
+      <p>{{ ui.map_intro }}</p>
+      <div class="netmap-switch" role="group" aria-label="{{ ui.map_view_label }}" hidden>
+        <button type="button" data-view="3d" aria-pressed="true">{{ ui.map_view_3d }}</button>
+        <button type="button" data-view="list" aria-pressed="false">{{ ui.map_view_list }}</button>
+      </div>
+      <div class="netmap-3d" hidden>
+        <p class="muted">{{ ui.map_how }} <span class="netmap-keys">{{ ui.map_keys }}</span></p>
+        <div class="netmap-stage"></div>
+        <div class="netmap-detail" aria-live="polite"><p class="muted">{{ ui.map_pick }}</p></div>
+      </div>
+      <div class="netmap-list">
+        <p><strong>{{ ui.map_hub }}</strong>
+        {% if netmap.hub %}
+          {{ device_icon(netmap.hub.type) }}
+          <a href="#{{ netmap.hub.id }}">{{ ui.device_at.replace("{device}", netmap.hub.type_label).replace("{ip}", netmap.hub.ip) }}</a>
+          {{ level_chip(netmap.hub.level) }}
+          {% if netmap.hub.worst %}<span class="worst">{{ ui.map_most_dangerous }}</span>{% endif %}
+        {% else %}{{ ui.map_hub_virtual }}{% endif %}</p>
+        {% if netmap.nodes %}
+        <p><strong>{{ ui.map_linked }}</strong></p>
+        <ul>
+          {% for node in netmap.nodes %}
+          <li>{{ device_icon(node.type) }}
+            <a href="#{{ node.id }}">{{ ui.device_at.replace("{device}", node.type_label).replace("{ip}", node.ip) }}</a>
+            {{ level_chip(node.level) }}
+            {% if node.worst %}<span class="worst">{{ ui.map_most_dangerous }}</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      <div class="netmap-legend">
+        <p><strong>{{ ui.map_legend }}</strong></p>
+        <ul>
+          {% for level in netmap.levels %}<li>{{ level_chip(level) }}</li>{% endfor %}
+        </ul>
+      </div>
+      <template id="netmap-icons">
+        {% for kind in ("router", "camera", "printer", "pc", "phone", "tv", "iot_hub", "nas", "server", "unknown") %}
+        <span data-kind="{{ kind }}">{{ device_icon(kind) }}</span>
+        {% endfor %}
+      </template>
+      <script type="application/json" id="netmap-data">{{ netmap|tojson }}</script>
+      <script type="module" src="/static/netmap.js"></script>
     </section>
     {% endif %}
 
