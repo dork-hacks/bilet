@@ -64,6 +64,8 @@ identity_set() { # on|off, reconnect yes|no
   else
     nmcli connection modify "$con" 802-11-wireless.cloned-mac-address permanent \
       ipv4.dhcp-send-hostname yes ipv6.dhcp-send-hostname yes
+    # Undo the avahi switch-off above, or <hostname>.local stays unresolvable.
+    systemctl enable --now avahi-daemon.socket avahi-daemon.service >/dev/null 2>&1 || true
   fi
   if [[ $2 == yes ]]; then
     echo "Reconnecting '$con' in 3 s to apply the new identity. An SSH session over Wi-Fi will drop;"
