@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import secrets
 import sys
 import time
 from collections.abc import Callable
@@ -183,7 +184,15 @@ def analyze_command(args: argparse.Namespace) -> int:
         return 2
     json_dir = args.out / "json" if args.json else None
     # History keys devices with the private local salt; CSV-only runs never need it.
-    salt = load_salt() if args.save else None
+    salt = None
+    if args.save:
+        try:
+            salt = load_salt()
+        except OSError as exc:  # the data folder can't be written (agent-D, #134)
+            print(f"{_HISTORY_FAILED[args.lang]} ({type(exc).__name__}: {exc})", file=sys.stderr)
+            args.save = False  # the CSVs are still written; only the history is skipped
+            # --json would load the same salt again: give it a one-off one for this run.
+            salt = secrets.token_hex(32).encode() if args.json else None
     report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)

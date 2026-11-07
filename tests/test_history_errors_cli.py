@@ -39,3 +39,19 @@ def test_a_newer_history_is_left_untouched(tmp_path, monkeypatch):
     before = (tmp_path / "data" / "history.sqlite3").read_bytes()
     main(["analyze", str(VALIDATION), "--out", str(tmp_path / "out"), "--save"])
     assert (tmp_path / "data" / "history.sqlite3").read_bytes() == before
+
+
+@pytest.mark.parametrize("extra", [[], ["--json"]])
+def test_analyze_save_with_an_unwritable_data_folder(tmp_path, monkeypatch, capsys, extra):
+    # agent-D on #134: TOOL_DATA_DIR is a regular file, so even root can't mkdir there.
+    blocker = tmp_path / "not-a-folder"
+    blocker.write_text("x")
+    monkeypatch.setenv("TOOL_DATA_DIR", str(blocker))
+    out = tmp_path / "out"
+    assert main(["analyze", str(VALIDATION), "--out", str(out), "--save", *extra]) == 0
+    err = capsys.readouterr().err
+    assert "nu a putut" in err and "Traceback" not in err
+    for name in ("findings.csv", "scores.csv"):
+        assert (out / name).read_bytes() == (VALIDATION / f"expected_{name}").read_bytes()
+    if extra:
+        assert len(list((out / "json").glob("*.json"))) == 8
