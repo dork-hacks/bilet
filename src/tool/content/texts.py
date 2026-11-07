@@ -7,10 +7,14 @@ back to them. Rules for editing:
 - Explanations: at most 2 sentences per language. Fix steps: 1 to 5, the same
   number in both languages.
 - Never invent menu paths for a specific router or device model.
+- When a text means our app, write "{name}" (filled in from DISPLAY_NAME at the end
+  of this file). "programul" in a fix step means the device's software and stays.
 - Romanian uses comma-below diacritics (ș, ț), never the cedilla forms (ş, ţ),
   and the polite form ("dumneavoastră").
 tests/test_content.py enforces these rules.
 """
+
+from tool.config import DISPLAY_NAME
 
 LANGS = ("ro", "en")
 
@@ -489,12 +493,12 @@ GENERIC_FILE_ERROR: dict[str, str] = {
 # rename them here if #18 settles on others. `{target}` is filled in by the caller.
 REFUSALS: dict[str, dict[str, str]] = {
     "PUBLIC_ADDRESS": {
-        "ro": "Adresa {target} este pe internet, nu în rețeaua dumneavoastră de acasă. Programul verifică doar rețeaua dumneavoastră.",
-        "en": "The address {target} is on the internet, not in your home network. The tool only checks your own network.",
+        "ro": "Adresa {target} este pe internet, nu în rețeaua dumneavoastră de acasă. Aplicația {name} verifică doar rețeaua dumneavoastră.",
+        "en": "The address {target} is on the internet, not in your home network. The {name} app only checks your own network.",
     },
     "CGNAT_ADDRESS": {
-        "ro": "Adresa {target} aparține rețelei operatorului de telefonie mobilă, nu casei dumneavoastră. Programul verifică doar rețeaua dumneavoastră.",
-        "en": "The address {target} belongs to your mobile operator's network, not to your home. The tool only checks your own network.",
+        "ro": "Adresa {target} aparține rețelei operatorului de telefonie mobilă, nu casei dumneavoastră. Aplicația {name} verifică doar rețeaua dumneavoastră.",
+        "en": "The address {target} belongs to your mobile operator's network, not to your home. The {name} app only checks your own network.",
     },
     "LOOPBACK_ADDRESS": {
         "ro": "Adresa {target} trimite înapoi la acest calculator, deci nu există nicio rețea de verificat.",
@@ -513,16 +517,16 @@ REFUSALS: dict[str, dict[str, str]] = {
         "en": "Enter an address made of numbers, not a name. A name can point anywhere, including the internet.",
     },
     "RANGE_TOO_LARGE": {
-        "ro": "Intervalul {target} este prea mare. Programul verifică cel mult 256 de adrese (un /24) o dată.",
-        "en": "The range {target} is too large. The tool checks at most 256 addresses (a /24) at a time.",
+        "ro": "Intervalul {target} este prea mare. Aplicația {name} verifică cel mult 256 de adrese (un /24) o dată.",
+        "en": "The range {target} is too large. The {name} app checks at most 256 addresses (a /24) at a time.",
     },
     "OUTSIDE_ALLOWLIST": {
-        "ro": "Adresa {target} nu face parte din rețeaua la care este conectat acest calculator. Programul verifică doar rețeaua la care este conectat.",
-        "en": "The address {target} is not part of the network this computer is connected to. The tool only checks the network it is connected to.",
+        "ro": "Adresa {target} nu face parte din rețeaua la care este conectat acest calculator. Aplicația {name} verifică doar rețeaua la care este conectat calculatorul.",
+        "en": "The address {target} is not part of the network this computer is connected to. The {name} app only checks the network this computer is connected to.",
     },
     "CONFIRM_REQUIRED": {
-        "ro": "Programul ar verifica {target}. Ca să porniți verificarea, confirmați că aceasta este rețeaua dumneavoastră (în linia de comandă, adăugați --confirm).",
-        "en": "The tool would check {target}. To start the check, confirm that this is your own network (on the command line, add --confirm).",
+        "ro": "Aplicația {name} ar verifica {target}. Ca să porniți verificarea, confirmați că aceasta este rețeaua dumneavoastră (în linia de comandă, adăugați --confirm).",
+        "en": "The {name} app would check {target}. To start the check, confirm that this is your own network (on the command line, add --confirm).",
     },
     "INVALID_TARGET": {
         "ro": "{target} nu este o adresă de rețea validă.",
@@ -543,7 +547,7 @@ DETECT_ERRORS: dict[str, dict[str, str]] = {
     },
     "DETECT_FAILED": {
         "ro": "Nu am putut afla la ce rețea este conectat calculatorul. Verificați că este conectat la hotspot și încercați din nou.",
-        "en": "The tool couldn't work out which network this computer is connected to. Check that it is connected to the hotspot and try again.",
+        "en": "We couldn't work out which network this computer is connected to. Check that it is connected to the hotspot and try again.",
     },
 }
 
@@ -566,8 +570,8 @@ GENERIC_ALERT: dict[str, str] = {
 }
 
 GENERIC_REFUSAL: dict[str, str] = {
-    "ro": "Programul a refuzat să verifice {target}. Verifică doar rețeaua dumneavoastră.",
-    "en": "The tool refused to check {target}. It only checks your own network.",
+    "ro": "Aplicația {name} a refuzat să verifice {target}. Verifică doar rețeaua dumneavoastră.",
+    "en": "The {name} app refused to check {target}. It only checks your own network.",
 }
 
 # Live scan messages (`tool scan`, #20, #94 and #107). RUN_AS_ROOT, START, HOSTS_FOUND,
@@ -577,8 +581,8 @@ GENERIC_REFUSAL: dict[str, str] = {
 # filled in as plain text.
 SCAN_MESSAGES: dict[str, dict[str, str]] = {
     "RUN_AS_ROOT": {
-        "ro": "Nu porniți scanarea ca administrator (root). Porniți-o ca utilizator obișnuit: programul cere parola doar pentru nmap.",
-        "en": "Don't start the scan as administrator (root). Start it as a normal user: the tool asks for the password for nmap only.",
+        "ro": "Nu porniți scanarea ca administrator (root). Porniți-o ca utilizator obișnuit: aplicația {name} cere parola doar pentru nmap.",
+        "en": "Don't start the scan as administrator (root). Start it as a normal user: the {name} app asks for the password for nmap only.",
     },
     "START": {
         "ro": "Se verifică {targets}. nmap are nevoie de drepturi de administrator, așa că este posibil să vi se ceară parola.",
@@ -605,8 +609,8 @@ SCAN_MESSAGES: dict[str, dict[str, str]] = {
         "en": "nmap isn't installed. Install it (for example sudo apt install nmap or brew install nmap) and try again.",
     },
     "NMAP_DATA_NOT_FOUND": {
-        "ro": "Programul nu găsește lista de porturi a lui nmap (nmap-services). Setați TOOL_NMAP_SERVICES cu calea către fișier.",
-        "en": "The tool can't find nmap's port list (nmap-services). Set TOOL_NMAP_SERVICES to the file's path.",
+        "ro": "Aplicația {name} nu găsește lista de porturi a lui nmap (nmap-services). Setați TOOL_NMAP_SERVICES cu calea către fișier.",
+        "en": "The {name} app can't find nmap's port list (nmap-services). Set TOOL_NMAP_SERVICES to the file's path.",
     },
     "NMAP_FAILED": {
         "ro": "Scanarea nu a reușit. Verificați parola de administrator și că sunteți conectat la rețeaua dumneavoastră, apoi încercați din nou.",
@@ -645,3 +649,21 @@ SCAN_TIME_LEFT: dict[str, dict[str, str]] = {
         "en": "about {minutes} minutes left",
     },
 }
+
+
+def _fill_name(table: dict) -> None:
+    """Put the product name into every `{name}` placeholder, in place.
+
+    The name comes from tool.config.DISPLAY_NAME, so a rename stays a one-line change.
+    It is filled in once, at import and before any caller adds its own values, so a
+    target or path that contains "{name}" is never expanded.
+    """
+    for key, value in table.items():
+        if isinstance(value, dict):
+            _fill_name(value)
+        elif isinstance(value, str):
+            table[key] = value.replace("{name}", DISPLAY_NAME)
+
+
+for _table in (REFUSALS, GENERIC_REFUSAL, SCAN_MESSAGES):
+    _fill_name(_table)

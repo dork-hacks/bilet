@@ -194,6 +194,42 @@ def test_refusal_target_is_shown_not_interpreted():
     assert len(message) < len(REFUSALS["PUBLIC_ADDRESS"]["en"]) + 80
 
 
+# --- the product name in user-facing texts (#102) --------------------------------------
+
+
+def _all_strings(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from _all_strings(item)
+    elif isinstance(value, list | tuple):
+        for item in value:
+            yield from _all_strings(item)
+    elif isinstance(value, str):
+        yield value
+
+
+def test_texts_name_the_app_through_display_name():
+    from tool.config import DISPLAY_NAME
+    from tool.content import texts
+
+    tables = [v for k, v in vars(texts).items() if k.isupper() and isinstance(v, dict)]
+    strings = [s for table in tables for s in _all_strings(table)]
+    assert not [s for s in strings if "{name}" in s]  # every placeholder is filled in
+    # Our app is never called "the tool" or "Programul" (a fix step's lower-case
+    # "programul" means the device's software and stays).
+    assert not [s for s in strings if "the tool" in s.lower() or "Programul" in s]
+    for lang in LANGS:
+        assert DISPLAY_NAME in refusal_message("PUBLIC_ADDRESS", "8.8.8.8", lang)
+        assert DISPLAY_NAME in refusal_message("SOME_NEW_CODE", "8.8.8.8", lang)
+        assert DISPLAY_NAME in scan_message("RUN_AS_ROOT", lang)
+
+
+def test_a_target_that_looks_like_the_name_placeholder_stays_text():
+    message = refusal_message("CONFIRM_REQUIRED", "{name}", "en")
+    assert "{name}" in message
+    assert scan_message("NO_LIVE_HOSTS", "en", targets="{name}") == "No device answered in {name}."
+
+
 # --- network detect errors (#52, used by `tool detect` in #19) -------------------------
 
 DETECT_CODES = ("NO_NETWORK", "SEVERAL_NETWORKS", "DETECT_FAILED")
