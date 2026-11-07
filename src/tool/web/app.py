@@ -20,6 +20,7 @@ from tool.content import LANGS
 from tool.content.ui import LANG_NAMES, UI
 from tool.history import History
 from tool.web.history_view import HistoryView, history_view
+from tool.web.risks_view import risks_view
 from tool.web.view import HomeView, home_view, pick_lang
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -97,6 +98,14 @@ def create_app(
     def render_history(request: Request, view: HistoryView, status: int = 200) -> HTMLResponse:
         return templates.TemplateResponse(
             request, "history.html", {"view": view, **context(view.lang)}, status_code=status
+        )
+
+    @app.get("/risks", response_class=HTMLResponse)
+    def risks_page(request: Request, lang: str | None = None) -> HTMLResponse:
+        # Reads only the catalog texts, never a scan, so it works with no history (#83).
+        view = risks_view(lang)
+        return templates.TemplateResponse(
+            request, "risks.html", {"view": view, **context(view.lang)}
         )
 
     @app.get("/history", response_class=HTMLResponse)

@@ -126,6 +126,7 @@
           </ol>
           {% endif %}
           {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
+          <p><a href="/risks?lang={{ view.lang }}#{{ finding.code }}">{{ ui.risk_more }}</a></p>
         </div>
         {% endfor %}
       </article>
@@ -147,6 +148,7 @@
   {% endif %}
 
     <p><a class="button" href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></p>
+    <p><a class="button" href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
 
     <section class="ai" aria-labelledby="ai-heading">
       <h2 id="ai-heading">{{ ui.ai_heading }}</h2>
