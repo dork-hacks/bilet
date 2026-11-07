@@ -67,6 +67,12 @@ We have two Pi 4 targets, so the default lab is the camera and the hub (#128). E
 - **The scanner is still a laptop.** The brief requires it, so the official Test Set run and the jury's live checks happen there.
 - **No local LLM.** 8 GB of RAM isn't enough for a useful model next to the access point, so the LLM stays in the cloud (section 5.5).
 
+**Current testing logistics (Eduard, after the team went home):** Sc1pex has the Pis.
+All physical Pi-network checks must be requested from an available Sc1pex-hosted
+agent with confirmed access; other agents work from captures and mocks. Follow
+WORKFLOW §1 for test requests and evidence. This does not change scan scope or
+privilege approval requirements.
+
 ### 4.3 Demo moment
 
 The jury sees a red score. We press "fix" on the camera Pi (telnet and the admin page, then FTP, and its LED turns green), we rescan from the laptop and the score climbs. Then we power on the optional third device and the UI shows "A new device joined your network". This one sequence covers the history live check, FR-13 and innovation.
