@@ -18,6 +18,7 @@ SERVICES=${LAB_SERVICES:-$LAB_DIR/services.tsv}
 PRESETS=${LAB_PRESETS:-$LAB_DIR/presets.tsv}
 ROLE_FILE=${LAB_ROLE_FILE:-/etc/lab/role}
 PRESET_FILE=${LAB_PRESET_FILE:-/etc/lab/preset}
+LED_ROOT=${LAB_LED_ROOT:-/sys/class/leds}  # a fake folder in the offline tests (#126)
 
 die() { echo "labctl: $*" >&2; exit 1; }
 need_root() { [[ $EUID -eq 0 ]] || die "run with sudo: sudo labctl $*"; }
@@ -147,7 +148,7 @@ set_service() { # on|off kind unit service reconnect
 
 # Prints nothing when there's no such LED, and still succeeds: under set -e a failing
 # $(led_path ...) would end `labctl fix` with exit 1 after the fix was done.
-led_path() { local n; for n in "$@"; do [[ -d /sys/class/leds/$n ]] && { echo "/sys/class/leds/$n"; return 0; }; done; return 0; }
+led_path() { local n; for n in "$@"; do [[ -d $LED_ROOT/$n ]] && { echo "$LED_ROOT/$n"; return 0; }; done; return 0; }
 
 led() { # path trigger [brightness]
   [[ -n $1 && -w $1/trigger ]] || return 0
