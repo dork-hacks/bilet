@@ -7,6 +7,7 @@ strict: a false rejection costs a friendlier sentence, a false pass costs trust.
 """
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from tool.ai.evidence import Evidence
@@ -120,11 +121,15 @@ def check(
     evidence: Evidence,
     max_sentences: int = MAX_SENTENCES,
     max_chars: int = MAX_CHARS,
+    trusted_texts: Iterable[str] = (),
 ) -> Verdict:
     """Check one AI answer shaped {"en": str, "ro": str, "cites": [evidence ids]}.
 
     Explanations use the defaults (2 sentences). The network summary and Q&A answers
     may be a little longer, but every other rule is the same.
+
+    `trusted_texts` are our own hand-written texts that were sent with the evidence
+    (Q&A, #150). Numbers in them count as evidence too. Nothing else is relaxed.
     """
     if not isinstance(answer, dict):
         return Verdict(False, "not_an_object")
@@ -135,6 +140,10 @@ def check(
     if any(cite not in known for cite in cites):
         return Verdict(False, "unknown_citation")
     allowed = allowed_numbers(evidence)
+    for text in trusted_texts:
+        for token in _NUMBER.findall(text):
+            allowed.add(token)
+            allowed.update(re.split(r"[.,]", token))
     for lang in ("en", "ro"):
         verdict = check_text(answer.get(lang), allowed, max_sentences, max_chars)
         if not verdict.ok:
