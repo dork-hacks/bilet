@@ -57,6 +57,7 @@ class FindingItem:
     port_label: str | None  # "554/tcp", None for UNKNOWN_DEVICE
     explanation: str
     steps: tuple[str, ...]
+    observed_service: str | None = None
     standards: str | None = None  # "Security standards: CIS Controls v8: … · OWASP IoT …"
 
 
@@ -168,24 +169,39 @@ def score_band(score: int, lang: str) -> Band:
     return Band(key, band["icon"], band[lang])
 
 
+def ranked_devices(result: dict) -> list[dict]:
+    """Most total points first, then highest single finding, then contract IP order."""
+    findings = {f["id"]: f for f in result.get("findings", [])}
+
+    def priority(device: dict) -> tuple[int, int]:
+        peak = max(
+            (
+                int(findings[i].get("points", 0))
+                for i in device.get("finding_ids", [])
+                if i in findings
+            ),
+            default=0,
+        )
+        return -int(device.get("risk_points", 0)), -peak
+
+    return sorted(result.get("devices", []), key=priority)
+
+
 def most_dangerous(result: dict) -> tuple[dict, dict] | None:
     """The device with the most risk points and its highest-point finding.
 
-    Ties go to the first device and the first finding in contract order (IP, port,
-    code), so the answer is the same on every run. None when nothing scores points.
+    Equal device totals go to the highest single finding, then contract IP order.
+    Finding ties keep port/code order. None when nothing scores points.
     """
     findings = {f["id"]: f for f in result.get("findings", [])}
-    best_device, best_finding = None, None
-    for device in result.get("devices", []):
+    for device in ranked_devices(result):
         if device.get("risk_points", 0) <= 0:
-            continue
-        if best_device is not None and device["risk_points"] <= best_device["risk_points"]:
             continue
         own = [findings[i] for i in device.get("finding_ids", []) if i in findings]
         top = max(own, key=lambda f: f.get("points", 0), default=None)
         if top is not None and top.get("points", 0) > 0:
-            best_device, best_finding = device, top
-    return (best_device, best_finding) if best_device else None
+            return device, top
+    return None
 
 
 def device_anchor(ip: str) -> str:
@@ -249,6 +265,20 @@ def _finding_item(finding: dict, lang: str, device: dict | None = None) -> Findi
         port_label=f"{port}/{protocol}" if port is not None else None,
         explanation=text.explanation,
         steps=steps,
+        observed_service=(
+            " ".join(
+                str(value)
+                for value in (
+                    (finding.get("evidence") or {}).get("product")
+                    or (finding.get("evidence") or {}).get("service_name"),
+                    (finding.get("evidence") or {}).get("version"),
+                )
+                if value
+            )
+            or None
+        )
+        if finding["code"] == "OUTDATED_SERVICE"
+        else None,
         standards=standards_line(finding["code"], lang),
     )
 
@@ -256,12 +286,12 @@ def _finding_item(finding: dict, lang: str, device: dict | None = None) -> Findi
 def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[DeviceItem, ...]]:
     """Devices with findings (most risk points first) and devices without any.
 
-    The order comes only from the rules' points. sorted() is stable, so ties keep the
-    contract order (IP), and the page is the same on every run.
+    Equal totals use the highest single finding, then contract IP order, matching
+    the home recommendation and report. All points come from the rules.
     """
     findings = {f["id"]: f for f in result.get("findings", [])}
     risky, safe = [], []
-    for device in result.get("devices", []):
+    for device in ranked_devices(result):
         own = [findings[i] for i in device.get("finding_ids", []) if i in findings]
         own.sort(key=lambda f: -int(f.get("points", 0)))
         item = DeviceItem(
@@ -275,7 +305,6 @@ def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[
             device_type=device.get("device_type_guess", "unknown"),
         )
         (risky if item.findings else safe).append(item)
-    risky.sort(key=lambda d: -d.risk_points)
     return tuple(risky), tuple(safe)
 
 

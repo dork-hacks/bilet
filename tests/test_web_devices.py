@@ -35,11 +35,13 @@ def test_devices_are_most_dangerous_first():
     assert [d.ip for d in safe] == ["192.168.1.50"]  # the TV has no findings
 
 
-def test_ties_keep_the_scan_order():
+def test_equal_totals_and_peak_findings_keep_the_scan_order():
     scan = copy.deepcopy(SCAN)
     for device in scan["devices"]:
         if device["finding_ids"]:
             device["risk_points"] = 10
+    for finding in scan["findings"]:
+        finding["points"] = 10
     risky, _ = device_list(scan, "en")
     assert [d.ip for d in risky] == ["192.168.1.1", "192.168.1.40", "192.168.1.41", "192.168.1.99"]
 
@@ -186,13 +188,14 @@ def test_the_settings_url_uses_the_devices_plain_http_port():
     assert "http://192.168.1.40:8080 " in steps[0]
 
 
-def test_an_https_only_device_gets_the_plain_address():
+def test_an_https_only_device_is_not_sent_to_an_unobserved_http_page():
     camera = _camera()
     for port in camera["open_ports"]:
         if port["service_name"] == "http":
             port["port"], port["tunnel"] = 8443, "ssl"
     steps = device_fix_steps(camera, "TELNET_OPEN", "en")
-    assert "http://192.168.1.40 " in steps[0]
+    assert "http://192.168.1.40" not in steps[0]
+    assert "192.168.1.40" in steps[0]
 
 
 def test_a_hostile_ip_in_the_steps_is_escaped_on_the_page():
