@@ -28,13 +28,37 @@ Every Pi also runs key-only SSH for administration: `SSH_OPEN`, 0 points.
 | server | FTP_CLEARTEXT 21 (10), OUTDATED_SERVICE 21 (20), SSH_OPEN 22 (0) |
 | hub | MQTT_EXPOSED 1883 (10), UNKNOWN_DEVICE, empty port (5), SSH_OPEN 22 (0) |
 
+## Minimum lab (brief, ready by hour 3)
+
+| # | The brief asks for | How we do it |
+|---|---|---|
+| 1 | Gateway: a team phone hotspot `RSH-<team>`, WPA2/WPA3, strong password, data limit | `RSH-dork_unit` on 2.4 GHz. The Pi 5 serves it (mentors said a phone isn't required, #64); a team phone hotspot is the fallback. |
+| 2 | Scanner: one laptop on the hotspot and **nothing else** | Ethernet unplugged, venue Wi-Fi forgotten, VPNs (Tailscale too) off. `tool detect` shows one network. |
+| 3 | At least 3 team-owned targets | The three Pi 4s below. |
+| 4 | At least 5 finding types | The default lab has 7 (table below); capture 3 adds the other 6 Pi codes. |
+| 5 | Every scan saved as nmap XML | `nmap -sS -sU -sV -oX`, via `lab/verify` (#34) or `tool scan` (#20). |
+| 6 | Before/after: fix at least 2 findings, rescan, keep both files | `labctl fix telnet` + `labctl fix http` on the camera: score 25 → 55. |
+
+Check early that the laptop and the Pis can ping each other: some phones isolate hotspot
+clients. The step-by-step run is in `CHECKLIST.md` (#34).
+
 ## Setting up a Pi
 
-Before the event, on home Wi-Fi (hotspot data is limited):
+Before the event, on home Wi-Fi (hotspot data is limited). Each step runs on a Linux laptop
+with the SD card in a reader; the scripts refuse anything that isn't a removable card.
 
-1. Flash Raspberry Pi OS Lite 64-bit (bookworm), enable SSH with your public key in Raspberry Pi Imager.
-2. Join the Pi to the team hotspot (`RSH-dork_unit`) and to nothing else.
-3. Copy this repo onto the Pi and install its role:
+1. Flash Raspberry Pi OS Lite 64-bit with hostname, user, SSH keys and SSH on (cloud-init).
+   The image is downloaded and checksummed into `out/pi-images/` if it isn't there:
+   ```bash
+   sudo lab/flash_pi.sh /dev/sdX pi2
+   ```
+2. Join it to the team hotspot (`RSH-dork_unit`) and to nothing else. This writes a
+   NetworkManager profile, sets the Wi-Fi country (RO) and keeps logs across reboots:
+   ```bash
+   sudo lab/pi_wifi_nm.sh /dev/sdX RSH-dork_unit
+   ```
+   (`lab/pi_wifi.sh` does the same through cloud-init, but only before the first boot.)
+3. Boot the Pi, SSH in, copy this repo onto it and install its role:
 
 ```bash
 git clone <repo> && cd <repo>
@@ -151,7 +175,8 @@ python3 -m unittest discover -s lab/tests
 
 - On a real Raspberry Pi: `setup.sh`, `labctl`, the LEDs, Samba, snmpd and the hub identity
   (random MAC, no DHCP hostname) are written for Raspberry Pi OS bookworm but haven't run on
-  one yet. The systemd units pass `systemd-analyze verify`.
+  one yet. `flash_pi.sh` installs trixie (the current Lite image), so check them there.
+  The systemd units pass `systemd-analyze verify`.
 - SNMP: whether nmap marks the locked-down snmpd as `open` (it should, via the SNMPv3
   engine-discovery reply) still needs a scan. `lab/verify` fails it with a hint if nmap
   says `open|filtered`.
