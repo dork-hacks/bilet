@@ -8,8 +8,8 @@ template (Jinja autoescape), never here.
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from tool.ai.evidence import build_evidence
-from tool.ai.explain import SOURCE_TEMPLATE, Explainer, clean_question, summary_steps
+from tool.ai.evidence import build_evidence, ranked_items
+from tool.ai.explain import SOURCE_TEMPLATE, SUMMARY_ITEMS, Explainer, clean_question
 from tool.content import (
     DEFAULT_LANG,
     LANGS,
@@ -126,10 +126,29 @@ def explain_first(
     return answer.text(lang), answer.source
 
 
+def local_plan_steps(result: dict, lang: str) -> tuple[str, ...]:
+    """Device-specific actions for local display, in the evidence's stable rules order.
+
+    Keep these separate from AI summary text: device addresses must never enter prompts.
+    """
+    evidence = build_evidence(result)
+    devices = {device.get("device_key"): device for device in result.get("devices", [])}
+    findings = {finding.get("id"): finding for finding in result.get("findings", [])}
+    pairs = [(d, f) for d, f in ranked_items(evidence) if (f.get("points") or 0) > 0]
+    steps = []
+    for device_ref, item in pairs[:SUMMARY_ITEMS]:
+        device = devices[evidence.device_refs[device_ref["device"]]]
+        finding = findings[evidence.finding_refs[item["id"]]]
+        text = finding_text(finding.get("code", ""), lang)
+        label = device_type_label(device.get("device_type_guess") or "unknown", lang)
+        steps.append(f"{text.title} ({label}): {first_fix_step(device, finding, lang)}")
+    return tuple(steps)
+
+
 def network_plan(result: dict, lang: str, explainer: Explainer | None) -> Plan | None:
     """The plan for the whole network. The AI paragraph only if AI is on and grounded."""
     evidence = build_evidence(result)
-    steps = tuple(summary_steps(evidence, lang))
+    steps = local_plan_steps(result, lang)
     if not steps:
         return None
     if explainer is not None:
@@ -147,7 +166,7 @@ def answer_question(
     if not question:
         return None
     if explainer is None:
-        steps = summary_steps(build_evidence(result), lang)
+        steps = local_plan_steps(result, lang)
         text = " ".join(steps) if steps else t("ai_summary_nothing", lang)
         return QuestionReply(question, text, SOURCE_TEMPLATE)
     reply = explainer.answer(build_evidence(result), question)
@@ -240,8 +259,9 @@ def device_fix_steps(
     return fix_steps(code, lang, device_type, ip, _web_port(device))
 
 
-def _first_step(device: dict, finding: dict, lang: str, text) -> str:
+def first_fix_step(device: dict, finding: dict, lang: str) -> str:
     """Show the fixing action first, with the first instruction as a fallback."""
+    text = finding_text(finding["code"], lang)
     steps = device_fix_steps(device, finding["code"], lang, finding)
     prefix = FIX_PREFIXES[lang]
     return next(
@@ -341,7 +361,7 @@ def home_view(
             hostname=device.get("hostname"),
             risk_points=device["risk_points"],
             finding_title=text.title,
-            step=_first_step(device, finding, lang, text),
+            step=first_fix_step(device, finding, lang),
             explanation=explanation,
             explanation_source=source,
         )

@@ -7,10 +7,10 @@ from fastapi.testclient import TestClient
 from markupsafe import escape  # what Jinja's autoescape uses
 
 from tool.ai.evidence import build_evidence, ranked_ids
-from tool.ai.explain import Explainer, summary_steps
+from tool.ai.explain import Explainer
 from tool.content.ui import UI
 from tool.web.app import MAX_FORM_BYTES, create_app
-from tool.web.view import home_view
+from tool.web.view import home_view, local_plan_steps
 
 FIXTURES = Path(__file__).parent / "fixtures" / "contract"
 SCAN = json.loads((FIXTURES / "example_scan.json").read_text(encoding="utf-8"))
@@ -60,7 +60,7 @@ def ask(provider, **form):
 def test_plan_without_ai_is_the_built_in_list_in_the_rules_order():
     view = home_view(SCAN, "en", Explainer(TaskProvider()))
     assert view.plan.source == "template"
-    assert view.plan.steps == tuple(summary_steps(EVIDENCE, "en"))
+    assert view.plan.steps == tuple(local_plan_steps(SCAN, "en"))
     assert view.plan.text is None
 
 
@@ -85,7 +85,7 @@ def test_no_plan_when_nothing_scores_points():
 def test_page_shows_the_plan_with_its_label():
     page = client(Explainer(TaskProvider())).get("/", params={"lang": "en"}).text
     assert UI["plan_heading"]["en"] in page
-    assert escape(summary_steps(EVIDENCE, "en")[0]) in page
+    assert escape(local_plan_steps(SCAN, "en")[0]) in page
 
 
 # --- question form ------------------------------------------------------------------------
@@ -122,7 +122,7 @@ def test_ask_with_ai_off_never_calls_the_provider():
     assert provider.prompts == []
     assert 'action="/ask"' in page
     assert UI["chat_off"]["en"] in page
-    assert escape(summary_steps(EVIDENCE, "en")[0]) in page
+    assert escape(local_plan_steps(SCAN, "en")[0]) in page
 
 
 def test_empty_question_shows_no_answer_and_no_call():
@@ -165,5 +165,5 @@ def test_chat_without_provider_shows_standard_answer():
     response = client(None).post("/ask", data={"lang": "ro", "q": "Ce repar?"})
     assert response.status_code == 200
     assert UI["chat_off"]["ro"] in response.text
-    assert summary_steps(EVIDENCE, "ro")[0] in response.text
+    assert local_plan_steps(SCAN, "ro")[0] in response.text
     assert 'class="chat-message assistant chat-answer"' in response.text
