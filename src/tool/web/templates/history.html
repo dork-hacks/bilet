@@ -20,7 +20,8 @@
       </ul>
     </nav>
   </header>
-  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a> ·
+     <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
 
   <main id="main">
   {% if view.message %}<p class="notice" role="status">{{ view.message }}</p>{% endif %}

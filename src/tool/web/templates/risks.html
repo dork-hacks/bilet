@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{ view.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ui.risks_title }} · {{ display_name }}</title>
+{% include "_style.html" %}
+</head>
+<body class="risks">
+  <a class="skip" href="#main">{{ ui.risks_title }}</a>
+  <header>
+    <h1>{{ ui.risks_title }}</h1>
+    <nav aria-label="{{ ui.language }}">
+      <ul>
+        {% for code, name in langs %}
+        <li><a href="/risks?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+               {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </header>
+  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+
+  <main id="main">
+    <p>{{ ui.risks_intro }}</p>
+    {% for risk in view.risks %}
+    <section class="finding sev-{{ risk.severity }}" id="{{ risk.code }}" aria-labelledby="{{ risk.code }}-h">
+      <h2 id="{{ risk.code }}-h">{{ risk.title }}</h2>
+      <p><span class="tag">{{ risk.severity_label }}</span>
+        <span class="muted"> · {{ ui.points.replace("{n}", risk.points|string) }}</span></p>
+      <p><strong>{{ ui.why }}</strong> {{ risk.explanation }}</p>
+      {% if risk.steps %}
+      <p><strong>{{ ui.how_to_fix }}</strong></p>
+      <ol>
+        {% for step in risk.steps %}<li>{{ step }}</li>{% endfor %}
+      </ol>
+      {% endif %}
+      {% if risk.standards %}<p class="muted standards">{{ risk.standards }}</p>{% endif %}
+    </section>
+    {% endfor %}
+  </main>
+
+  <p><a class="button" href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+</body>
+</html>

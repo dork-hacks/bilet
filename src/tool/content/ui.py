@@ -134,6 +134,23 @@ UI = {
     "history_link": {"ro": "Vezi istoricul verificărilor", "en": "See your check history"},
     "history_title": {"ro": "Istoricul verificărilor", "en": "Check history"},
     "back_home": {"ro": "Înapoi la pagina principală", "en": "Back to the home page"},
+    # "Every risk explained" page (#83): all catalog codes, read from tool.content only.
+    "risks_link": {
+        "ro": "Toate riscurile pe care le verificăm",
+        "en": "Every risk we check for",
+    },
+    "risks_title": {"ro": "Riscurile pe care le verificăm", "en": "The risks we check for"},
+    "risks_intro": {
+        "ro": (
+            "Aici sunt toate problemele pe care le poate găsi verificarea, de la cea mai "
+            "gravă la cea mai ușoară, cu ce înseamnă și cum le rezolvi."
+        ),
+        "en": (
+            "These are all the problems the check can find, from the most serious to the "
+            "least, with what each one means and how to fix it."
+        ),
+    },
+    "risk_more": {"ro": "Mai multe despre acest risc", "en": "More about this risk"},
     "history_off": {
         "ro": "Istoricul nu este pornit pe acest calculator.",
         "en": "History is not turned on on this computer.",
