@@ -530,6 +530,23 @@ REFUSALS: dict[str, dict[str, str]] = {
     },
 }
 
+# Network detection errors (FR-01, `tool detect` in #19). The codes come from
+# tool.network; an unknown code is shown as DETECT_FAILED.
+DETECT_ERRORS: dict[str, dict[str, str]] = {
+    "NO_NETWORK": {
+        "ro": "Calculatorul nu pare conectat la nicio rețea. Conectați-l la hotspot și încercați din nou.",
+        "en": "This computer doesn't seem to be connected to any network. Connect it to the hotspot and try again.",
+    },
+    "SEVERAL_NETWORKS": {
+        "ro": "Calculatorul este conectat la mai multe rețele în același timp. Lăsați conectat doar hotspot-ul: deconectați cablul de rețea, celelalte rețele Wi-Fi și orice VPN, apoi încercați din nou.",
+        "en": "This computer is connected to several networks at once. Leave only the hotspot connected: unplug any network cable, disconnect other Wi-Fi networks and turn off any VPN, then try again.",
+    },
+    "DETECT_FAILED": {
+        "ro": "Nu am putut afla la ce rețea este conectat calculatorul. Verificați că este conectat la hotspot și încercați din nou.",
+        "en": "The tool couldn't work out which network this computer is connected to. Check that it is connected to the hotspot and try again.",
+    },
+}
+
 GENERIC_REFUSAL: dict[str, str] = {
     "ro": "Programul a refuzat să verifice {target}. Verifică doar rețeaua dumneavoastră.",
     "en": "The tool refused to check {target}. It only checks your own network.",
