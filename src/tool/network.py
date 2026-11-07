@@ -6,6 +6,14 @@ never hard-coded: iPhone hotspots use 172.20.10.0/28, Android ones vary.
 
 The result is the guardrail's default allowlist (#18), so when the answer is unclear
 (no network, or several at once) this refuses rather than guesses.
+
+"Several networks" is checked differently per OS, on purpose. On Linux it means more
+than one interface with a default route; on macOS, any other interface with a real IPv4
+address (not loopback or link-local). So a Linux laptop on the hotspot with a cable that
+has an address but no default route passes, and the same Mac is refused. Both are safe:
+the allowlist always comes from the default-route interface. A VPN that owns the default
+route on macOS (utun) also makes Wi-Fi count as a second network, so detect refuses and
+the message says to turn the VPN off (#52).
 """
 
 import ipaddress
