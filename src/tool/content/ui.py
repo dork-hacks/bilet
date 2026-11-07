@@ -77,6 +77,27 @@ UI = {
         "ro": "AI nu este configurat pe acest calculator, așa că vezi explicațiile standard.",
         "en": "AI is not set up on this computer, so you see the standard explanations.",
     },
+    # Summary and Q&A (#50). The "can't tell" sentence is shown whenever the scan
+    # evidence doesn't cover a question, and whenever an AI answer is rejected.
+    "ai_summary_intro": {"ro": "Ordinea recomandată:", "en": "What to do, in order:"},
+    "ai_summary_nothing": {
+        "ro": "Scanarea nu a găsit nimic de reparat. Nu trebuie să faceți nimic acum.",
+        "en": "The scan found nothing to fix. You don't need to do anything right now.",
+    },
+    "ai_cant_tell": {
+        "ro": "Scanarea nu îmi poate spune asta. Uitați-vă la lista de probleme de mai jos.",
+        "en": "The scan can't tell me that. Please look at the list of problems below.",
+    },
+    "ai_question_needs_ai": {
+        "ro": (
+            "Întrebările au nevoie de explicațiile cu AI pornite. "
+            "Lista de mai jos arată tot ce a găsit scanarea."
+        ),
+        "en": (
+            "Questions need the AI explanations turned on. "
+            "The list below shows everything the scan found."
+        ),
+    },
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}
