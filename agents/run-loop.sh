@@ -6,7 +6,8 @@
 # <workdir> is this agent's OWN clone of the repo. It is created if missing.
 # Never point it at a checkout someone works in by hand.
 #
-# Each tick is a fresh headless `claude -p` session with an allowlist of tools.
+# Each tick is a fresh headless Claude (default) or Codex session.
+# Claude uses tool lists; Codex uses workspace-write and automatic approval review.
 # There is no permission bypass. All state lives in GitHub, so a killed tick loses nothing.
 #
 # Stop or pause:
@@ -21,6 +22,12 @@ set -uo pipefail
 usage() { echo "usage: $0 <agent-tag> <workdir>   e.g. $0 agent-C ~/bilet-agents/agent-C" >&2; exit 2; }
 [[ $# -eq 2 ]] || usage
 TAG="$1"; WORKDIR="$2"
+AGENT_RUNTIME="${AGENT_RUNTIME:-claude}"
+case "$AGENT_RUNTIME" in claude|codex) ;; *) echo "AGENT_RUNTIME must be claude or codex" >&2; exit 2 ;; esac
+if [[ "$AGENT_RUNTIME" == codex && -n "${TICK_BUDGET_USD:-}" ]]; then
+  echo "TICK_BUDGET_USD is Claude-only; Codex does not expose a per-tick dollar cap" >&2; exit 2
+fi
+command -v "$AGENT_RUNTIME" >/dev/null || { echo "$AGENT_RUNTIME is not installed" >&2; exit 1; }
 [[ "$TAG" =~ ^agent-[A-Z]$ ]] || { echo "tag must be 'agent-<LETTER>', e.g. agent-C" >&2; exit 2; }
 SYNC_ISSUE="${SYNC_ISSUE:-1}"
 INTERVAL_MIN="${INTERVAL_MIN:-300}"            # seconds between ticks while active
@@ -124,6 +131,9 @@ load_prompt() {
   # Before the prompt is merged, use the snapshot taken at start.
   local text
   text="$(git -C "$WORKDIR" show "origin/main:agents/worker.md" 2>/dev/null)" || text="$(cat "$STATE/bin/worker.md")"
+  if [[ "$AGENT_RUNTIME" == codex ]]; then
+    printf '%s\n\n' 'Codex worker: read AGENTS.md, MASTERPLAN.md and WORKFLOW.md before working. You are taking one autonomous tick; use available tools rather than Claude-specific tool names. If permissions or automatic approval review block an operation, report it honestly; never bypass the sandbox or approval review. For agent-G, continue only the backup work assigned by Eduard in issue #1; do not take agent-B claims back after it returns without a human assignment.'
+  fi
   printf '%s' "${text//\{\{TAG\}\}/$TAG}"
 }
 
@@ -149,17 +159,35 @@ while :; do
   git -C "$WORKDIR" fetch -q origin 2>/dev/null || log "git fetch failed"
 
   tick_log="$STATE/logs/$(date -u +%Y%m%dT%H%M%SZ).log"
-  args=(-p "$(load_prompt)" --output-format json)
-  [[ -n "$AGENT_MODEL" ]] && args+=(--model "$AGENT_MODEL")
-  [[ -n "$TICK_BUDGET_USD" ]] && args+=(--max-budget-usd "$TICK_BUDGET_USD")
-  args+=(--disallowedTools "${DENY_TOOLS[@]}" --allowedTools "${TOOLS[@]}")
+  if [[ "$AGENT_RUNTIME" == codex ]]; then
+    args=(--approve-for-me exec --sandbox workspace-write --json
+          --output-last-message "$tick_log" "$(load_prompt)")
+    [[ -n "$AGENT_MODEL" ]] && args+=(--model "$AGENT_MODEL")
+  else
+    args=(-p "$(load_prompt)" --output-format json)
+    [[ -n "$AGENT_MODEL" ]] && args+=(--model "$AGENT_MODEL")
+    [[ -n "$TICK_BUDGET_USD" ]] && args+=(--max-budget-usd "$TICK_BUDGET_USD")
+    args+=(--disallowedTools "${DENY_TOOLS[@]}" --allowedTools "${TOOLS[@]}")
+  fi
 
   log "tick start"
-  ( cd "$WORKDIR" && perl -e 'alarm shift; exec @ARGV' "$TICK_TIMEOUT" claude "${args[@]}" ) > "$tick_log.json" 2> "$tick_log.err"
+  ( cd "$WORKDIR" && perl -e 'alarm shift; exec @ARGV' "$TICK_TIMEOUT" "$AGENT_RUNTIME" "${args[@]}" ) > "$tick_log.json" 2> "$tick_log.err"
   rc=$?
-  # Keep the readable report in the .log file. Print cost and turns for loop.log.
-  usage="$(python3 - "$tick_log.json" "$tick_log" <<'PY' 2>/dev/null
+  # Keep the readable report in .log; record Claude cost/turns or Codex tokens.
+  usage="$(python3 - "$tick_log.json" "$tick_log" "$AGENT_RUNTIME" <<'PY' 2>/dev/null
 import json, sys
+if sys.argv[3] == "codex":
+    usage = {}
+    with open(sys.argv[1]) as stream:
+        for line in stream:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if event.get("type") == "turn.completed":
+                usage = event.get("usage", {})
+    print("tokens=" + json.dumps(usage, separators=(",", ":")))
+    sys.exit(0)
 try:
     d = json.load(open(sys.argv[1]))
 except Exception:
