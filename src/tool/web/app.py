@@ -1,10 +1,11 @@
 """FastAPI app for `tool serve` (FR-11). Runs unprivileged and never calls nmap.
 
-Where the scan comes from is injected (`load_result`), so the app is tested against the
-contract fixtures today and wired to history (#21) later without changing the views.
+Where the scan comes from is injected (`load_result`, from `serve --result`). Without one,
+the home screen shows the newest readable scan in the local history (#87).
 """
 
 import json
+import sqlite3
 from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -18,7 +19,7 @@ from tool.ai.explain import Explainer
 from tool.config import DISPLAY_NAME
 from tool.content import LANGS
 from tool.content.ui import LANG_NAMES, UI
-from tool.history import History
+from tool.history import History, HistoryError
 from tool.web.history_view import HistoryView, history_view
 from tool.web.view import HomeView, home_view, pick_lang
 
@@ -36,6 +37,22 @@ def load_json_file(path: Path) -> dict | None:
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def latest_from_history(history: History | None) -> dict | None:
+    """The newest readable scan in the history, or None (#87).
+
+    Read on every request, so a scan saved while the server runs shows up on the next page
+    load. A corrupt or missing database shows the empty state, never a 500.
+    """
+    if history is None:
+        return None
+    try:
+        readable = [s for s in history.scans() if s.status == "ok"]
+        data = history.result(readable[-1].id) if readable else None
+    except (HistoryError, sqlite3.Error, OSError, ValueError):
         return None
     return data if isinstance(data, dict) else None
 
@@ -74,8 +91,15 @@ def create_app(
 ) -> FastAPI:
     """`explainer` is the optional AI layer. It is used only when the user turns AI on.
     `history` is the local scan history (#21) behind the history screen; None turns it off.
+    The home screen shows `load_result()` when it has a scan (`serve --result`), otherwise
+    the newest readable scan in the history (#87).
     """
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
+
+    def current_result() -> dict | None:
+        result = load_result()
+        return result if result is not None else latest_from_history(history)
+
     # Jinja2Templates turns autoescape on for .html files: RAW scan fields and AI text
     # are escaped.
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -129,7 +153,8 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request, lang: str | None = None, ai: str | None = None) -> HTMLResponse:
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
-        return render(request, home_view(load_result(), lang, explainer, ai_on=ai == "1"))
+        view = home_view(current_result(), lang, explainer, ai_on=ai == "1")
+        return render(request, view)
 
     @app.post("/ask", response_class=HTMLResponse)
     async def ask(request: Request) -> HTMLResponse:
@@ -140,7 +165,7 @@ def create_app(
         # The AI call blocks for up to the timeout, so it runs off the event loop.
         view = await run_in_threadpool(
             home_view,
-            load_result(),
+            current_result(),
             form.get("lang"),
             explainer,
             ai_on=form.get("ai") == "1",
