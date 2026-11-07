@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="{{ view.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ ui.page_title }} · {{ display_name }}</title>
+  <style>
+    /* Base text 18px (>= 16px, MASTERPLAN 6.5). All colour pairs below pass WCAG AA. */
+    :root { font-size: 18px; color: #1a1a1a; background: #ffffff; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5;
+           margin: 0 auto; max-width: 42rem; padding: 1rem; }
+    a { color: #0b4f9c; }
+    a:focus-visible, button:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
+    .skip { position: absolute; left: -999px; }
+    .skip:focus { left: 1rem; top: 1rem; background: #fff; padding: .5rem; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+             flex-wrap: wrap; }
+    nav ul { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }
+    nav [aria-current="true"] { font-weight: 700; text-decoration: none; color: #1a1a1a; }
+    .score { border: 4px solid; border-radius: 1rem; padding: 1.25rem; margin: 1.5rem 0;
+             display: flex; align-items: center; gap: 1.25rem; }
+    .score .icon { font-size: 3rem; font-weight: 700; width: 4.5rem; height: 4.5rem;
+                   border-radius: 50%; display: flex; align-items: center;
+                   justify-content: center; color: #ffffff; flex-shrink: 0; }
+    .score .number { font-size: 3rem; font-weight: 700; line-height: 1; }
+    .score .label { font-size: 1.4rem; font-weight: 700; }
+    .good { border-color: #1b6e2a; background: #eef7ef; } .good .icon { background: #1b6e2a; }
+    .warn { border-color: #8a5a00; background: #fff6e0; } .warn .icon { background: #8a5a00; }
+    .bad  { border-color: #b3261e; background: #fdeceb; } .bad .icon  { background: #b3261e; }
+    .first { border-left: 6px solid #1a1a1a; padding: .5rem 1rem; background: #f4f4f4; }
+    .first p { margin: .5rem 0; font-size: 1.15rem; }
+    .muted { color: #4a4a4a; }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">{{ ui.score_heading }}</a>
+  <header>
+    <h1>{{ ui.page_title }}</h1>
+    <nav aria-label="{{ ui.language }}">
+      <ul>
+        {% for code, name in langs %}
+        <li><a href="?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+               {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main">
+  {% if view.kind == "empty" %}
+    <p>{{ ui.no_scan }}</p>
+
+  {% elif view.kind == "error" %}
+    <section class="score bad" role="alert">
+      <span class="icon" aria-hidden="true">!</span>
+      <div>
+        <h2 class="label">{{ ui.error_heading }}</h2>
+        <p>{{ view.error_message }}</p>
+        {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+      </div>
+    </section>
+
+  {% else %}
+    <section class="score {{ view.band.key }}" aria-labelledby="score-heading">
+      <span class="icon" aria-hidden="true">{{ view.band.icon }}</span>
+      <div>
+        <h2 id="score-heading" class="muted">{{ ui.score_heading }}</h2>
+        <p><span class="number">{{ view.score }}</span> {{ ui.score_out_of }}</p>
+        <p class="label">{{ view.band.label }}</p>
+      </div>
+    </section>
+
+    <section class="first" aria-live="polite">
+      {% if view.first %}
+      <p><strong>{{ ui.most_dangerous }}</strong> {{ view.first.device }}{% if view.first.hostname %}
+        (<span class="muted">{{ view.first.hostname }}</span>){% endif %}.
+        <span class="muted">{{ ui.points.replace("{n}", view.first.risk_points|string) }}</span></p>
+      <p><strong>{{ ui.do_first }}</strong> {{ view.first.finding_title }}: {{ view.first.step }}</p>
+      {% else %}
+      <p>{{ ui.nothing_to_fix }}</p>
+      {% endif %}
+    </section>
+    {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+  {% endif %}
+  </main>
+</body>
+</html>
