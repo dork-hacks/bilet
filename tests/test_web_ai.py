@@ -95,14 +95,16 @@ def test_no_provider_means_ai_is_not_available():
 
 def test_no_hostname_or_ip_reaches_the_provider():
     provider = CitingProvider()
-    home_view(SCAN, "en", Explainer(provider), ai_on=True)
-    (prompt,) = provider.prompts
-    for device in SCAN["devices"]:
-        assert device["ip"] not in prompt
-        if device.get("hostname"):
-            assert device["hostname"] not in prompt
-        if device.get("mac_masked"):
-            assert device["mac_masked"] not in prompt
+    home_view(SCAN, "en", Explainer(provider), ai_on=True, question="Is my camera safe?")
+    # One prompt each for the top explanation, the plan (#50) and the question.
+    assert len(provider.prompts) == 3
+    for prompt in provider.prompts:
+        for device in SCAN["devices"]:
+            assert device["ip"] not in prompt
+            if device.get("hostname"):
+                assert device["hostname"] not in prompt
+            if device.get("mac_masked"):
+                assert device["mac_masked"] not in prompt
 
 
 # --- page ---------------------------------------------------------------------------------

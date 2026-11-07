@@ -79,6 +79,7 @@ def build_evidence(result: dict) -> Evidence:
                     "id": eid,
                     "code": finding.get("code"),
                     "severity": finding.get("severity"),
+                    "points": finding.get("points"),  # the rules' ranking, see ranked_ids
                     "port": finding.get("port"),
                     "protocol": finding.get("protocol"),
                     "service_name": sanitise_untrusted(ev.get("service_name")),
@@ -96,3 +97,21 @@ def build_evidence(result: dict) -> Evidence:
 
     payload = {"score": result.get("score"), "devices": out_devices}
     return Evidence(payload=payload, device_refs=device_refs, finding_refs=finding_refs)
+
+
+def ranked_items(evidence: Evidence) -> list[tuple[dict, dict]]:
+    """(device, finding) pairs in the rules' order: most points first.
+
+    Ties keep evidence order (contract order: device, then port, then code), so the
+    order is the same on every run. The AI may reword this plan but never reorder it.
+    """
+    pairs = [
+        (device, item)
+        for device in evidence.payload.get("devices", [])
+        for item in device.get("findings", [])
+    ]
+    return sorted(pairs, key=lambda pair: -(pair[1].get("points") or 0))
+
+
+def ranked_ids(evidence: Evidence) -> list[str]:
+    return [item["id"] for _device, item in ranked_items(evidence)]

@@ -85,10 +85,15 @@ def count_sentences(text: str) -> int:
     return len(parts)
 
 
-def check_text(text: str, allowed: set[str]) -> Verdict:
+def check_text(
+    text: str,
+    allowed: set[str],
+    max_sentences: int = MAX_SENTENCES,
+    max_chars: int = MAX_CHARS,
+) -> Verdict:
     if not isinstance(text, str) or not text.strip():
         return Verdict(False, "empty")
-    if len(text) > MAX_CHARS:
+    if len(text) > max_chars:
         return Verdict(False, "too_long")
     for name, pattern in (
         ("ip", _IP),
@@ -105,13 +110,22 @@ def check_text(text: str, allowed: set[str]) -> Verdict:
             return Verdict(False, "number")
     if _BANNED.search(text):
         return Verdict(False, "jargon")
-    if count_sentences(text) > MAX_SENTENCES:
+    if count_sentences(text) > max_sentences:
         return Verdict(False, "too_many_sentences")
     return Verdict(True, "ok")
 
 
-def check(answer: object, evidence: Evidence) -> Verdict:
-    """Check one AI answer shaped {"en": str, "ro": str, "cites": [evidence ids]}."""
+def check(
+    answer: object,
+    evidence: Evidence,
+    max_sentences: int = MAX_SENTENCES,
+    max_chars: int = MAX_CHARS,
+) -> Verdict:
+    """Check one AI answer shaped {"en": str, "ro": str, "cites": [evidence ids]}.
+
+    Explanations use the defaults (2 sentences). The network summary and Q&A answers
+    may be a little longer, but every other rule is the same.
+    """
     if not isinstance(answer, dict):
         return Verdict(False, "not_an_object")
     cites = answer.get("cites")
@@ -122,7 +136,7 @@ def check(answer: object, evidence: Evidence) -> Verdict:
         return Verdict(False, "unknown_citation")
     allowed = allowed_numbers(evidence)
     for lang in ("en", "ro"):
-        verdict = check_text(answer.get(lang), allowed)
+        verdict = check_text(answer.get(lang), allowed, max_sentences, max_chars)
         if not verdict.ok:
             return Verdict(False, f"{lang}:{verdict.reason}")
     return Verdict(True, "ok")
