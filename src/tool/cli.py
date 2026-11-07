@@ -196,9 +196,33 @@ def analyze_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def save_and_alert(results: list, lang: str) -> None:
+# Until area:content adds it to tool.content (asked on #132; agent-B is away).
+_HISTORY_FAILED = {
+    "ro": "Rezultatele sunt salvate, dar istoricul nu a putut fi actualizat.",
+    "en": "Your results are saved, but the history couldn't be updated.",
+}
+
+
+def save_and_alert(results: list, lang: str) -> bool:
     """Store every result in the history (unreadable ones as error rows, which are never
-    compared) and print what appeared since the previous readable scan."""
+    compared) and print what appeared since the previous readable scan.
+
+    A history problem (a database from a newer version, a locked or corrupt file, a full
+    disk) never ends the command with a traceback: the scan or the CSVs are already
+    saved, so it prints one plain line and returns False (#132)."""
+    import sqlite3
+
+    from tool.history import HistoryError
+
+    try:
+        _save_and_alert(results, lang)
+    except (HistoryError, sqlite3.Error, OSError) as exc:
+        print(f"{_HISTORY_FAILED[lang]} ({type(exc).__name__}: {exc})", file=sys.stderr)
+        return False
+    return True
+
+
+def _save_and_alert(results: list, lang: str) -> None:
     from tool.content import alert_message
     from tool.history import History
 
