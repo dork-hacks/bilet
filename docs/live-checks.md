@@ -131,6 +131,26 @@ gitleaks detect --source . --redact --verbose    # older versions (newer ones ac
 
 Use the command that matches the laptop's version, so a deprecation warning doesn't look like a failure live. A pass ends with `no leaks found`. CI runs the same scan on every push and PR (the `gitleaks (NFR-01)` check), so the PR page is a backup if gitleaks isn't installed. The API key is only ever in the environment (`.env` is git-ignored; `.env.example` holds empty placeholders).
 
+## Extra: masked MACs, if the jury asks
+
+"Masked MACs" is a yes/no item in the security score (MASTERPLAN §3.5), but none of the seven checks shows it. Have this ready, for example right after check 7. Use a file whose input really has full MACs:
+
+```bash
+grep -cE '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' tests/fixtures/validation/V2_smart_home.xml   # the input: 4 full MACs
+bilet analyze tests/fixtures/validation --out /tmp/macs --json --lang en                   # no --save: the history stays as it is
+grep -ho '"mac[a-z_]*": *"[^"]*"' /tmp/macs/json/V2_smart_home.json                     # only "mac_masked"
+grep -rEo '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' /tmp/macs                                # pass: prints nothing
+```
+
+Real run on `main` `c31c035`, 8 Nov:
+- The input has 4 full MACs.
+- The JSON has only `"mac_masked": "50:C7:BF:xx:xx:xx"`, `"C0:56:E3:xx:xx:xx"`, `"B8:27:EB:xx:xx:xx"` and `"F4:F5:D8:xx:xx:xx"`. That's the maker's half, never the device's own.
+- The last grep finds no full MAC in any JSON file or in `findings.csv` / `scores.csv`. The CSVs have no MAC column at all.
+
+**On screen:** each device card on the home screen shows the same masked form next to the hostname. The history tells devices apart by a salted HMAC of the MAC (`device_key`), never the MAC itself. A fresh history saved from the Validation Set has no full MAC in `history.sqlite3`.
+
+**What stays raw, and where:** the nmap XML that `bilet scan --confirm` saves in `scans/` is the raw scan, with full MACs. It stays on this laptop, the folder is `0700`, and `scans/` is git-ignored. The lab captures in the repo went through `lab/sanitize` (Test Set runbook step 1b checks this).
+
 ## Still to do on the day (needs a human on the hotspot)
 
 - Run all seven once on the scanner laptop at the `final` tag, and time the session.
