@@ -8,6 +8,7 @@ the per-feature tests (the band label and severity are always written as text).
 import re
 from html.parser import HTMLParser
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,6 +19,7 @@ from tool.history import History
 from tool.web.app import create_app
 
 STYLE = Path(__file__).parents[1] / "src" / "tool" / "web" / "templates" / "_style.html"
+REPORT_STYLE = STYLE.parent / "report.html"
 MAP_STYLE = STYLE.parents[1] / "static" / "netmap.css"
 VALIDATION = Path(__file__).parent / "fixtures" / "validation"
 SALT = b"test-salt"
@@ -66,7 +68,11 @@ def test_contrast_ratio_matches_known_values():
     assert contrast("#777777", "#ffffff") == pytest.approx(4.48, abs=0.01)
 
 
-@pytest.mark.parametrize("paths", [(STYLE,), (STYLE, MAP_STYLE)], ids=["shared", "network-map"])
+@pytest.mark.parametrize(
+    "paths",
+    [(STYLE,), (STYLE, MAP_STYLE), (REPORT_STYLE,)],
+    ids=["shared", "network-map", "report"],
+)
 def test_every_text_colour_passes_aa_on_every_background(paths):
     """A superset of the real pairs: any text colour may end up on any background.
 
@@ -96,7 +102,9 @@ def test_every_text_colour_passes_aa_on_every_background(paths):
     assert not failures, failures
 
 
-@pytest.mark.parametrize("path", [STYLE, MAP_STYLE], ids=["shared", "network-map"])
+@pytest.mark.parametrize(
+    "path", [STYLE, MAP_STYLE, REPORT_STYLE], ids=["shared", "network-map", "report"]
+)
 def test_no_text_smaller_than_16px(path):
     sizes = re.findall(r"(?<![-\w])font-size\s*:\s*([^;{}]+)", css(path))
     assert sizes, f"{path.name}: the font-size parser found nothing"
@@ -180,7 +188,16 @@ def client(tmp_path):
     history = History(tmp_path / "data")
     history.add(scan("V6a_before.xml"))
     history.add(scan("V6b_after.xml"))
-    return TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
+    runner = Mock()
+    runner.state.return_value = None
+    app = create_app(lambda: None, history=history, scan_runner=runner)
+
+    async def with_peer(scope, receive, send):
+        if scope["type"] == "http":
+            scope = {**scope, "client": ("127.0.0.1", 12345)}
+        await app(scope, receive, send)
+
+    return TestClient(with_peer, base_url="http://127.0.0.1")
 
 
 def upload(client, lang: str, name: str, data: bytes):
@@ -193,6 +210,8 @@ def pages(client, lang):
     yield "home", client.get(f"/?lang={lang}")
     yield "risks", client.get(f"/risks?lang={lang}")
     yield "history", client.get(f"/history?lang={lang}")
+    yield "report", client.get(f"/report?lang={lang}")
+    yield "scan", client.get(f"/scan?lang={lang}")
     yield "open", upload(client, lang, "V6a_before.xml", good)
     yield "open-error", upload(client, lang, "empty.xml", b"")
 

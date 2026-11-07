@@ -47,23 +47,23 @@
     <section class="summary" aria-labelledby="score-heading">
       <h2 id="score-heading">{{ ui.score_heading }}</h2>
       <p><span class="number">{{ view.score }}</span> {{ ui.score_out_of }} · {{ view.band.icon }} {{ view.band.label }}</p>
-      <p>{{ ui.report_counts.replace("{devices}", view.device_count|string).replace("{findings}", view.finding_count|string) }}</p>
+      <p>{{ ui.report_total }}: {{ view.device_count }} {{ ui.report_device_one if view.device_count == 1 else ui.report_device_many }} · {{ view.finding_count }} {{ ui.report_finding_one if view.finding_count == 1 else ui.report_finding_many }}</p>
     </section>
     <section aria-labelledby="report-devices">
       <h2 id="report-devices">{{ ui.report_devices }}</h2>
-      <ul>{% for device in view.devices %}<li>{{ device.label }} · {{ device.ip }} · {{ ui.points.replace("{n}", device.points|string) }}{% if device.mac %} · {{ device.mac }}{% endif %}</li>{% endfor %}</ul>
+      {% if view.devices %}<ul>{% for device in view.devices %}<li>{{ device.label }} · {{ device.ip }} · {{ ui.points.replace("{n}", device.points|string) }}{% if device.mac %} · {{ device.mac }}{% endif %}</li>{% endfor %}</ul>{% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
     </section>
     <section aria-labelledby="report-fixes">
       <h2 id="report-fixes">{{ ui.report_fixes }}</h2>
       {% if view.findings %}
       <ol>{% for finding in view.findings %}<li><article>
         <h3>{{ finding.title }} · {{ finding.ip }}</h3>
-        <p>{{ finding.severity }} · {{ ui.points.replace("{n}", finding.points|string) }}</p>
-        <p><strong>{{ ui.do_first }}</strong> {{ finding.step }}</p>
+        <p>{{ finding.severity }} · {{ ui.points.replace("{n}", finding.points|string) }}{% if finding.port %} · {{ ui.port.replace("{port}", finding.port) }}{% endif %} · <code>{{ finding.code }}</code></p>
+        <p><strong>{{ ui.report_action.replace("{n}", loop.index|string) }}</strong> {{ finding.step }}</p>
       </article></li>{% endfor %}</ol>
       {% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
     </section>
-    <p class="note">{{ ui.report_omissions.replace("{devices}", view.omitted_devices|string).replace("{findings}", view.omitted_findings|string) }}</p>
+    {% if view.omitted_devices or view.omitted_findings %}<p class="note">{{ ui.report_omissions.replace("{devices}", view.omitted_devices|string).replace("{findings}", view.omitted_findings|string) }}</p>{% endif %}
     {% endif %}
     <p class="note">{{ ui.report_note }}</p>
   </main>

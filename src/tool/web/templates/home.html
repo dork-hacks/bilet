@@ -23,7 +23,6 @@
   </header>
 
   <main id="main">
-  {% include "_scan_button.html" %}
   {% if opened %}
     <p class="opened">{{ ui.open_showing }}
       <a href="/?lang={{ view.lang }}&amp;ai={{ ai_param }}">{{ ui.open_back }}</a></p>
@@ -65,7 +64,7 @@
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
     <p><a class="button" href="/report?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.report_link }}</a></p>
-    {# The "Check again" button (#135) goes here, right under "Do this first". #}
+    {% include "_scan_button.html" %}
 
     {% if view.alerts %}
     <section class="alerts" aria-labelledby="alerts-heading">
@@ -197,6 +196,7 @@
         {% for finding in device.findings %}
         <div class="finding sev-{{ finding.severity }}">
           <h4>{{ finding.title }}</h4>
+          <p><code>{{ finding.code }}</code></p>
           <p><span class="tag">{{ finding.severity_label }}</span>
             {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
             <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
@@ -230,6 +230,8 @@
     {% endif %}
   {% endif %}
 
+    {% if view.kind != "ok" %}{% include "_scan_button.html" %}{% endif %}
+    <p class="muted">{{ ui.port_hint }}</p>
     <section class="ask open" aria-labelledby="open-heading">
       <h2 id="open-heading">{{ ui.open_heading }}</h2>
       <form method="post" action="/open?lang={{ view.lang }}" enctype="multipart/form-data">

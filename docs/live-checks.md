@@ -36,12 +36,9 @@ Real run (V4 from the Validation Set): `1 files, 6 findings, 0 unreadable`, the 
 
 A jury member uses the UI without help. Open the scan they'll ask about, e.g. a Test Set file through **"Open a scan file"** on the home screen, or `bilet serve --result <file>.json` (`bilet analyze <folder> --json` writes those).
 
-What the home screen shows (V2):
+For the V2 example, the score is **40**, the camera at **192.168.1.40** has the highest risk total (**30 points**), and the first action explains how to address its exposed camera stream. Read the current device-specific instruction on screen; wording may change as fixes improve. The **Check again** control follows the score and first action.
 
-> **Your network score: 40 out of 100. Network at risk.**
-> **Most dangerous device:** Camera at 192.168.1.40 (ipcam), 30 risk points.
-> **Do this first:** Camera video can be watched on your network: open the camera's app or settings page.
-> *Why it matters:* This device sends a live video stream that other devices on your network can open…
+The jury should be able to identify the priority device and the fixing action from the page itself. Port numbers are explained on the page, and catalog codes are visible on the finding cards and `/risks` for matching the requested finding.
 
 The language switch (Română / English) is at the top. Hands off: let them find it.
 
