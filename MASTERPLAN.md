@@ -2,7 +2,7 @@
 
 > **Read this first.** This file briefs teammates (and their Claude Code sessions) on the main idea, the hard rules and who owns what.
 > The full brief is in `R Systems Hackathon 2026 - Participant Brief.pdf`. When this file and the brief disagree, **the brief wins**.
-> **The project name is not decided yet.** Call it "the tool" in code and docs until it is, and keep the name in a single config value so changing it later is trivial.
+> **The project name is bilet** (decided by Sc1pex: it makes your network "bile, bile", Romanian Gen-Z slang for "good"). The user-facing name lives in a single config value (`DISPLAY_NAME`). The Python package and the command are still called `tool`.
 
 ---
 
@@ -205,7 +205,7 @@ The privacy pitch becomes: *"only anonymised finding codes leave your house: nev
 
 ## 9. Open questions
 
-- [ ] **Project name** (undecided)
+- [x] **Project name:** bilet (decided by Sc1pex)
 - [ ] Team size and seniority, so the split in section 7 can be adjusted
 - [ ] Scanner laptop OS (on macOS: install nmap with brew; the live scan needs sudo)
 - [x] Pi 5 RAM: 8 GB, not enough for a local LLM, so the LLM stays in the cloud (section 5.5)

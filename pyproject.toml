@@ -3,7 +3,7 @@ requires = ["setuptools==75.6.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# The product name is undecided (MASTERPLAN.md). The user-facing name lives in
+# The product name is bilet (MASTERPLAN.md). The user-facing name lives in
 # src/tool/config.py; "tool" here is only the internal package and command name.
 name = "tool"
 version = "0.1.0"
