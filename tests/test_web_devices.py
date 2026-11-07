@@ -175,12 +175,17 @@ def test_do_this_first_shows_the_fix_instead_of_settings_navigation(lang):
 
 
 @pytest.mark.parametrize("lang", ["ro", "en"])
-def test_first_action_keeps_generic_fallback_when_no_variant_exists(lang):
+def test_first_action_uses_generic_fixing_step_when_no_variant_exists(lang):
     scan = copy.deepcopy(SCAN)
     for device in scan["devices"]:
         device["device_type_guess"] = "unknown"
     view = home_view(scan, lang)
-    assert view.first.step == finding_text("CAMERA_STREAM_EXPOSED", lang).steps[0]
+    from tool.content.device_steps import FIX_PREFIXES
+
+    prefix = FIX_PREFIXES[lang]
+    steps = finding_text("CAMERA_STREAM_EXPOSED", lang).steps
+    fixing = next(step.removeprefix(prefix) for step in steps if step.startswith(prefix))
+    assert view.first.step == fixing
 
 
 def test_the_settings_url_uses_the_devices_plain_http_port():

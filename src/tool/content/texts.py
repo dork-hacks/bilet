@@ -6,6 +6,8 @@ back to them. Rules for editing:
 - Write for parents and grandparents: plain words, no unexplained jargon.
 - Explanations: at most 2 sentences per language. Fix steps: 1 to 5, the same
   number in both languages.
+- Each catalog code marks exactly one fixing action with the localized prefix
+  from device_steps.FIX_PREFIXES. Password advice alone does not close a service.
 - Never invent menu paths for a specific router or device model.
 - When a text means our app, write "{name}" (filled in from DISPLAY_NAME at the end
   of this file). "programul" in a fix step means the device's software and stays.
@@ -33,14 +35,14 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările dispozitivului (aplicația lui sau pagina web indicată în manual).",
-                "Căutați o opțiune numită Telnet sau „acces la distanță” și dezactivați-o.",
+                "Acesta este pasul care rezolvă problema: căutați o opțiune numită Telnet sau „acces la distanță” și dezactivați-o.",
                 "Dacă nu găsiți această opțiune, verificați dacă există o actualizare de software pentru dispozitiv și instalați-o.",
                 "Schimbați parola dispozitivului cu una lungă, pe care nu o folosiți în altă parte.",
                 "Dacă Telnet tot nu poate fi oprit, întrebați vânzătorul sau un tehnician dacă dispozitivul ar trebui înlocuit.",
             ],
             "en": [
                 "Open the device's settings (its app, or the web page shown in its manual).",
-                "Look for an option called Telnet or “remote access” and turn it off.",
+                "This is the step that fixes it: look for an option called Telnet or “remote access” and turn it off.",
                 "If you can't find that option, check for a software update for the device and install it.",
                 "Change the device's password to a long one that you don't use anywhere else.",
                 "If Telnet still can't be turned off, ask the seller or a technician whether the device should be replaced.",
@@ -61,13 +63,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Pe calculator, deschideți Setări și căutați „Desktop la distanță” (Remote Desktop).",
-                "Dezactivați Desktop la distanță dacă nimeni nu are nevoie să controleze acest calculator de pe alt dispozitiv.",
+                "Acesta este pasul care rezolvă problema: dezactivați Desktop la distanță dacă nimeni nu are nevoie să controleze acest calculator de pe alt dispozitiv.",
                 "Dacă îl folosiți, asigurați-vă că contul Windows are o parolă lungă și unică.",
                 "Instalați toate actualizările Windows disponibile.",
             ],
             "en": [
                 "On the computer, open Settings and search for “Remote Desktop”.",
-                "Turn Remote Desktop off if nobody needs to control this computer from another device.",
+                "This is the step that fixes it: turn Remote Desktop off if nobody needs to control this computer from another device.",
                 "If you do use it, make sure the Windows account has a long, unique password.",
                 "Install all available Windows updates.",
             ],
@@ -87,13 +89,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Găsiți programul de partajare a ecranului sau VNC pe dispozitiv (în setări sau în lista de aplicații instalate).",
-                "Opriți-l sau dezinstalați-l dacă nu aveți nevoie de el.",
+                "Acesta este pasul care rezolvă problema: opriți-l sau dezinstalați-l dacă nu aveți nevoie de el.",
                 "Dacă aveți nevoie de el, setați în program o parolă lungă și unică.",
                 "Actualizați programul la cea mai nouă versiune.",
             ],
             "en": [
                 "Find the screen-sharing or VNC program on the device (in its settings or in the list of installed apps).",
-                "Turn it off or uninstall it if you don't need it.",
+                "This is the step that fixes it: turn it off or uninstall it if you don't need it.",
                 "If you need it, set a long, unique password in the program.",
                 "Update the program to its newest version.",
             ],
@@ -113,13 +115,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Aflați ce program folosește baza de date (de obicei un server de acasă, un dispozitiv de stocare sau un program instalat de un tehnician).",
-                "În setările acelui program, permiteți conexiuni la baza de date doar de pe același dispozitiv.",
+                "Acesta este pasul care rezolvă problema: în setările acelui program, permiteți conexiuni la baza de date doar de pe același dispozitiv.",
                 "Setați o parolă puternică pentru baza de date.",
                 "Dacă nu știți la ce folosește baza de date, întrebați persoana care a configurat dispozitivul.",
             ],
             "en": [
                 "Find out which program uses the database (often a home server, a storage box or a program installed by a technician).",
-                "In that program's settings, allow database connections only from the same device.",
+                "This is the step that fixes it: in that program's settings, allow database connections only from the same device.",
                 "Set a strong password for the database.",
                 "If you don't know what the database is for, ask whoever set up the device.",
             ],
@@ -140,14 +142,14 @@ FINDINGS: dict[str, dict] = {
             "ro": [
                 "Deschideți aplicația sau pagina de setări a camerei.",
                 "Schimbați parola camerei cu una lungă, pe care nu o folosiți în altă parte.",
-                "Dezactivați opțiunea de transmisie video (numită adesea RTSP sau ONVIF) dacă urmăriți camera doar din aplicația ei.",
+                "Acesta este pasul care rezolvă problema: dezactivați opțiunea de transmisie video (numită adesea RTSP sau ONVIF) dacă urmăriți camera doar din aplicația ei.",
                 "Instalați orice actualizare de software pe care aplicația o oferă pentru cameră.",
                 "Asigurați-vă că rețeaua Wi-Fi are o parolă puternică, ca să nu se poată conecta străini.",
             ],
             "en": [
                 "Open the camera's app or settings page.",
                 "Change the camera's password to a long one that you don't use anywhere else.",
-                "Turn off the video stream option (often called RTSP or ONVIF) if you only watch the camera through its own app.",
+                "This is the step that fixes it: turn off the video stream option (often called RTSP or ONVIF) if you only watch the camera through its own app.",
                 "Install any software update that the app offers for the camera.",
                 "Make sure your Wi-Fi has a strong password, so strangers can't join it.",
             ],
@@ -166,13 +168,13 @@ FINDINGS: dict[str, dict] = {
         },
         "steps": {
             "ro": [
-                "Verificați dacă există o actualizare de software pentru dispozitiv (în aplicația lui, pe pagina de setări sau pe site-ul producătorului) și instalați-o.",
+                "Acesta este pasul care rezolvă problema: verificați dacă există o actualizare de software pentru dispozitiv (în aplicația lui, pe pagina de setări sau pe site-ul producătorului) și instalați-o.",
                 "Reporniți dispozitivul după actualizare.",
                 "Dacă nu există nicio actualizare, opriți programul vechi sau nu mai folosiți dispozitivul.",
                 "Faceți din nou verificarea, ca să confirmați că problema a dispărut.",
             ],
             "en": [
-                "Check for a software update for the device (in its app, on its settings page or on the maker's website) and install it.",
+                "This is the step that fixes it: check for a software update for the device (in its app, on its settings page or on the maker's website) and install it.",
                 "Restart the device after the update.",
                 "If there is no update, turn off the old program or stop using the device.",
                 "Run the check again to confirm that the problem is gone.",
@@ -193,13 +195,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările dispozitivului și găsiți opțiunea FTP sau de partajare a fișierelor.",
-                "Dezactivați FTP dacă nu îl folosiți.",
+                "Acesta este pasul care rezolvă problema: dezactivați FTP dacă nu îl folosiți.",
                 "Dacă aveți nevoie să partajați fișiere, alegeți în schimb o variantă criptată (numită adesea SFTP sau FTPS).",
                 "Schimbați parola folosită pentru partajarea fișierelor.",
             ],
             "en": [
                 "Open the device's settings and find the FTP or file-sharing option.",
-                "Turn FTP off if you don't use it.",
+                "This is the step that fixes it: turn FTP off if you don't use it.",
                 "If you need to share files, choose an encrypted option instead (often called SFTP or FTPS).",
                 "Change the password used for file sharing.",
             ],
@@ -218,14 +220,14 @@ FINDINGS: dict[str, dict] = {
         },
         "steps": {
             "ro": [
-                "Schimbați parola paginii de setări: nu folosiți parola din fabrică, ci una lungă și unică.",
-                "În setările dispozitivului, căutați o opțiune pentru HTTPS sau „conexiune securizată” și activați-o.",
+                "Acesta este pasul care rezolvă problema: în setările dispozitivului, activați HTTPS sau „conexiune securizată”, apoi opriți accesul HTTP necriptat. Dacă nu există HTTPS, cereți ajutor pentru a opri pagina web necriptată.",
+                "Schimbați parola paginii de setări cu una lungă și unică; parola nouă singură nu oprește accesul HTTP necriptat.",
                 "Instalați orice actualizare de software oferită pentru dispozitiv.",
                 "Dacă dispozitivul are o opțiune de administrare de la distanță prin internet, dezactivați-o.",
             ],
             "en": [
-                "Change the settings page password: don't keep the factory password, use a long, unique one.",
-                "In the device's settings, look for an option for HTTPS or a “secure connection” and turn it on.",
+                "This is the step that fixes it: in the device's settings, enable HTTPS or a “secure connection”, then turn off unencrypted HTTP access. If HTTPS is unavailable, ask for help turning off the unencrypted web page.",
+                "Change the settings page password to a long, unique one; a new password alone does not turn off unencrypted HTTP access.",
                 "Install any software update offered for the device.",
                 "If the device has an option for remote management over the internet, turn it off.",
             ],
@@ -245,13 +247,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Aflați ce foldere partajează acest dispozitiv (căutați „partajare” în setările lui).",
-                "Opriți partajarea pentru orice folder care nu trebuie partajat.",
+                "Acesta este pasul care rezolvă problema: dezactivați serviciul de partajare de fișiere Windows (SMB) dacă nu aveți nevoie de el; oprirea partajării unui singur folder poate lăsa serviciul pornit.",
                 "Asigurați-vă că fiecare folder partajat cere o parolă și că parola este puternică.",
                 "Instalați toate actualizările disponibile pentru dispozitiv.",
             ],
             "en": [
                 "Find out which folders this device shares (look for “sharing” in its settings).",
-                "Stop sharing any folder that doesn't need to be shared.",
+                "This is the step that fixes it: turn off the Windows file-sharing service (SMB) if you do not need it; stopping sharing for one folder can leave the service running.",
                 "Make sure every shared folder asks for a password, and that the password is strong.",
                 "Install all available updates for the device.",
             ],
@@ -271,14 +273,14 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările hub-ului sau ale aplicației de casă inteligentă și găsiți opțiunea MQTT.",
-                "Activați opțiunea care cere nume de utilizator și parolă, apoi setați o parolă puternică.",
-                "Dacă nimic din casă nu folosește MQTT, dezactivați-l.",
+                "Acesta este pasul care rezolvă problema: dacă nimic din casă nu folosește MQTT, dezactivați-l.",
+                "Dacă aveți nevoie de MQTT, cereți nume de utilizator și o parolă puternică. Parola protejează accesul, dar avertismentul rămâne cât timp serviciul este accesibil din rețea.",
                 "Instalați orice actualizare de software oferită pentru hub.",
             ],
             "en": [
                 "Open the settings of your smart-home hub or app and find the MQTT option.",
-                "Turn on the option that asks for a username and password, then set a strong password.",
-                "If nothing in your home uses MQTT, turn it off.",
+                "This is the step that fixes it: if nothing in your home uses MQTT, turn it off.",
+                "If you need MQTT, require a username and a strong password. The password protects access, but the warning stays while the service is reachable on the network.",
                 "Install any software update offered for the hub.",
             ],
         },
@@ -297,13 +299,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările dispozitivului (pentru router, pagina lui de setări; adresa este de obicei pe o etichetă lipită pe router).",
-                "Găsiți opțiunea UPnP și dezactivați-o.",
+                "Acesta este pasul care rezolvă problema: găsiți opțiunea UPnP și dezactivați-o.",
                 "Dacă ceva nu mai funcționează după aceea, întrebați persoana care v-a configurat rețeaua înainte să o reactivați.",
                 "Instalați orice actualizare de software oferită pentru dispozitiv.",
             ],
             "en": [
                 "Open the device's settings (for a router, its settings page; the address is usually on a sticker on the router).",
-                "Find the UPnP option and turn it off.",
+                "This is the step that fixes it: find the UPnP option and turn it off.",
                 "If something stops working afterwards, ask whoever set up your network before you turn it back on.",
                 "Install any software update offered for the device.",
             ],
@@ -323,13 +325,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările dispozitivului și găsiți opțiunea SNMP.",
-                "Dezactivați SNMP dacă nu îl folosiți (în majoritatea caselor nu este folosit).",
+                "Acesta este pasul care rezolvă problema: dezactivați SNMP dacă nu îl folosiți (în majoritatea caselor nu este folosit).",
                 "Dacă aveți nevoie de el, înlocuiți parola implicită (numită „community string”) cu una lungă și unică.",
                 "Instalați orice actualizare de software oferită pentru dispozitiv.",
             ],
             "en": [
                 "Open the device's settings and find the SNMP option.",
-                "Turn SNMP off if you don't use it (most homes don't).",
+                "This is the step that fixes it: turn SNMP off if you don't use it (most homes don't).",
                 "If you need it, replace the default password (called the “community string”) with a long, unique one.",
                 "Install any software update offered for the device.",
             ],
@@ -349,13 +351,13 @@ FINDINGS: dict[str, dict] = {
         "steps": {
             "ro": [
                 "Deschideți setările imprimantei (pe ecranul ei sau pe pagina web indicată în manual).",
-                "Dacă imprimați doar de pe câteva calculatoare sau telefoane, dezactivați imprimarea directă (numită adesea JetDirect, RAW sau 9100).",
+                "Acesta este pasul care rezolvă problema: dacă imprimați doar de pe câteva calculatoare sau telefoane, dezactivați imprimarea directă (numită adesea JetDirect, RAW sau 9100).",
                 "Setați o parolă de administrator pentru imprimantă.",
                 "Instalați orice actualizare de software oferită pentru imprimantă.",
             ],
             "en": [
                 "Open the printer's settings (on its screen, or on the web page shown in its manual).",
-                "If you only print from a few computers or phones, turn off direct printing (often called JetDirect, RAW or 9100).",
+                "This is the step that fixes it: if you only print from a few computers or phones, turn off direct printing (often called JetDirect, RAW or 9100).",
                 "Set an administrator password for the printer.",
                 "Install any software update offered for the printer.",
             ],
@@ -377,13 +379,13 @@ FINDINGS: dict[str, dict] = {
                 "Faceți o listă cu dispozitivele dumneavoastră care folosesc Wi-Fi (telefoane, televizor, boxe, camere, prize inteligente).",
                 "Opriți-le pe rând și faceți din nou verificarea, ca să vedeți când dispare dispozitivul necunoscut.",
                 "Dacă nu este al dumneavoastră, schimbați parola rețelei Wi-Fi și reconectați doar dispozitivele proprii.",
-                "Dați dispozitivelor proprii un nume clar în setările lor, ca să le recunoașteți ușor data viitoare.",
+                "Acesta este pasul care rezolvă problema: dați dispozitivelor proprii un nume clar în setările lor, ca să le recunoașteți ușor data viitoare.",
             ],
             "en": [
                 "Make a list of your own devices that use Wi-Fi (phones, TV, speakers, cameras, smart plugs).",
                 "Turn them off one at a time and run the check again, to see when the unknown device disappears.",
                 "If it isn't yours, change your Wi-Fi password and reconnect only your own devices.",
-                "Give your own devices a clear name in their settings, so they are easy to recognise next time.",
+                "This is the step that fixes it: give your own devices a clear name in their settings, so they are easy to recognise next time.",
             ],
         },
         "cis": ["1.1", "1.2"],
@@ -402,12 +404,12 @@ FINDINGS: dict[str, dict] = {
             "ro": [
                 "Dacă nu știți de ce acest dispozitiv acceptă SSH, întrebați persoana care l-a configurat.",
                 "Asigurați-vă că autentificarea folosește o parolă lungă și unică sau o cheie de securitate.",
-                "Dezactivați SSH dacă nu are nimeni nevoie de el.",
+                "Acesta este pasul care rezolvă problema: dezactivați SSH dacă nu are nimeni nevoie de el.",
             ],
             "en": [
                 "If you don't know why this device accepts SSH, ask whoever set it up.",
                 "Make sure the login uses a long, unique password or a security key.",
-                "Turn SSH off if nobody needs it.",
+                "This is the step that fixes it: turn SSH off if nobody needs it.",
             ],
         },
         "cis": ["4.7", "5.2"],
