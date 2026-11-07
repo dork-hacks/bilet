@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ ui.page_title }} · {{ display_name }}</title>
 {% include "_style.html" %}
+  <link rel="stylesheet" href="/static/netmap.css">
 {% from "_icons.html" import device_icon %}
 </head>
 <body>
@@ -82,16 +83,37 @@
       <span class="lvl lvl-{{ level.key }}"><span aria-hidden="true">{{ level.icon }}</span> {{ level.label }}</span>
     {%- endmacro %}
     <section class="netmap" id="network-map" aria-labelledby="map-heading">
-      <h2 id="map-heading">{{ ui.map_heading }}</h2>
-      <p>{{ ui.map_intro }}</p>
+      <div class="netmap-heading">
+        <div><p class="nm-eyebrow">{{ display_name }} / {{ ui.devices_heading }}</p>
+          <h2 id="map-heading">{{ ui.map_heading }}</h2></div>
+        <button type="button" class="netmap-fullscreen" aria-pressed="false" hidden>{{ ui.map_fullscreen }}</button>
+      </div>
+      <p class="netmap-intro">{{ ui.map_intro }}</p>
       <div class="netmap-switch" role="group" aria-label="{{ ui.map_view_label }}" hidden>
         <button type="button" data-view="3d" aria-pressed="true">{{ ui.map_view_3d }}</button>
         <button type="button" data-view="list" aria-pressed="false">{{ ui.map_view_list }}</button>
       </div>
       <div class="netmap-3d" hidden>
-        <p class="muted">{{ ui.map_how }} <span class="netmap-keys">{{ ui.map_keys }}</span></p>
-        <div class="netmap-stage"></div>
-        <div class="netmap-detail" aria-live="polite"><p class="muted">{{ ui.map_pick }}</p></div>
+        <div class="netmap-workspace">
+          <div class="netmap-viewport">
+            <div class="netmap-stage"></div>
+            <p class="netmap-hint" id="map-instructions">{{ ui.map_how }} <span class="netmap-keys">{{ ui.map_keys }}</span></p>
+          </div>
+          <aside class="netmap-sidebar" aria-label="{{ ui.map_inspector }}">
+            <div class="netmap-detail" aria-live="polite" aria-atomic="true"><p class="muted">{{ ui.map_pick }}</p></div>
+            <div class="netmap-directory" hidden>
+              <label for="map-search">{{ ui.map_search }}</label>
+              <input type="search" class="netmap-search" id="map-search" placeholder="{{ ui.map_search_hint }}" autocomplete="off" aria-controls="map-device-results">
+              <p class="netmap-count muted" role="status" aria-live="polite"></p>
+              <ul class="netmap-results" id="map-device-results"></ul>
+              <div class="netmap-pagination">
+                <button type="button" data-page="previous" aria-label="{{ ui.map_previous }}">←</button>
+                <span class="netmap-page-info"></span>
+                <button type="button" data-page="next" aria-label="{{ ui.map_next }}">→</button>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
       <div class="netmap-list">
         <p><strong>{{ ui.map_hub }}</strong>
