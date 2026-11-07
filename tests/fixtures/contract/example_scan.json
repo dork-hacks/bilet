@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "file": "example_smart_home.xml",
+  "status": "ok",
+  "error": null,
+  "scan_start": "2026-11-07T09:00:00Z",
+  "score": 35,
+  "points_total": 65,
+  "devices": [
+    {
+      "device_key": "d_a2b56818c1d3",
+      "ip": "192.168.1.1",
+      "mac_masked": "50:C7:BF:xx:xx:xx",
+      "vendor": "TP-LINK TECHNOLOGIES",
+      "hostname": "router.lan",
+      "device_type_guess": "router",
+      "risk_points": 20,
+      "open_ports": [
+        {
+          "port": 80,
+          "protocol": "tcp",
+          "service_name": "http",
+          "product": "lighttpd",
+          "version": null,
+          "tunnel": null,
+          "http_title": "Router Login"
+        },
+        {
+          "port": 443,
+          "protocol": "tcp",
+          "service_name": "http",
+          "product": "lighttpd",
+          "version": null,
+          "tunnel": "ssl",
+          "http_title": "Router Login"
+        },
+        {
+          "port": 53,
+          "protocol": "udp",
+          "service_name": "domain",
+          "product": "dnsmasq",
+          "version": "2.80",
+          "tunnel": null,
+          "http_title": null
+        },
+        {
+          "port": 1900,
+          "protocol": "udp",
+          "service_name": "upnp",
+          "product": "miniupnpd",
+          "version": "2.1",
+          "tunnel": null,
+          "http_title": null
+        }
+      ],
+      "finding_ids": [
+        "f_93c5455743f5",
+        "f_4128c86bf61e"
+      ]
+    },
+    {
+      "device_key": "d_e65daa580d12",
+      "ip": "192.168.1.40",
+      "mac_masked": "C0:56:E3:xx:xx:xx",
+      "vendor": "Hangzhou Hikvision Digital Technology",
+      "hostname": null,
+      "device_type_guess": "camera",
+      "risk_points": 30,
+      "open_ports": [
+        {
+          "port": 80,
+          "protocol": "tcp",
+          "service_name": "http",
+          "product": "Hikvision IP camera httpd",
+          "version": null,
+          "tunnel": null,
+          "http_title": "Camera Login"
+        },
+        {
+          "port": 554,
+          "protocol": "tcp",
+          "service_name": "rtsp",
+          "product": "Hikvision 7513 POE IP camera rtspd",
+          "version": null,
+          "tunnel": null,
+          "http_title": null
+        }
+      ],
+      "finding_ids": [
+        "f_b9bf85268e02",
+        "f_851ea5e10492"
+      ]
+    },
+    {
+      "device_key": "d_9b9c4987811e",
+      "ip": "192.168.1.41",
+      "mac_masked": "B8:27:EB:xx:xx:xx",
+      "vendor": "Raspberry Pi Foundation",
+      "hostname": "smarthub",
+      "device_type_guess": "iot_hub",
+      "risk_points": 10,
+      "open_ports": [
+        {
+          "port": 1883,
+          "protocol": "tcp",
+          "service_name": "mqtt",
+          "product": null,
+          "version": null,
+          "tunnel": null,
+          "http_title": null
+        }
+      ],
+      "finding_ids": [
+        "f_5bb391878a55"
+      ]
+    },
+    {
+      "device_key": "d_80731c8e3cb1",
+      "ip": "192.168.1.50",
+      "mac_masked": "8C:79:F5:xx:xx:xx",
+      "vendor": "Samsung Electronics",
+      "hostname": "living-room-tv",
+      "device_type_guess": "tv",
+      "risk_points": 0,
+      "open_ports": [
+        {
+          "port": 8008,
+          "protocol": "tcp",
+          "service_name": "http",
+          "product": null,
+          "version": null,
+          "tunnel": null,
+          "http_title": null
+        },
+        {
+          "port": 8009,
+          "protocol": "tcp",
+          "service_name": "ajp13",
+          "product": null,
+          "version": null,
+          "tunnel": null,
+          "http_title": null
+        }
+      ],
+      "finding_ids": []
+    },
+    {
+      "device_key": "d_0dee291206c1",
+      "ip": "192.168.1.99",
+      "mac_masked": null,
+      "vendor": null,
+      "hostname": null,
+      "device_type_guess": "unknown",
+      "risk_points": 5,
+      "open_ports": [
+        {
+          "port": 8888,
+          "protocol": "tcp",
+          "service_name": "sun-answerbook",
+          "product": null,
+          "version": null,
+          "tunnel": null,
+          "http_title": null
+        }
+      ],
+      "finding_ids": [
+        "f_1d7d82482769"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "f_93c5455743f5",
+      "match_key": "m_c0236143a83f",
+      "code": "HTTP_ADMIN_CLEARTEXT",
+      "severity": "medium",
+      "points": 10,
+      "ip": "192.168.1.1",
+      "port": 80,
+      "protocol": "tcp",
+      "device_key": "d_a2b56818c1d3",
+      "evidence": {
+        "service_name": "http",
+        "product": "lighttpd",
+        "version": null,
+        "tunnel": null,
+        "http_title": "Router Login"
+      }
+    },
+    {
+      "id": "f_4128c86bf61e",
+      "match_key": "m_9cca25ca3d5e",
+      "code": "UPNP_EXPOSED",
+      "severity": "medium",
+      "points": 10,
+      "ip": "192.168.1.1",
+      "port": 1900,
+      "protocol": "udp",
+      "device_key": "d_a2b56818c1d3",
+      "evidence": {
+        "service_name": "upnp",
+        "product": "miniupnpd",
+        "version": "2.1",
+        "tunnel": null,
+        "http_title": null
+      }
+    },
+    {
+      "id": "f_b9bf85268e02",
+      "match_key": "m_01990f889012",
+      "code": "HTTP_ADMIN_CLEARTEXT",
+      "severity": "medium",
+      "points": 10,
+      "ip": "192.168.1.40",
+      "port": 80,
+      "protocol": "tcp",
+      "device_key": "d_e65daa580d12",
+      "evidence": {
+        "service_name": "http",
+        "product": "Hikvision IP camera httpd",
+        "version": null,
+        "tunnel": null,
+        "http_title": "Camera Login"
+      }
+    },
+    {
+      "id": "f_851ea5e10492",
+      "match_key": "m_95b085c47f22",
+      "code": "CAMERA_STREAM_EXPOSED",
+      "severity": "high",
+      "points": 20,
+      "ip": "192.168.1.40",
+      "port": 554,
+      "protocol": "tcp",
+      "device_key": "d_e65daa580d12",
+      "evidence": {
+        "service_name": "rtsp",
+        "product": "Hikvision 7513 POE IP camera rtspd",
+        "version": null,
+        "tunnel": null,
+        "http_title": null
+      }
+    },
+    {
+      "id": "f_5bb391878a55",
+      "match_key": "m_d86a2351c064",
+      "code": "MQTT_EXPOSED",
+      "severity": "medium",
+      "points": 10,
+      "ip": "192.168.1.41",
+      "port": 1883,
+      "protocol": "tcp",
+      "device_key": "d_9b9c4987811e",
+      "evidence": {
+        "service_name": "mqtt",
+        "product": null,
+        "version": null,
+        "tunnel": null,
+        "http_title": null
+      }
+    },
+    {
+      "id": "f_1d7d82482769",
+      "match_key": "m_9c39a5bd9290",
+      "code": "UNKNOWN_DEVICE",
+      "severity": "low",
+      "points": 5,
+      "ip": "192.168.1.99",
+      "port": null,
+      "protocol": null,
+      "device_key": "d_0dee291206c1",
+      "evidence": {
+        "service_name": null,
+        "product": null,
+        "version": null,
+        "tunnel": null,
+        "http_title": null
+      }
+    }
+  ]
+}
