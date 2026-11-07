@@ -222,3 +222,37 @@ def test_script_writes_text_never_html_and_respects_reduced_motion():
     for sink in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval("):
         assert sink not in script, sink
     assert "prefers-reduced-motion: reduce" in script
+
+
+@pytest.mark.parametrize("asset", ["netmap.css", "netmap-models.js", "netmap-layout.js"])
+def test_map_modules_and_styles_are_served_locally(asset):
+    response = client_for(SCAN).get(f"/static/{asset}")
+    assert response.status_code == 200
+    assert response.content
+    assert ("text/css" if asset.endswith(".css") else "javascript") in response.headers[
+        "content-type"
+    ]
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_device_explorer_has_translated_controls_and_progressive_fallback(lang):
+    page = client_for(SCAN).get("/", params={"lang": lang}).text
+    assert '<link rel="stylesheet" href="/static/netmap.css">' in page
+    for key in ("map_fullscreen", "map_search", "map_search_hint", "map_previous", "map_next"):
+        assert html.escape(UI[key][lang], quote=True) in page
+    data = embedded(page)
+    for key in ("map_focus", "map_exit_fullscreen", "map_no_matches", "map_count"):
+        assert data["text"][key] == UI[key][lang]
+    # Without enhancement, the real device links remain available, not empty placeholders.
+    assert '<div class="netmap-3d" hidden>' in page
+    assert '<div class="netmap-list">' in page
+    assert f'href="#{data["nodes"][0]["id"]}"' in page
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_map_panel_shortcuts_have_focusable_destinations(lang):
+    page = client_for(SCAN).get("/", params={"lang": lang}).text
+    for target in ("map-selected-panel", "map-device-directory"):
+        assert f'aria-controls="{target}"' in page
+        assert f'id="{target}" tabindex="-1"' in page
+    assert 'class="netmap-panel-links" hidden' in page

@@ -47,6 +47,8 @@ ROLES = ("camera", "server", "hub")
 NAME = re.compile(r"[a-z][a-z0-9-]{0,15}")
 SERVICE = re.compile(r"[a-z][a-z0-9]{0,15}")
 CGNAT = ipaddress.ip_network("100.64.0.0/10")
+MAC = re.compile(r"[0-9a-f]{2}(:[0-9a-f]{2}){5}")
+LEASES = Path("/tmp/dhcp.leases")  # dnsmasq's lease file on OpenWrt
 LOOPBACK = "127.0.0.1"
 ACCESS_CODE = re.compile(r"LAB-[A-Z2-7]{4}-[A-Z2-7]{4}")
 SESSION_TTL = 30 * 60.0  # seconds
@@ -56,7 +58,8 @@ COOKIE = "lab-session"
 POLL_INTERVAL = 10.0  # seconds between background status refreshes
 POLL_IDLE = 300.0  # stop polling the Pis when nobody has opened the page for this long
 
-Runner = Callable[[list[str], float], tuple[int, str]]
+# run(argv, timeout, home): home is the Pi's own folder for SSH known hosts.
+Runner = Callable[[list[str], float, Path], tuple[int, str]]
 
 
 # --- the lab tables -------------------------------------------------------------------
@@ -102,7 +105,20 @@ def load_presets(services_path: Path, presets_path: Path) -> dict[str, list[str]
 @dataclass
 class Pi:
     name: str
-    address: str
+    address: str  # "" while a Pi listed by MAC has no DHCP lease
+    # The MACs the config names the Pi by; never shown on the page. The hub has two: its
+    # random one while UNKNOWN_DEVICE is on, its real one when that is fixed.
+    macs: tuple[str, ...] = ()
+
+
+def _private_ip(text: str) -> str | None:
+    try:
+        address = ipaddress.ip_address(text)
+    except ValueError:
+        return None
+    if not address.is_private or address.is_loopback or address in CGNAT:
+        return None
+    return str(address)
 
 
 class ConfigError(Exception):
@@ -110,7 +126,8 @@ class ConfigError(Exception):
 
 
 def load_config(path: Path) -> list[Pi]:
-    """One Pi per line: NAME ADDRESS (a private IP on the hotspot). # starts a comment."""
+    """One Pi per line: NAME MAC[,MAC] (its address comes from the router's DHCP leases),
+    or NAME ADDRESS (a fixed private IP on the hotspot). # starts a comment."""
     pis: list[Pi] = []
     for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw.split("#", 1)[0].strip()
@@ -118,17 +135,40 @@ def load_config(path: Path) -> list[Pi]:
             continue
         parts = line.split()
         if len(parts) != 2 or not NAME.fullmatch(parts[0]):
-            raise ConfigError(f"{path}:{number}: expected 'NAME ADDRESS'")
-        try:
-            address = ipaddress.ip_address(parts[1])
-        except ValueError as exc:
-            raise ConfigError(f"{path}:{number}: '{parts[1]}' isn't an IP address") from exc
-        if not address.is_private or address.is_loopback or address in CGNAT:
-            raise ConfigError(f"{path}:{number}: {address} isn't a private hotspot address")
+            raise ConfigError(f"{path}:{number}: expected 'NAME MAC[,MAC]' or 'NAME ADDRESS'")
         if any(p.name == parts[0] for p in pis):
             raise ConfigError(f"{path}:{number}: '{parts[0]}' is listed twice")
-        pis.append(Pi(parts[0], str(address)))
+        macs = tuple(parts[1].lower().split(","))
+        if all(MAC.fullmatch(m) for m in macs):
+            if len(set(macs)) != len(macs) or any(m in p.macs for p in pis for m in macs):
+                raise ConfigError(f"{path}:{number}: a MAC is listed twice")
+            pis.append(Pi(parts[0], "", macs))
+            continue
+        address = _private_ip(parts[1])
+        if address is None:
+            raise ConfigError(
+                f"{path}:{number}: '{parts[1]}' is neither a MAC nor a private hotspot address"
+            )
+        pis.append(Pi(parts[0], address))
     return pis
+
+
+def read_leases(path: Path) -> dict[str, tuple[int, str]]:
+    """MAC -> (expiry, IP) from a dnsmasq lease file ("expiry mac ip hostname clientid" per
+    line). The newest lease wins; anything that isn't a private address is ignored."""
+    best: dict[str, tuple[int, str]] = {}
+    try:
+        text = path.read_text(encoding="ascii", errors="replace")
+    except OSError:
+        return {}
+    for line in text.splitlines()[:1024]:
+        cols = line.split()
+        if len(cols) < 3 or not cols[0].isdigit():
+            continue
+        mac, address = cols[1].lower(), _private_ip(cols[2])
+        if MAC.fullmatch(mac) and address and int(cols[0]) >= best.get(mac, (-1, ""))[0]:
+            best[mac] = (int(cols[0]), address)
+    return best
 
 
 @dataclass
@@ -170,15 +210,20 @@ class Manager:
         presets: dict[str, list[str]],
         run: Runner,
         key: Path = STATE / "id_ed25519",
-        known_hosts: Path = STATE / "known_hosts",
+        hosts: Path = STATE / "hosts",
         client: str = "openssh",
+        leases: Path | None = None,
     ):
         self.pis = {p.name: p for p in pis}
         self.services = services
         self.names = [s.name for s in services]
         self.presets = presets
         self.run = run
-        self.key, self.known_hosts = key, known_hosts
+        # Each Pi's SSH host key is kept under its name (hosts/NAME/.ssh/known_hosts), not
+        # its IP, so a Pi that gets a new address, or two Pis that swap, still connect,
+        # while a different machine answering on a Pi's address is refused.
+        self.key, self.hosts = key, hosts
+        self.leases = leases
         self.client = client  # "openssh", or "dropbear" on the OpenWrt router
         self.locks = {p.name: threading.Lock() for p in pis}  # one request per Pi at a time
         self.csrf = secrets.token_urlsafe(32)
@@ -205,6 +250,7 @@ class Manager:
             # in $HOME/.ssh/known_hosts (run_ssh sets HOME); a changed key is refused. With
             # no terminal it can't ask for a password, so only the key can log in.
             return ["dbclient", "-i", str(self.key), "-y", "-T", f"labmgr@{pi.address}", request]
+        known_hosts = self.hosts / pi.name / ".ssh" / "known_hosts"
         return [
             "ssh",
             "-F", "/dev/null",
@@ -212,7 +258,7 @@ class Manager:
             "-o", "IdentitiesOnly=yes",
             "-o", "BatchMode=yes",
             "-o", "StrictHostKeyChecking=accept-new",
-            "-o", f"UserKnownHostsFile={self.known_hosts}",
+            "-o", f"UserKnownHostsFile={known_hosts}",
             "-o", "ConnectTimeout=4",
             "-T",
             f"labmgr@{pi.address}",
@@ -222,16 +268,31 @@ class Manager:
     def ask(self, pi: Pi, request: str) -> str:
         if not self.valid_request(request):
             return "refused\n"
+        if not pi.address:
+            return "refused\n"
         with self.locks[pi.name]:
             try:
-                _code, out = self.run(self.ssh_argv(pi, request), SSH_TIMEOUT)
+                _code, out = self.run(self.ssh_argv(pi, request), SSH_TIMEOUT, self.hosts / pi.name)
             except (OSError, subprocess.SubprocessError):
                 return "refused\n"
         return out
 
+    def locate(self) -> None:
+        """Look up the address of every Pi listed by MAC in the router's DHCP leases."""
+        if self.leases is None:
+            return
+        found = read_leases(self.leases)
+        for pi in self.pis.values():
+            if pi.macs:
+                leases = [found[m] for m in pi.macs if m in found]
+                pi.address = max(leases)[1] if leases else ""
+
     def status(self, pi: Pi) -> PiState:
         """Ask the Pi now, and remember the answer."""
-        state = parse_status(pi, self.ask(pi, "status"), self.names, self.presets)
+        if not pi.address:
+            state = PiState(pi, error="not on the hotspot right now (no DHCP lease for it)")
+        else:
+            state = parse_status(pi, self.ask(pi, "status"), self.names, self.presets)
         with self.cache_lock:
             self.cache[pi.name] = (state, self.clock())
         return state
@@ -262,6 +323,7 @@ class Manager:
         """Refresh every Pi's status in the background while someone uses the page."""
         while not stop.wait(interval):
             if self.clock() - self.last_view < POLL_IDLE:
+                self.locate()
                 self.all_status()
 
     def act(self, pi_name: str, op: str, arg: str) -> bool:
@@ -424,7 +486,8 @@ def _service(csrf: str, st: PiState, svc: Service) -> str:
 def _card(manager: Manager, st: PiState) -> str:
     csrf = manager.csrf
     name = html.escape(st.pi.name)
-    top = f'<div class="top"><h2>{name}</h2><span class="meta">{html.escape(st.pi.address)}</span>'
+    where = html.escape(st.pi.address or "no address")
+    top = f'<div class="top"><h2>{name}</h2><span class="meta">{where}</span>'
     if not st.reachable:
         return (
             f'<section class="card" id="pi-{name}">{top}</div>'
@@ -492,13 +555,19 @@ def render(
         else ""
     )
     updated = "just now" if age < 2 else f"{int(age)} s ago"
+    locate = (
+        '<form method="post" action="/locate">'
+        f'<input type="hidden" name="csrf" value="{csrf}"><button>Find the Pis again</button></form>'
+        if any(p.macs for p in manager.pis.values())
+        else ""
+    )
     header = (
         "<header><h1>Lab manager</h1>"
         f'<div class="score {level}"><b>{score}</b><span>{word}<br>'
         f'<span class="meta">What the lab should score</span></span></div>'
         f'<div class="meta">{points} points switched on{partial}.<br>'
         f"Status {updated}. The tool's own scan is the real answer.</div>"
-        f'<div class="tools"><a href="/?refresh=1">Refresh</a>{signout}</div></header>'
+        f'<div class="tools"><a href="/?refresh=1">Refresh</a>{locate}{signout}</div></header>'
     )
     note = (
         f'<p class="msg{" bad" if error else ""}" role="status">{html.escape(message)}</p>'
@@ -597,6 +666,7 @@ MESSAGES = {
     "done": "Done.",
     "refused": "That didn't work: the Pi refused or didn't answer.",
     "badcode": "That access code is wrong.",
+    "located": "Looked up every Pi's address again in the router's DHCP leases.",
 }
 
 
@@ -673,7 +743,7 @@ def make_handler(manager: Manager, port: int, bind: str = LOOPBACK, access: Acce
             if not self._host_ok():
                 return self._send(403, b"Forbidden\n")
             path = urllib.parse.urlsplit(self.path).path
-            if path not in ("/do", "/signin", "/signout"):
+            if path not in ("/do", "/signin", "/signout", "/locate"):
                 return self._send(404, b"Not Found\n")
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -702,6 +772,10 @@ def make_handler(manager: Manager, port: int, bind: str = LOOPBACK, access: Acce
                 return self._send(303, location="/", cookie=cookie)
             if not self._signed_in():
                 return self._send(403, b"Forbidden\n")
+            if path == "/locate":
+                manager.locate()
+                manager.all_status()
+                return self._send(303, location="/?m=located")
             pi, op, arg = form.get("pi", ""), form.get("op", ""), form.get("arg", "")
             ok = manager.act(pi, op, arg)
             anchor = f"#pi-{pi}" if NAME.fullmatch(pi) else ""
@@ -713,6 +787,7 @@ def make_handler(manager: Manager, port: int, bind: str = LOOPBACK, access: Acce
 def run_ssh(argv: list[str], timeout: float, home: Path | None = None) -> tuple[int, str]:
     env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"}
     if home is not None:
+        (home / ".ssh").mkdir(mode=0o700, parents=True, exist_ok=True)
         env["HOME"] = str(home)  # where dbclient keeps known_hosts
     done = subprocess.run(  # noqa: S603 (fixed ssh argv; the request is checked first)
         argv,
@@ -738,6 +813,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lab-dir", type=Path, default=HERE)
     parser.add_argument(
         "--state-dir", type=Path, default=STATE, help="where the key and known hosts live"
+    )
+    parser.add_argument(
+        "--leases",
+        type=Path,
+        default=LEASES,
+        help="the DHCP lease file that gives the address of Pis listed by MAC",
     )
     parser.add_argument(
         "--access-code-file",
@@ -766,11 +847,13 @@ def main(argv: list[str] | None = None) -> int:
         pis,
         services,
         presets,
-        lambda cmd, timeout: run_ssh(cmd, timeout, home=args.state_dir),
+        run_ssh,
         key=args.state_dir / key_name,
-        known_hosts=args.state_dir / "known_hosts",
+        hosts=args.state_dir / "hosts",
         client=args.ssh_client,
+        leases=args.leases,
     )
+    manager.locate()
     handler = make_handler(manager, args.port, args.bind, Access(code))
     server = ThreadingHTTPServer((args.bind, args.port), handler)
     stop = threading.Event()

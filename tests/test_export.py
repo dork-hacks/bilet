@@ -117,5 +117,5 @@ def test_analyze_command_explains_broken_files_in_both_languages(tmp_path, capsy
 
 
 def test_analyze_command_missing_folder(tmp_path, capsys):
-    assert main(["analyze", str(tmp_path / "nope"), "--out", str(tmp_path)]) == 2
+    assert main(["analyze", str(tmp_path / "nope"), "--out", str(tmp_path), "--lang", "en"]) == 2
     assert "not a folder" in capsys.readouterr().err

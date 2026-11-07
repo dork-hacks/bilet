@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pytest
@@ -156,6 +157,42 @@ def test_duplicate_port_and_duplicate_host_are_merged():
     data = nmap(host(port(80) + port(80)) + host(port(22, service='name="ssh"')))
     (h,) = parse_bytes(data, "x.xml").hosts
     assert [p.port for p in h.ports] == [80, 22]
+
+
+def test_merged_host_keeps_first_values_and_file_order():
+    hostnames = '<hostnames><hostname name="{}"/><hostname name="{}"/></hostnames>'
+    data = nmap(
+        host(port(80, service='name="http" product="first"'), extra=hostnames.format("a", "b"))
+        + host(
+            port(80, service='name="http" product="later"') + port(161, proto="udp"),
+            extra='<address addr="02:00:00:00:00:01" addrtype="mac"/>' + hostnames.format("b", "c"),
+        )
+        + host(
+            port(22) + port(161),
+            extra='<address addr="02:00:00:00:00:02" addrtype="mac" vendor="Acme"/>'
+            + hostnames.format("a", "d"),
+        )
+    )
+    (h,) = parse_bytes(data, "x.xml").hosts
+    assert (h.mac, h.vendor) == ("02:00:00:00:00:01", "Acme")  # the first one seen of each
+    assert h.hostnames == ("a", "b", "c", "d")
+    assert [(p.protocol, p.port) for p in h.ports] == [
+        ("tcp", 80),
+        ("udp", 161),
+        ("tcp", 22),
+        ("tcp", 161),
+    ]
+    assert h.ports[0].product == "first"
+
+
+def test_a_file_repeating_one_ip_parses_quickly():
+    # NFR-07 (#185): merging used to be quadratic, so a file under the size limit that
+    # lists one IP thousands of times took 90 s. 6,000 entries took about 50 s then.
+    entries = "".join(host("".join(port(i * 10 + n) for n in range(1, 11))) for i in range(6000))
+    start = time.perf_counter()
+    (h,) = parse_bytes(nmap(entries), "x.xml").hosts
+    assert time.perf_counter() - start < 10
+    assert len(h.ports) == 60000
 
 
 @pytest.mark.parametrize("num", ["0", "70000", "abc"])

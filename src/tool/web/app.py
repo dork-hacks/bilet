@@ -10,10 +10,12 @@ import re
 import secrets
 import sqlite3
 import tempfile
+from collections import OrderedDict
 from collections.abc import Callable
 from email.parser import BytesParser
 from email.policy import HTTP
 from pathlib import Path
+from threading import Lock
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI, Request
@@ -37,6 +39,7 @@ from tool.engine.result import analyze_file, error_result
 from tool.history import Alert, History, HistoryError
 from tool.web.history_view import HistoryView, history_view
 from tool.web.map_view import network_map
+from tool.web.report import report_view
 from tool.web.risks_view import risks_view
 from tool.web.view import HomeView, home_view, pick_lang
 
@@ -206,6 +209,11 @@ def create_app(
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+    # Opened files have no history ID. Keep only bounded report projections, never RAW
+    # scan data, behind an unguessable token; expire after 16 opens or server restart.
+    opened_reports: OrderedDict[str, dict] = OrderedDict()
+    report_lock = Lock()
+
     def current_result() -> tuple[dict | None, list[Alert]]:
         # Alerts belong to a scan in the history, so a `--result` file shows none.
         result = load_result()
@@ -231,6 +239,14 @@ def create_app(
     ) -> HTMLResponse:
         # `opened`: the page shows a file the user just opened (#92), not the latest scan.
         # `result` is the scan behind `view`; the network map (#170) is drawn from it.
+        report_token = None
+        if opened and view.kind == "ok":
+            report_token = secrets.token_urlsafe(24)
+            projections = {code: report_view(result, code) for code in LANGS}
+            with report_lock:
+                opened_reports[report_token] = projections
+                while len(opened_reports) > 16:
+                    opened_reports.popitem(last=False)
         return templates.TemplateResponse(
             request,
             "home.html",
@@ -239,6 +255,7 @@ def create_app(
                 "netmap": network_map(result, view.lang),
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
+                "report_token": report_token,
                 **context(view.lang),
             },
             status_code=status,
@@ -290,6 +307,27 @@ def create_app(
         result, alerts = current_result()
         view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
         return render(request, view, result)
+
+    @app.get("/report", response_class=HTMLResponse)
+    def report_page(
+        request: Request, lang: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
+        lang = pick_lang(lang)
+        report_token = None
+        if scan is not None:
+            with report_lock:
+                saved = opened_reports.get(scan)
+            view = saved[lang] if saved else report_view(None, lang)
+            report_token = scan if saved else None
+        else:
+            result, _ = current_result()
+            view = report_view(result, lang)
+        return templates.TemplateResponse(
+            request,
+            "report.html",
+            {"view": view, "report_token": report_token, **context(lang)},
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+        )
 
     @app.get("/map.json")
     def map_data(lang: str | None = None) -> JSONResponse:

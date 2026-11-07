@@ -19,6 +19,12 @@ LEVEL_ORDER = ("high", "medium", "low", "none")
 MASKED_MAC = re.compile(r"^[0-9A-F]{2}(:[0-9A-F]{2}){2}(:xx){3}$")
 # The strings the script needs. Everything else in the map section is rendered by Jinja.
 SCRIPT_TEXTS = (
+    "map_fullscreen",
+    "map_exit_fullscreen",
+    "map_focus",
+    "map_selected",
+    "map_no_matches",
+    "map_count",
     "map_canvas_label",
     "map_hub_virtual",
     "map_most_dangerous",
