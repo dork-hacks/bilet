@@ -44,10 +44,22 @@ def serve(args: argparse.Namespace) -> int:
         return 2
     import uvicorn
 
+    from tool.ai.explain import Explainer
+    from tool.ai.provider import provider_from_env
+    from tool.config import data_dir
     from tool.web.app import create_app, load_json_file
 
+    # The provider comes from LLM_PROVIDER / LLM_API_KEY; with none set, AI stays off.
+    # Cache and rejection log are local data (NFR-02), never committed.
+    explainer = Explainer(
+        provider_from_env(),
+        cache_dir=data_dir() / "ai_cache",
+        rejection_log=data_dir() / "ai_rejections.jsonl",
+    )
     result_path = args.result
-    app = create_app(lambda: load_json_file(result_path) if result_path else None)
+    app = create_app(
+        lambda: load_json_file(result_path) if result_path else None, explainer=explainer
+    )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 

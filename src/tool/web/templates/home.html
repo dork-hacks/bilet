@@ -30,6 +30,13 @@
     .first { border-left: 6px solid #1a1a1a; padding: .5rem 1rem; background: #f4f4f4; }
     .first p { margin: .5rem 0; font-size: 1.15rem; }
     .muted { color: #4a4a4a; }
+    /* The AI / standard label is text, not only colour (MASTERPLAN 6.5). */
+    .tag { display: inline-block; font-size: .9rem; border: 1px solid #4a4a4a;
+           border-radius: .3rem; padding: 0 .4rem; color: #4a4a4a; white-space: nowrap; }
+    .ai { margin-top: 2rem; border-top: 1px solid #c4c4c4; }
+    .ai h2 { font-size: 1.2rem; }
+    .button { display: inline-block; padding: .5rem 1rem; border: 2px solid #0b4f9c;
+              border-radius: .5rem; text-decoration: none; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -39,7 +46,7 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+        <li><a href="?lang={{ code }}&amp;ai={{ ai_param }}" lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
       </ul>
@@ -76,12 +83,26 @@
         (<span class="muted">{{ view.first.hostname }}</span>){% endif %}.
         <span class="muted">{{ ui.points.replace("{n}", view.first.risk_points|string) }}</span></p>
       <p><strong>{{ ui.do_first }}</strong> {{ view.first.finding_title }}: {{ view.first.step }}</p>
+      <p><strong>{{ ui.why }}</strong> {{ view.first.explanation }}
+        <span class="tag">{% if view.first.explanation_source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p>
       {% else %}
       <p>{{ ui.nothing_to_fix }}</p>
       {% endif %}
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
   {% endif %}
+
+    <section class="ai" aria-labelledby="ai-heading">
+      <h2 id="ai-heading">{{ ui.ai_heading }}</h2>
+      {% if view.ai_available %}
+      <p>{% if view.ai_on %}{{ ui.ai_on_state }}{% else %}{{ ui.ai_off_state }}{% endif %}</p>
+      <p>{{ ui.ai_data_note }}</p>
+      <p><a class="button" href="?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}">
+        {% if view.ai_on %}{{ ui.ai_turn_off }}{% else %}{{ ui.ai_turn_on }}{% endif %}</a></p>
+      {% else %}
+      <p>{{ ui.ai_not_set_up }}</p>
+      {% endif %}
+    </section>
   </main>
 </body>
 </html>
