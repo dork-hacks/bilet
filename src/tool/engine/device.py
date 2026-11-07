@@ -63,6 +63,7 @@ class TypeRule:
     services: frozenset[str] = frozenset()  # nmap service names on open ports
     vendors: tuple[str, ...] = ()  # lower-case substrings of the MAC vendor
     host_words: frozenset[str] = frozenset()  # whole hostname words ("tv" in "living-room-tv")
+    title_words: frozenset[str] = frozenset()  # whole words from HTTP page titles
     host_parts: tuple[str, ...] = ()  # substrings, only for words that can't be part of a name
 
 
@@ -72,6 +73,7 @@ class TypeRule:
 TYPE_RULES: tuple[TypeRule, ...] = (
     TypeRule(
         "camera",
+        title_words=frozenset({"camera", "ipcam", "nvr", "dvr", "doorbell"}),
         services=frozenset({"rtsp"}),
         vendors=("hikvision", "dahua", "axis communications", "reolink", "foscam", "amcrest"),
         host_words=frozenset({"cam", "ipcam", "nvr", "dvr", "camera", "doorbell"}),
@@ -132,14 +134,21 @@ _WORDS = re.compile(r"[a-z]+")
 
 
 def guess_device_type(host: RawHost) -> str:
-    """A best guess from services, vendor and hostname. "unknown" when nothing fits."""
+    """A best guess from services, HTTP titles, vendor and hostname. "unknown" when nothing fits."""
     services = {(p.service_name or "").lower() for p in host.ports}
     vendor = (host.vendor or "").lower()
     names = [name.lower() for name in host.hostnames]
     words = {word for name in names for word in _WORDS.findall(name)}
+    title_words = {
+        word
+        for port in host.ports
+        if (port.service_name or "").lower() == "http"
+        for word in _WORDS.findall((port.http_title or "").lower())
+    }
     for rule in TYPE_RULES:
         if (
             services & rule.services
+            or title_words & rule.title_words
             or any(v in vendor for v in rule.vendors)
             or words & rule.host_words
             or any(part in name for part in rule.host_parts for name in names)
