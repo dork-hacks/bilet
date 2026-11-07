@@ -27,6 +27,24 @@ from tool.history import Alert
 
 GOOD_FROM = 80  # score >= 80: green
 WARN_FROM = 50  # score >= 50: amber, below: red
+RESULT_DATA_ERRORS = (AttributeError, KeyError, TypeError, ValueError, OverflowError)
+
+
+def scan_fields_ok(result: object) -> bool:
+    """Check presentation input types, never infer or recompute findings or scores."""
+    return (
+        isinstance(result, dict)
+        and result.get("status") == "ok"
+        and type(result.get("score")) is int
+        and 0 <= result["score"] <= 100
+        and isinstance(result.get("devices"), list)
+        and all(
+            isinstance(device, dict) and isinstance(device.get("ip"), str) and device["ip"].strip()
+            for device in result["devices"]
+        )
+        and isinstance(result.get("findings"), list)
+        and all(isinstance(finding, dict) for finding in result["findings"])
+    )
 
 
 @dataclass(frozen=True)
@@ -337,6 +355,32 @@ def alert_texts(alerts: Iterable[Alert], lang: str) -> tuple[str, ...]:
 
 
 def home_view(
+    result: dict | None,
+    lang: str | None = DEFAULT_LANG,
+    explainer: Explainer | None = None,
+    ai_on: bool = False,
+    question: str | None = None,
+    alerts: Iterable[Alert] = (),
+) -> HomeView:
+    """Present saved results safely, including JSON/history whose fields are damaged."""
+    try:
+        if result is not None and result.get("status") == "ok" and not scan_fields_ok(result):
+            raise ValueError("invalid saved result fields")
+        return _home_view(result, lang, explainer, ai_on, question, alerts)
+    except RESULT_DATA_ERRORS:
+        lang = pick_lang(lang)
+        name = result.get("file") if isinstance(result, dict) else None
+        return HomeView(
+            lang=lang,
+            kind="error",
+            file=name if isinstance(name, str) else None,
+            error_message=file_error_message("", lang),
+            ai_on=ai_on,
+            ai_available=getattr(explainer, "provider", None) is not None,
+        )
+
+
+def _home_view(
     result: dict | None,
     lang: str | None = DEFAULT_LANG,
     explainer: Explainer | None = None,

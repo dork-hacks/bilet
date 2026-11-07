@@ -2,7 +2,7 @@
 
 from tool.content import device_type_label, file_error_message, finding_text, severity_label
 from tool.web.map_view import safe_mac
-from tool.web.view import first_fix_step, pick_lang, ranked_devices, score_band
+from tool.web.view import first_fix_step, pick_lang, ranked_devices, scan_fields_ok, score_band
 
 MAX_FINDINGS = 3
 MAX_DEVICES = 3
@@ -23,11 +23,14 @@ def report_view(result: dict | None, lang: str | None = None) -> dict:
     view = {"lang": lang, "kind": "empty"}
     if result is None:
         return view
-    if result.get("status") != "ok":
+    if not scan_fields_ok(result):
+        error = result.get("error") if isinstance(result, dict) else None
         return {
             **view,
             "kind": "error",
-            "error_message": file_error_message((result.get("error") or {}).get("code", ""), lang),
+            "error_message": file_error_message(
+                error.get("code", "") if isinstance(error, dict) else "", lang
+            ),
         }
     try:
         devices = ranked_devices(result)

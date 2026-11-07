@@ -266,7 +266,7 @@ def create_app(
             "home.html",
             {
                 "view": view,
-                "netmap": network_map(result, view.lang),
+                "netmap": network_map(result, view.lang) if view.kind == "ok" else None,
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
                 "report_token": report_token,
