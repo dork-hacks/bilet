@@ -63,8 +63,16 @@ _SERVICES_DIRS = (
     "/usr/local/share/nmap",
     "/opt/homebrew/share/nmap",  # Homebrew on Apple silicon
 )
+# The nmap that runs as root, in this order (#119). Fixed paths, so a folder the user can
+# write to earlier in PATH can't put another "nmap" under sudo.
+_NMAP_PATHS = (
+    "/usr/bin/nmap",
+    "/usr/local/bin/nmap",  # Homebrew on Intel Macs, source installs
+    "/opt/homebrew/bin/nmap",  # Homebrew on Apple silicon
+    "/usr/sbin/nmap",
+)
 
-# Error codes. Their RO/EN texts are in tool.cli until area:content adopts them.
+# Error codes. Their RO/EN texts are in tool.content.texts.SCAN_MESSAGES.
 NMAP_NOT_FOUND = "NMAP_NOT_FOUND"
 NMAP_DATA_NOT_FOUND = "NMAP_DATA_NOT_FOUND"
 NMAP_FAILED = "NMAP_FAILED"
@@ -87,9 +95,7 @@ def run_nmap(args: list[str], on_progress: Progress | None = None) -> bytes:
     <taskprogress> element reaches `on_progress` while nmap is still working (#107).
     nmap is killed after NMAP_TIMEOUT_S, or once its output passes MAX_FILE_BYTES.
     """
-    nmap = shutil.which("nmap")
-    if nmap is None:
-        raise ScanError(NMAP_NOT_FOUND)
+    nmap = nmap_binary()
     is_root = hasattr(os, "geteuid") and os.geteuid() == 0
     argv = ([nmap] if is_root else ["sudo", "--", nmap]) + args
     try:
@@ -117,6 +123,30 @@ def run_nmap(args: list[str], on_progress: Progress | None = None) -> bytes:
     if returncode != 0:
         raise ScanError(NMAP_FAILED, f"exit code {returncode}")
     return out
+
+
+def nmap_binary() -> str:
+    """The nmap to run with sudo: the first system install in _NMAP_PATHS, else the one on
+    PATH, but never one that this user could have replaced (#119, agent-A's review of #93).
+
+    This stops an `nmap` planted earlier in PATH. Homebrew's bin folders are owned by the
+    user, so a Homebrew nmap is only as trusted as the user's own account: refusing it
+    would make scanning impossible on a Mac.
+    """
+    for path in _NMAP_PATHS:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    found = shutil.which("nmap")
+    if found is None:
+        raise ScanError(NMAP_NOT_FOUND)
+    real = os.path.realpath(found)
+    if _writable(real) or _writable(os.path.dirname(real)):
+        raise ScanError(NMAP_NOT_FOUND, f"{found} could be replaced by this user, not run as root")
+    return found
+
+
+def _writable(path: str) -> bool:
+    return os.access(path, os.W_OK)
 
 
 def _stop(proc: subprocess.Popen) -> None:
@@ -189,17 +219,18 @@ def step_for_task(task: str) -> str:
 
 
 def services_file(env: dict[str, str] | None = None) -> Path:
-    """The installed nmap's nmap-services file: from the environment, next to the binary,
-    or in the usual install folders."""
+    """The installed nmap's nmap-services file: from the environment, next to the binary
+    that run_nmap uses, or in the usual install folders."""
     env = env if env is not None else os.environ
     if env.get(SERVICES_ENV):
         candidates = [Path(env[SERVICES_ENV])]
     else:
         candidates = []
-        nmap = shutil.which("nmap")
-        if nmap:
-            binary = Path(nmap).resolve()
+        try:
+            binary = Path(nmap_binary()).resolve()
             candidates += [binary.parent.parent / "share/nmap", binary.parent]  # Unix, Windows
+        except ScanError:
+            pass  # run_nmap reports the missing nmap; the usual folders may still have the file
         candidates += [Path(d) for d in _SERVICES_DIRS]
         candidates = [d / "nmap-services" for d in candidates]
     for path in candidates:

@@ -212,10 +212,61 @@ def test_services_file_missing_is_a_clear_error(tmp_path, monkeypatch):
     assert exc.value.code == live.NMAP_DATA_NOT_FOUND
 
 
+def _nmap_file(path: Path, mode: int = 0o755) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("#!/bin/sh\n")
+    path.chmod(mode)
+    return path
+
+
+def test_nmap_binary_prefers_a_system_path_over_path(tmp_path, monkeypatch):
+    system = _nmap_file(tmp_path / "usr/bin/nmap")
+    planted = _nmap_file(tmp_path / "home/bin/nmap")  # earlier in PATH, writable by the user
+    monkeypatch.setattr(live, "_NMAP_PATHS", (str(tmp_path / "missing/nmap"), str(system)))
+    monkeypatch.setenv("PATH", str(planted.parent))
+    assert live.nmap_binary() == str(system)
+
+
+def test_nmap_binary_skips_a_system_path_that_is_not_executable(tmp_path, monkeypatch):
+    on_path = _nmap_file(tmp_path / "opt/nmap/bin/nmap")
+    monkeypatch.setattr(live, "_NMAP_PATHS", (str(_nmap_file(tmp_path / "usr/bin/nmap", 0o644)),))
+    monkeypatch.setenv("PATH", str(on_path.parent))
+    monkeypatch.setattr(live, "_writable", lambda _path: False)  # as if root owned it
+    assert live.nmap_binary() == str(on_path)
+
+
+def test_nmap_binary_refuses_an_nmap_the_user_could_replace(tmp_path, monkeypatch):
+    planted = _nmap_file(tmp_path / "home/bin/nmap")
+    monkeypatch.setattr(live, "_NMAP_PATHS", ())
+    monkeypatch.setenv("PATH", str(planted.parent))
+    monkeypatch.setattr(live, "_writable", lambda path: path == str(planted.parent))
+    with pytest.raises(live.ScanError) as exc:
+        live.nmap_binary()
+    assert exc.value.code == live.NMAP_NOT_FOUND and "replaced" in exc.value.detail
+
+
+def test_nmap_binary_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(live, "_NMAP_PATHS", ())
+    monkeypatch.setenv("PATH", str(tmp_path))
+    with pytest.raises(live.ScanError) as exc:
+        live.nmap_binary()
+    assert exc.value.code == live.NMAP_NOT_FOUND and exc.value.detail == ""
+
+
+def test_services_file_is_found_next_to_the_nmap_that_runs(tmp_path, monkeypatch):
+    binary = _nmap_file(tmp_path / "prefix/bin/nmap")
+    data = tmp_path / "prefix/share/nmap/nmap-services"
+    data.parent.mkdir(parents=True)
+    data.write_text(SERVICES)
+    monkeypatch.setattr(live, "_NMAP_PATHS", (str(binary),))
+    monkeypatch.setattr(live, "_SERVICES_DIRS", ())
+    assert live.services_file({}) == data
+
+
 @pytest.fixture
 def popen(monkeypatch):
     """Install a FakePopen: `popen(lines, ...)` returns it. Nothing is ever started."""
-    monkeypatch.setattr(live.shutil, "which", lambda _name: "/usr/bin/nmap")
+    monkeypatch.setattr(live, "nmap_binary", lambda: "/usr/bin/nmap")
     monkeypatch.setattr(live.os, "geteuid", lambda: 1000, raising=False)
 
     def install(lines, **kwargs):
@@ -249,13 +300,16 @@ def test_run_nmap_reports_progress_while_reading(popen):
 
 
 def test_run_nmap_errors(monkeypatch, popen):
-    monkeypatch.setattr(live.shutil, "which", lambda _name: None)
+    def no_nmap():
+        raise live.ScanError(live.NMAP_NOT_FOUND)
+
+    fake = popen([b""], returncode=1)
+    monkeypatch.setattr(live, "nmap_binary", no_nmap)
     with pytest.raises(live.ScanError) as exc:
         live.run_nmap(["-sn"])
-    assert exc.value.code == live.NMAP_NOT_FOUND
+    assert exc.value.code == live.NMAP_NOT_FOUND and fake.argv is None  # nothing started
 
-    monkeypatch.setattr(live.shutil, "which", lambda _name: "/usr/bin/nmap")
-    popen([b""], returncode=1)
+    monkeypatch.setattr(live, "nmap_binary", lambda: "/usr/bin/nmap")
     with pytest.raises(live.ScanError) as exc:
         live.run_nmap(["-sn"])
     assert exc.value.code == live.NMAP_FAILED and "exit code 1" in exc.value.detail
