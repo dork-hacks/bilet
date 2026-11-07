@@ -32,18 +32,43 @@ DB_FILE = "history.sqlite3"
 PRIVATE_FILES = (DB_FILE, f"{DB_FILE}-wal", f"{DB_FILE}-shm", SALT_FILE, "ai_rejections.jsonl")
 PRIVATE_DIRS = ("ai_cache",)
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS scans (
-    id          INTEGER PRIMARY KEY,
-    file        TEXT NOT NULL,
-    scan_start  TEXT,
-    added_at    TEXT NOT NULL,
-    status      TEXT NOT NULL,
-    score       INTEGER,
-    digest      TEXT NOT NULL UNIQUE,
-    result_json TEXT NOT NULL
+
+@dataclass(frozen=True)
+class Migration:
+    """One schema step. Its number is its position in MIGRATIONS (1-based)."""
+
+    description: str
+    statements: tuple[str, ...]
+
+
+# The history database's schema, as numbered steps (#130). Never edit or reorder a step
+# that has shipped: add a new one at the end. The version lives in SQLite's own
+# `PRAGMA user_version`, and each step runs in one transaction with its version bump,
+# so a failed step leaves the database exactly as it was.
+MIGRATIONS: tuple[Migration, ...] = (
+    Migration(
+        "scans table (#21)",
+        (
+            # IF NOT EXISTS: databases made before versioning (user_version 0) already
+            # have this table, with rows, and upgrade in place.
+            """CREATE TABLE IF NOT EXISTS scans (
+                id          INTEGER PRIMARY KEY,
+                file        TEXT NOT NULL,
+                scan_start  TEXT,
+                added_at    TEXT NOT NULL,
+                status      TEXT NOT NULL,
+                score       INTEGER,
+                digest      TEXT NOT NULL UNIQUE,
+                result_json TEXT NOT NULL
+            )""",
+        ),
+    ),
+    Migration(
+        "index for the history order: scan_start, then file, then id",
+        ("CREATE INDEX IF NOT EXISTS scans_order ON scans (scan_start, file, id)",),
+    ),
 )
-"""
+SCHEMA_VERSION = len(MIGRATIONS)
 
 
 # Change alerts (FR-13). Codes only; the RO/EN text belongs to tool.content.
@@ -201,14 +226,57 @@ class History:
                 return summary
         raise HistoryError(f"no scan {scan_id}")
 
+    def schema_version(self) -> int:
+        with self._connect() as db:
+            return _user_version(db)
+
     def _connect(self) -> sqlite3.Connection:
         new = not self.path.exists()
         self.folder.mkdir(parents=True, exist_ok=True, mode=0o700)
         db = sqlite3.connect(self.path)
         if new:
             os.chmod(self.path, 0o600)  # private to this user (NFR-02)
-        db.execute(_SCHEMA)
+        try:
+            migrate(db)
+        except BaseException:
+            db.close()
+            raise
         return db
+
+
+def migrate(db: sqlite3.Connection, migrations: tuple[Migration, ...] = MIGRATIONS) -> int:
+    """Bring the database up to the newest schema and return its version.
+
+    A database from a newer build is refused untouched, because this code can't know
+    what its later steps changed."""
+    version = _user_version(db)
+    if version > len(migrations):
+        raise HistoryError(
+            f"the history database is from a newer version (schema {version}, this build "
+            f"knows {len(migrations)}); it was not changed"
+        )
+    previous_mode = db.isolation_level
+    db.isolation_level = None  # explicit BEGIN/COMMIT below, nothing implicit
+    try:
+        for number, step in enumerate(migrations[version:], start=version + 1):
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                for statement in step.statements:
+                    db.execute(statement)
+                db.execute(f"PRAGMA user_version = {int(number)}")
+                db.execute("COMMIT")
+            except sqlite3.Error as exc:
+                db.execute("ROLLBACK")
+                raise HistoryError(
+                    f"schema step {number} ({step.description}) failed: {exc}"
+                ) from exc
+    finally:
+        db.isolation_level = previous_mode
+    return _user_version(db)
+
+
+def _user_version(db: sqlite3.Connection) -> int:
+    return int(db.execute("PRAGMA user_version").fetchone()[0])
 
 
 def diff_results(
