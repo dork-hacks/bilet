@@ -26,6 +26,7 @@ FIXTURES = ROOT / "tests" / "fixtures"
 GOLDEN = {
     FIXTURES / "validation": True,  # the organizers' files, CRLF and all
     FIXTURES / "traps": False,  # our own traps (#23): rows must match, line ends may differ
+    FIXTURES / "lab": False,  # our own lab captures (#34): the before/after pair
 }
 SALT = b"golden"  # the CSVs contain no device keys; any fixed salt will do
 # folder -> files generated at test time: (generator script, file it writes, expected score)

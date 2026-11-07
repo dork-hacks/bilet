@@ -1,0 +1,17 @@
+file,ip,port,finding_code,severity
+L1_default.xml,192.168.50.125,22,SSH_OPEN,info
+L1_default.xml,192.168.50.158,21,FTP_CLEARTEXT,medium
+L1_default.xml,192.168.50.158,21,OUTDATED_SERVICE,high
+L1_default.xml,192.168.50.158,22,SSH_OPEN,info
+L1_default.xml,192.168.50.158,80,HTTP_ADMIN_CLEARTEXT,medium
+L1_default.xml,192.168.50.158,2323,TELNET_OPEN,high
+L1_default.xml,192.168.50.216,,UNKNOWN_DEVICE,low
+L1_default.xml,192.168.50.216,22,SSH_OPEN,info
+L1_default.xml,192.168.50.216,1883,MQTT_EXPOSED,medium
+L2_after_fix.xml,192.168.50.125,22,SSH_OPEN,info
+L2_after_fix.xml,192.168.50.158,21,FTP_CLEARTEXT,medium
+L2_after_fix.xml,192.168.50.158,21,OUTDATED_SERVICE,high
+L2_after_fix.xml,192.168.50.158,22,SSH_OPEN,info
+L2_after_fix.xml,192.168.50.216,,UNKNOWN_DEVICE,low
+L2_after_fix.xml,192.168.50.216,22,SSH_OPEN,info
+L2_after_fix.xml,192.168.50.216,1883,MQTT_EXPOSED,medium
