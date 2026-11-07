@@ -21,6 +21,10 @@
   </header>
 
   <main id="main">
+  {% if opened %}
+    <p class="opened">{{ ui.open_showing }}
+      <a href="/?lang={{ view.lang }}&amp;ai={{ ai_param }}">{{ ui.open_back }}</a></p>
+  {% endif %}
   {% if view.kind == "empty" %}
     <p>{{ ui.no_scan }}</p>
 
@@ -58,6 +62,16 @@
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
 
+    {% if view.alerts %}
+    <section class="alerts" aria-labelledby="alerts-heading">
+      <h2 id="alerts-heading"><span class="icon" aria-hidden="true">!</span> {{ ui.alerts_heading }}</h2>
+      <ul>
+        {% for text in view.alerts %}<li>{{ text }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
     {% if view.plan %}
     <section class="plan" aria-labelledby="plan-heading">
       <h2 id="plan-heading">{{ ui.plan_heading }}
@@ -73,7 +87,8 @@
     </section>
     {% endif %}
 
-    {% if view.ai_on and view.ai_available %}
+    {# Questions are about the latest scan, so the form is left out for an opened file. #}
+    {% if view.ai_on and view.ai_available and not opened %}
     <section class="ask" aria-labelledby="ask-heading">
       <h2 id="ask-heading">{{ ui.ask_heading }}</h2>
       <form method="post" action="/ask">
@@ -146,6 +161,19 @@
     </section>
     {% endif %}
   {% endif %}
+
+    <section class="ask open" aria-labelledby="open-heading">
+      <h2 id="open-heading">{{ ui.open_heading }}</h2>
+      <form method="post" action="/open?lang={{ view.lang }}" enctype="multipart/form-data">
+        <input type="hidden" name="lang" value="{{ view.lang }}">
+        <input type="hidden" name="ai" value="{{ ai_param }}">
+        <label for="open-file">{{ ui.open_label }}</label>
+        <p class="muted" id="open-hint">{{ ui.open_hint }}</p>
+        <input type="file" id="open-file" name="file" accept=".xml,text/xml,application/xml"
+               required aria-describedby="open-hint">
+        <button class="button" type="submit">{{ ui.open_button }}</button>
+      </form>
+    </section>
 
     <p><a class="button" href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></p>
     <p><a class="button" href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
