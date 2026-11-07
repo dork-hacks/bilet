@@ -36,7 +36,7 @@ tool = "tool.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"tool.web" = ["templates/*.html"]
+"tool.web" = ["templates/*.html", "static/*.js", "static/vendor/*.js", "static/vendor/*.md"]
 
 [tool.pytest.ini_options]
 # lab/tests are plain unittest files (they also run on a Pi without pytest); listing them

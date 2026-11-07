@@ -17,7 +17,14 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 
@@ -29,10 +36,14 @@ from tool.engine.parser import EMPTY_FILE, MAX_FILE_BYTES, NOT_XML, TOO_LARGE
 from tool.engine.result import analyze_file, error_result
 from tool.history import Alert, History, HistoryError
 from tool.web.history_view import HistoryView, history_view
+from tool.web.map_view import network_map
 from tool.web.risks_view import risks_view
 from tool.web.view import HomeView, home_view, pick_lang
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+# The map's script and the vendored three.js (#170): served locally, so the map works
+# offline at the venue. No build step.
+STATIC_DIR = Path(__file__).parent / "static"
 MAX_RESULT_BYTES = 5 * 1024 * 1024
 MAX_FORM_BYTES = 4096  # the question form: lang, ai and a question of at most 300 chars
 # "Open a scan file" (#92): the parser's own file limit plus room for the multipart framing.
@@ -193,6 +204,7 @@ def create_app(
     the newest readable scan in the history (#87).
     """
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     def current_result() -> tuple[dict | None, list[Alert]]:
         # Alerts belong to a scan in the history, so a `--result` file shows none.
@@ -211,14 +223,20 @@ def create_app(
         }
 
     def render(
-        request: Request, view: HomeView, opened: bool = False, status: int = 200
+        request: Request,
+        view: HomeView,
+        result: dict | None,
+        opened: bool = False,
+        status: int = 200,
     ) -> HTMLResponse:
         # `opened`: the page shows a file the user just opened (#92), not the latest scan.
+        # `result` is the scan behind `view`; the network map (#170) is drawn from it.
         return templates.TemplateResponse(
             request,
             "home.html",
             {
                 "view": view,
+                "netmap": network_map(result, view.lang),
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
                 **context(view.lang),
@@ -271,7 +289,14 @@ def create_app(
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
         result, alerts = current_result()
         view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
-        return render(request, view)
+        return render(request, view, result)
+
+    @app.get("/map.json")
+    def map_data(lang: str | None = None) -> JSONResponse:
+        # The home screen's map data for the latest scan (#170); null when there is none.
+        # Built from the rules' output only: masked MACs, no device keys.
+        result, _ = current_result()
+        return JSONResponse(network_map(result, lang))
 
     @app.post("/open", response_class=HTMLResponse)
     async def open_file(request: Request) -> HTMLResponse:
@@ -285,7 +310,7 @@ def create_app(
             # form's action URL. No file name: the upload never got that far.
             result = error_result("", exc.code).to_dict()
             view = home_view(result, request.query_params.get("lang"))
-            return render(request, view, opened=True, status=exc.status)
+            return render(request, view, result, opened=True, status=exc.status)
         result = await run_in_threadpool(analyze_upload, name, data)
         # AI stays opt-in, as on the home screen. No change alerts: the opened file isn't in
         # the history, so there is nothing to compare it with.
@@ -293,7 +318,7 @@ def create_app(
         view = await run_in_threadpool(
             home_view, result, lang, explainer, ai_on=fields.get("ai") == "1"
         )
-        return render(request, view, opened=True)
+        return render(request, view, result, opened=True)
 
     @app.post("/ask", response_class=HTMLResponse)
     async def ask(request: Request) -> HTMLResponse:
@@ -301,6 +326,8 @@ def create_app(
         form = await read_form(request)
         if form is None:
             return PlainTextResponse("Request too large", status_code=413)
+        if not same_origin(request):
+            return PlainTextResponse("Forbidden", status_code=403)
         # The AI call blocks for up to the timeout, so it runs off the event loop.
         result, alerts = current_result()
         view = await run_in_threadpool(
@@ -312,6 +339,6 @@ def create_app(
             question=form.get("q", ""),
             alerts=alerts,
         )
-        return render(request, view)
+        return render(request, view, result)
 
     return app

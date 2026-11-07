@@ -1,11 +1,18 @@
 """Summary and Q&A tests with fake providers (#50). No network, no real LLM."""
 
 import copy
+import dataclasses
 import json
 
 import pytest
 
-from tool.ai.evidence import build_evidence, ranked_ids
+from tool.ai.evidence import (
+    UNKNOWN_ADDRESS,
+    build_evidence,
+    localise_question,
+    ranked_ids,
+    restore_ips,
+)
 from tool.ai.explain import (
     MAX_QUESTION_CHARS,
     QA_SYSTEM_PROMPT,
@@ -247,3 +254,98 @@ def test_summary_and_answers_never_change_the_result(evidence):
     Explainer(FakeProvider({"covered": False})).answer(evidence, "x")
     Explainer(None).summarise(evidence)
     assert before == RESULT
+
+
+# -- #150: IPs in the question, and our own texts as evidence -----------------------
+
+
+def test_evidence_keeps_device_ips_local_only(evidence):
+    assert evidence.device_ips == {"Device A": "192.168.1.20", "Device B": "192.168.1.66"}
+    assert "192.168.1.66" not in json.dumps(evidence.payload)
+
+
+def test_question_ip_becomes_the_pseudonym_before_sending(evidence):
+    reply = {
+        "en": "Device B has Telnet open on port 2323, so anyone on your Wi-Fi can try to log in.",
+        "ro": "Device B are Telnet deschis pe portul 2323, deci oricine din Wi-Fi poate încerca.",
+        "cites": ["E3"],
+    }
+    provider = FakeProvider(reply)
+    answer = Explainer(provider).answer(evidence, "Why is 192.168.1.66 dangerous?")
+    _system, prompt = provider.calls[0]
+    assert "192.168.1.66" not in prompt
+    assert json.loads(prompt)["untrusted_question"] == "Why is Device B dangerous?"
+    assert answer.source == SOURCE_AI
+    # The owner sees the IP again, next to the pseudonym, as on the device list.
+    assert answer.en.startswith("Device B (192.168.1.66) has Telnet")
+    assert answer.ro.startswith("Device B (192.168.1.66) are Telnet")
+
+
+def test_romanian_pseudonym_gets_its_ip_back(evidence):
+    reply = {
+        "en": "Device A accepts print jobs on port 9100.",
+        "ro": "Dispozitivul A acceptă documente pe portul 9100.",
+        "cites": ["E1"],
+    }
+    answer = Explainer(FakeProvider(reply)).answer(evidence, "192.168.1.20?")
+    assert answer.ro.startswith("Dispozitivul A (192.168.1.20) acceptă")
+
+
+def test_unknown_ip_in_the_question_is_never_sent(evidence):
+    provider = FakeProvider({"covered": False})
+    answer = Explainer(provider).answer(evidence, "What about 8.8.8.8 and 192.168.1.200?")
+    _system, prompt = provider.calls[0]
+    assert "8.8.8.8" not in prompt and "192.168.1.200" not in prompt
+    assert "192.168.1.2" not in json.loads(prompt)["untrusted_question"]
+    assert answer.en == UI["ai_cant_tell"]["en"]
+
+
+def test_ip_mapping_does_not_touch_longer_ips(evidence):
+    # 192.168.1.20 is Device A, but 192.168.1.201 is not.
+    assert localise_question("192.168.1.201", evidence) == UNKNOWN_ADDRESS
+    assert localise_question("is 192.168.1.20, ok", evidence) == "is Device A, ok"
+
+
+def test_unknown_pseudonym_letter_is_left_alone(evidence):
+    text = restore_ips("Device Z and Device A.", evidence)
+    assert text == "Device Z and Device A (192.168.1.20)."
+
+
+def test_our_texts_for_found_codes_are_sent_as_reference(evidence):
+    provider = FakeProvider({"covered": False})
+    Explainer(provider).answer(evidence, "What does Telnet mean?")
+    _system, prompt = provider.calls[0]
+    reference = json.loads(prompt)["reference"]
+    assert sorted(reference) == ["HTTP_ADMIN_CLEARTEXT", "PRINTER_RAW_EXPOSED", "TELNET_OPEN"]
+    telnet = finding_text("TELNET_OPEN", "ro")
+    assert reference["TELNET_OPEN"]["ro"]["explanation"] == telnet.explanation
+    assert reference["TELNET_OPEN"]["ro"]["steps"] == list(telnet.steps)
+    assert "reference" in QA_SYSTEM_PROMPT
+
+
+def test_answer_may_use_numbers_from_our_reference_texts(evidence, monkeypatch):
+    import tool.ai.explain as explain_module
+
+    original = explain_module.finding_text
+
+    def fake_text(code, lang="en"):
+        text = original(code, lang)
+        if code != "TELNET_OPEN":
+            return text
+        return dataclasses.replace(text, steps=("Use a password of at least 12 characters.",))
+
+    monkeypatch.setattr(explain_module, "finding_text", fake_text)
+    reply = {
+        "en": "Telnet sends your password unprotected. Use one of at least 12 characters.",
+        "ro": "Telnet trimite parola neprotejată. Folosiți una de cel puțin 12 caractere.",
+        "cites": ["E3"],
+    }
+    answer = Explainer(FakeProvider(reply)).answer(evidence, "What does Telnet mean?")
+    assert answer.source == SOURCE_AI  # 12 is in our own text, so it is grounded
+
+
+def test_reference_numbers_do_not_widen_explanations(evidence):
+    # Explanations and the summary don't get the reference, so the old rules still hold.
+    reply = {"en": "Use 12 characters.", "ro": "Folosiți 12 caractere.", "cites": ["E3"]}
+    explanation = Explainer(FakeProvider(reply)).explain_finding(evidence, "E3")
+    assert explanation.source == SOURCE_TEMPLATE
