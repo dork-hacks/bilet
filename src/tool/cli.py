@@ -21,9 +21,18 @@ COMMANDS = {
 }
 
 
+# The commands that start this CLI (#101). --help shows the one that was typed.
+PROGRAM_NAMES = ("bilet", "tool")
+
+
+def program_name() -> str:
+    name = Path(sys.argv[0]).name if sys.argv and sys.argv[0] else ""
+    return name if name in PROGRAM_NAMES else "tool"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="tool", description=f"{DISPLAY_NAME}: a home network security checker"
+        prog=program_name(), description=f"{DISPLAY_NAME}: a home network security checker"
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")

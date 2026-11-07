@@ -28,6 +28,8 @@ dev = [
 ]
 
 [project.scripts]
+# Two names, one entry point (#101): `bilet` is the product name, `tool` keeps working.
+bilet = "tool.cli:main"
 tool = "tool.cli:main"
 
 [tool.setuptools.packages.find]
