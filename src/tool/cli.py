@@ -71,79 +71,22 @@ _DETECT_LABELS = {
 }
 
 
-# Until area:content adopts the scan texts into tool.content. {targets}, {path}, {score}
-# and {findings} are filled in as plain text.
-_SCAN_TEXT = {
-    "RUN_AS_ROOT": {
-        "ro": "Nu porniți scanarea ca administrator (root). Porniți-o ca utilizator obișnuit:"
-        " programul cere parola doar pentru nmap.",
-        "en": "Don't start the scan as administrator (root). Start it as a normal user:"
-        " the tool asks for the password for nmap only.",
-    },
-    "START": {
-        "ro": "Se verifică {targets}. nmap are nevoie de drepturi de administrator,"
-        " așa că este posibil să vi se ceară parola.",
-        "en": "Checking {targets}. nmap needs admin rights, so you may be asked for your password.",
-    },
-    "SELF_SKIPPED": {
-        "ro": "Acest calculator ({address}) nu este verificat: o scanare a lui însuși"
-        " nu vede ce vede restul rețelei.",
-        "en": "This computer ({address}) isn't checked: a scan of itself doesn't see"
-        " what the rest of the network sees.",
-    },
-    "DONE": {
-        "ro": "Scanare salvată: {path}. Scor: {score}/100, {findings} probleme găsite."
-        " Vedeți rezultatele cu: tool serve",
-        "en": "Scan saved: {path}. Score: {score}/100, {findings} findings."
-        " See the results with: tool serve",
-    },
-    "NMAP_NOT_FOUND": {
-        "ro": "nmap nu este instalat. Instalați-l (de exemplu sudo apt install nmap"
-        " sau brew install nmap) și încercați din nou.",
-        "en": "nmap isn't installed. Install it (for example sudo apt install nmap"
-        " or brew install nmap) and try again.",
-    },
-    "NMAP_DATA_NOT_FOUND": {
-        "ro": "Nu găsesc lista de porturi a lui nmap (nmap-services)."
-        " Setați TOOL_NMAP_SERVICES cu calea către fișier.",
-        "en": "Can't find nmap's port list (nmap-services)."
-        " Set TOOL_NMAP_SERVICES to the file's path.",
-    },
-    "NMAP_FAILED": {
-        "ro": "Scanarea nu a reușit. Verificați parola de administrator și că sunteți"
-        " conectat la rețeaua dumneavoastră, apoi încercați din nou.",
-        "en": "The scan didn't work. Check the admin password and that you're on"
-        " your own network, then try again.",
-    },
-    "NO_LIVE_HOSTS": {
-        "ro": "Niciun dispozitiv nu a răspuns în {targets}.",
-        "en": "No device answered in {targets}.",
-    },
-    "IPV6_NOT_SUPPORTED": {
-        "ro": "Deocamdată scanarea funcționează doar pentru rețele IPv4.",
-        "en": "For now the scan only works on IPv4 networks.",
-    },
-}
-
-
-def _scan_text(key: str, lang: str, **values: object) -> str:
-    text = _SCAN_TEXT.get(key, _SCAN_TEXT["NMAP_FAILED"])[lang]
-    for name, value in values.items():  # str.replace: a value is only ever text
-        text = text.replace("{" + name + "}", str(value))
-    return text
-
-
 def scan_command(args: argparse.Namespace) -> int:
     """Guardrail first (FR-02): nothing is scanned unless every check passes."""
     from tool import scan as live
-    from tool.content import detect_error_message, file_error_message, refusal_message
+    from tool.content import (
+        detect_error_message,
+        file_error_message,
+        refusal_message,
+        scan_message,
+    )
     from tool.engine import analyze_file
     from tool.guardrail import Refused, authorize, build_allowlist, extra_ranges_from_env
     from tool.network import DetectError, detect
 
     # Least privilege (MASTERPLAN §3.7): only the nmap subprocess gets admin rights.
     if hasattr(os, "geteuid") and os.geteuid() == 0:
-        print(_scan_text("RUN_AS_ROOT", args.lang), file=sys.stderr)
+        print(scan_message("RUN_AS_ROOT", args.lang), file=sys.stderr)
         return 2
     try:
         net = detect()
@@ -158,14 +101,14 @@ def scan_command(args: argparse.Namespace) -> int:
         print(f"({exc.code})", file=sys.stderr)
         return 3
     targets = ", ".join(str(n) for n in networks)
-    print(_scan_text("START", args.lang, targets=targets), flush=True)
-    print(_scan_text("SELF_SKIPPED", args.lang, address=net.address), flush=True)
+    print(scan_message("START", args.lang, targets=targets), flush=True)
+    print(scan_message("SELF_SKIPPED", args.lang, address=net.address), flush=True)
     try:
         path = live.run_scan(
             networks, runner=live.run_nmap, scans_dir=args.scans_dir, exclude=[net.address]
         )
     except live.ScanError as exc:
-        print(_scan_text(exc.code, args.lang, targets=targets), file=sys.stderr)
+        print(scan_message(exc.code, args.lang, targets=targets), file=sys.stderr)
         print(f"({exc.code}{': ' + exc.detail if exc.detail else ''})", file=sys.stderr)
         return 4
     result = analyze_file(path)  # unprivileged, the same engine as `tool analyze`
@@ -175,7 +118,9 @@ def scan_command(args: argparse.Namespace) -> int:
         save_and_alert([result], args.lang)
         return 1
     print(
-        _scan_text("DONE", args.lang, path=path, score=result.score, findings=len(result.findings))
+        scan_message(
+            "DONE", args.lang, path=path, score=result.score, findings=len(result.findings)
+        )
     )
     save_and_alert([result], args.lang)
     return 0

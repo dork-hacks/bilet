@@ -262,7 +262,7 @@ def test_scan_with_unreadable_output_stores_an_error_row(lab, tmp_path, capsys):
 
 
 def test_scan_texts_exist_in_both_languages():
-    from tool.cli import _SCAN_TEXT
+    from tool.content.texts import SCAN_MESSAGES
 
     codes = {
         live.NMAP_NOT_FOUND,
@@ -271,6 +271,6 @@ def test_scan_texts_exist_in_both_languages():
         live.NO_LIVE_HOSTS,
         live.IPV6_NOT_SUPPORTED,
     }
-    assert codes <= _SCAN_TEXT.keys()
-    for texts in _SCAN_TEXT.values():
+    assert codes <= SCAN_MESSAGES.keys()
+    for texts in SCAN_MESSAGES.values():
         assert texts["ro"] and texts["en"] and texts["ro"] != texts["en"]
