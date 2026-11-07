@@ -32,7 +32,9 @@ jobs:
           rm -f "${tarball}" "gitleaks_${GITLEAKS_VERSION}_checksums.txt"
 
       - name: Scan repository history
-        run: ./gitleaks detect --source . --redact --verbose --exit-code 1
+        # Scan only history reachable from HEAD (main plus this PR), not every
+        # fetched branch, so one branch's leak doesn't turn every PR red.
+        run: ./gitleaks detect --source . --log-opts="HEAD" --redact --verbose --exit-code 1
 
   tests:
     name: tests and lint
