@@ -64,6 +64,19 @@ UI = {
         "ro": "Răspunsuri AI blocate de verificarea de siguranță: {n}",
         "en": "AI answers blocked by the safety check: {n}",
     },
+    # "Open a scan file" form on the home screen (#92). The file is checked, never saved.
+    "open_heading": {"ro": "Deschide un fișier de verificare", "en": "Open a scan file"},
+    "open_label": {"ro": "Alege un fișier nmap XML", "en": "Choose an nmap XML file"},
+    "open_hint": {
+        "ro": "Îl verificăm pe acest calculator. Nu îl păstrăm în istoric.",
+        "en": "We check it on this computer. We don't keep it in your history.",
+    },
+    "open_button": {"ro": "Verifică fișierul", "en": "Check the file"},
+    "open_showing": {
+        "ro": "Vezi rezultatul pentru fișierul pe care l-ai deschis.",
+        "en": "You are looking at the result for the file you opened.",
+    },
+    "open_back": {"ro": "Înapoi la ultima verificare", "en": "Back to the latest check"},
     "no_problems": {"ro": "Nu am găsit probleme", "en": "No problems found"},
     "safe_devices": {
         "ro": "Dispozitive fără probleme ({n})",
