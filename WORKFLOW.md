@@ -118,7 +118,7 @@ gh issue view <n> --comments                                 # read an issue and
 gh issue comment <n> --body "[agent-A] claiming"             # claim
 gh issue edit <n> --add-assignee @me --add-label status:in-progress --remove-label status:ready
 gh pr create --draft --fill --body "Closes #<n>"             # draft PR from the current branch
-gh pr list --search "review-requested:@me"                   # PRs waiting for me
+gh pr list --state open                                      # open PRs; look for "status:review" issues and missing approve comments
 ```
 
 ## 9. Freeze and release
