@@ -9,6 +9,7 @@ from tool.content import (
     file_error_message,
     finding_text,
     refusal_message,
+    scan_message,
     severity_label,
 )
 from tool.content.texts import (
@@ -18,6 +19,7 @@ from tool.content.texts import (
     FINDINGS,
     GENERIC_FINDING,
     REFUSALS,
+    SCAN_MESSAGES,
     SEVERITIES,
 )
 
@@ -218,3 +220,50 @@ def test_unknown_detect_code_or_language_falls_back():
     assert detect_error_message("SOMETHING_NEW", "en") == DETECT_ERRORS["DETECT_FAILED"]["en"]
     assert detect_error_message("NO_NETWORK", "de") == DETECT_ERRORS["NO_NETWORK"]["ro"]
     assert detect_error_message("NO_NETWORK", None) == DETECT_ERRORS["NO_NETWORK"]["ro"]
+
+
+# --- live scan messages (#94, used by `tool scan` from #20) -----------------------------
+
+SCAN_CODES = (
+    "RUN_AS_ROOT",
+    "START",
+    "SELF_SKIPPED",
+    "DONE",
+    "NMAP_NOT_FOUND",
+    "NMAP_DATA_NOT_FOUND",
+    "NMAP_FAILED",
+    "NO_LIVE_HOSTS",
+    "IPV6_NOT_SUPPORTED",
+)
+
+
+@pytest.mark.parametrize("code", SCAN_CODES)
+@pytest.mark.parametrize("lang", LANGS)
+def test_scan_messages_exist_in_both_languages(code, lang):
+    assert set(SCAN_MESSAGES) == set(SCAN_CODES)
+    message = SCAN_MESSAGES[code][lang]
+    assert message.strip() and len(message) < 300
+    assert message != SCAN_MESSAGES[code]["en" if lang == "ro" else "ro"]
+
+
+def test_scan_messages_use_comma_below_diacritics():
+    for texts in SCAN_MESSAGES.values():
+        assert not re.search("[şţŞŢ]", texts["ro"])
+
+
+def test_scan_message_fills_values_as_plain_text():
+    done = scan_message("DONE", "en", path="scans/a.xml", score=25, findings=7)
+    assert "scans/a.xml" in done and "25/100" in done and "Findings: 7" in done
+    # A value that looks like a placeholder is never expanded.
+    tricky = scan_message("DONE", "en", path="{score}", score=25, findings=7)
+    assert "Scan saved: {score}." in tricky
+    # Control characters are dropped and very long values are capped.
+    assert "\x1b" not in scan_message("START", "en", targets="10.0.0.0/24\x1b[2J")
+    assert len(scan_message("START", "en", targets="x" * 5000)) < 500
+
+
+def test_scan_message_never_raises():
+    assert scan_message("SOMETHING_NEW", "en") == SCAN_MESSAGES["NMAP_FAILED"]["en"]
+    assert scan_message("IPV6_NOT_SUPPORTED", "de") == SCAN_MESSAGES["IPV6_NOT_SUPPORTED"]["ro"]
+    assert scan_message("IPV6_NOT_SUPPORTED", None) == SCAN_MESSAGES["IPV6_NOT_SUPPORTED"]["ro"]
+    assert "{" not in scan_message("DONE", "ro")  # a missing value is shown as "?"
