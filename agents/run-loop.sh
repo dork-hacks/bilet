@@ -66,19 +66,51 @@ if [[ ! -d "$WORKDIR/.git" ]]; then
   git clone -q "$url" "$WORKDIR" || exit 1
 fi
 WORKDIR="$(cd "$WORKDIR" && pwd)"
+
+# Defence in depth for the agent's clone: refuse pushes to main, branch
+# deletions, non-fast-forward pushes and branch names outside `<n>-slug`.
+# This is not a hard control (a hook can be skipped), only a safety net.
+cat > "$WORKDIR/.git/hooks/pre-push" <<'HOOK'
+#!/usr/bin/env bash
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$local_sha" == "$zero" ]]; then echo "pre-push: refusing to delete $remote_ref" >&2; exit 1; fi
+  if [[ ! "$remote_ref" =~ ^refs/heads/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
+    echo "pre-push: agents push only to <n>-slug branches, not $remote_ref" >&2; exit 1
+  fi
+  if [[ "$remote_sha" != "$zero" ]] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo "pre-push: refusing a non-fast-forward push to $remote_ref (fetch, then merge the remote branch into yours; never rebase a pushed branch)" >&2; exit 1
+  fi
+done
+exit 0
+HOOK
+chmod +x "$WORKDIR/.git/hooks/pre-push"
 REPO="$(cd "$WORKDIR" && gh repo view --json nameWithOwner --jq .nameWithOwner)" || { echo "gh can't see the repo; run gh auth login" >&2; exit 1; }
 
 TOOLS=(
   "Bash(gh issue:*)" "Bash(gh pr:*)" "Bash(gh run list:*)" "Bash(gh run view:*)"
   "Bash(gh label list:*)" "Bash(gh search:*)" "Bash(gh repo view:*)"
-  "Bash(git:*)" "Bash(python:*)" "Bash(python3:*)" "Bash(pip:*)" "Bash(pip3:*)" "Bash(uv:*)"
+  "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git fetch:*)"
+  "Bash(git add:*)" "Bash(git commit:*)" "Bash(git switch:*)" "Bash(git checkout:*)" "Bash(git branch:*)"
+  "Bash(git rebase:*)" "Bash(git merge:*)" "Bash(git pull:*)" "Bash(git push -u origin:*)"
+  "Bash(git restore:*)" "Bash(git stash:*)" "Bash(git rev-parse:*)"
+  "Bash(python:*)" "Bash(python3:*)" "Bash(pip:*)" "Bash(pip3:*)" "Bash(uv:*)"
   "Bash(pytest:*)" "Bash(make:*)" "Bash(gitleaks:*)" "Bash(ls:*)" "Bash(mkdir:*)" "Bash(date:*)"
   "Read" "Edit" "Write" "Grep" "Glob" "Skill"
 )
 DENY_TOOLS=(
   "Bash(nmap:*)" "Bash(sudo:*)" "Bash(gh issue delete:*)" "Bash(gh issue transfer:*)"
   "Bash(gh repo delete:*)" "Bash(git push --force:*)" "Bash(git push -f:*)" "Bash(git push origin main:*)"
+  "Bash(git push -u origin main:*)" "Bash(git push -u origin +*)"
+  "Bash(git push -u origin HEAD:main:*)" "Bash(git push -u origin --delete:*)" "Bash(git push -u origin -d:*)"
+  "Bash(git push -u origin --force:*)" "Bash(git push -u origin -f:*)" "Bash(git push -u origin --no-verify:*)"
+  "Bash(git push * --force*)" "Bash(git push * --no-verify*)" "Bash(git push * --delete*)" "Bash(git push *:main*)"
+  "Bash(git branch -D:*)" "Bash(git config:*)"
 )
+# The lists above only cover direct commands. They are NOT a sandbox: an allowed
+# interpreter (python, make) can still run anything. The real guards are the
+# worker prompt's hard limits, the pre-push hook below, and branch protection
+# on `main` in GitHub (a repo admin has to turn that on).
 if [[ -n "$AGENT_EXTRA_TOOLS" ]]; then
   IFS=',' read -r -a extra <<< "$AGENT_EXTRA_TOOLS"
   TOOLS+=("${extra[@]}")

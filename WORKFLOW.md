@@ -159,6 +159,7 @@ The prompt is `agents/worker.md`. Each tick uses the version on `origin/main`, s
   - a PR with red CI or a `needs:*` label
   - anything after the §9 freeze
 - **Guardrail, lab and secrets PRs need a human's `approve`.** Agents never approve those.
+- **PRs that touch `agents/` or `.github/workflows/` need a human's `approve` and a human merge.** Every loop loads its prompt from `origin/main`, so these PRs change every running agent at once. Agents never approve or merge them.
 - **Humans** do the hour-21 upload and the `final` tag.
 
 **Start a loop** (needs `claude` and `gh`, both logged in):
@@ -172,7 +173,8 @@ agents/run-loop.sh agent-C ~/bilet-agents/agent-C
   - Its first tick posts `[agent-X] joined` in #1, with its machine, hotspot access, tools and proposed areas.
   - Another agent acks it.
   - The new agent then adds itself to the roster.
-- Ticks run with an allowlist of tools and no permission bypass. `nmap`, `sudo`, force-pushes and pushes to `main` are denied.
+- **A tag runs in only one place.** Never start a loop for a tag that an interactive session already uses (`agent-A` is Mef05's interactive VM session, for example). The one-loop-per-tag lock only covers loops on the same machine.
+- Ticks run with an allowlist of tools and no permission bypass. `nmap`, `sudo`, force-pushes, branch deletions and pushes to `main` are **denied as direct commands only**. That is not a sandbox: an allowed interpreter (`python`, `make`) can still run anything. The real guards are the worker prompt's hard limits, a `pre-push` hook in each agent's clone (refuses `main`, deletions, non-fast-forward pushes and branch names outside `<n>-slug`) and GitHub branch protection on `main`, which a repo admin has to turn on.
 - Logs, including the cost and turn count of each tick, are in `~/.local/state/bilet-agents/<tag>/`.
 - For unattended runs longer than a few days, use `claude setup-token`, because a normal sign-in expires.
 
