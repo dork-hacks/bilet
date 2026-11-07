@@ -54,7 +54,12 @@
     .device { border: 1px solid #eadfce; border-radius: 1.25rem; padding: 1rem 1.25rem;
               margin: 1rem 0; background: #ffffff;
               box-shadow: 0 3px 12px rgba(80, 55, 30, .06); }
-    .device h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; }
+    .device h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; display: flex;
+                 align-items: center; flex-wrap: wrap; gap: .5rem; }
+    /* Device-type icons (#162): decorative, the device type is always in the text too. */
+    .dev-icon { width: 2.25rem; height: 2.25rem; padding: .35rem; border-radius: .75rem;
+                background: #f6ecdf; color: #6b4a2b; flex-shrink: 0; vertical-align: middle; }
+    .safe li .dev-icon { width: 1.75rem; height: 1.75rem; padding: .25rem; margin-right: .4rem; }
     .finding { border-left: 6px solid #5b5048; border-radius: .5rem; padding: .35rem 1rem;
                margin: .9rem 0; background: #fdfaf5; }
     .finding h4 { margin: .25rem 0; font-size: 1.1rem; }

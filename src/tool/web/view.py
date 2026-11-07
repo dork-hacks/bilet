@@ -67,6 +67,7 @@ class DeviceItem:
     hostname: str | None  # RAW, escaped by the template
     risk_points: int
     findings: tuple[FindingItem, ...] = ()
+    device_type: str = "unknown"  # the rules' guess, picks the small icon (#162)
 
 
 @dataclass(frozen=True)
@@ -219,6 +220,7 @@ def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[
             hostname=device.get("hostname"),
             risk_points=int(device.get("risk_points", 0)),
             findings=tuple(_finding_item(f, lang) for f in own),
+            device_type=device.get("device_type_guess", "unknown"),
         )
         (risky if item.findings else safe).append(item)
     risky.sort(key=lambda d: -d.risk_points)
