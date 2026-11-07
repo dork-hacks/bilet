@@ -192,25 +192,5 @@
       {% endif %}
     </section>
   </main>
-  {# The score counts up on load (#162). The page already shows the real number, so this
-     is only decoration: it is skipped for prefers-reduced-motion and without JavaScript. #}
-  <script>
-    (function () {
-      var el = document.querySelector(".score .number");
-      if (!el || !window.matchMedia ||
-          !window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
-      var target = parseInt(el.textContent, 10);
-      if (!(target > 0)) return;
-      var start = null, ms = 900;
-      function step(now) {
-        if (start === null) start = now;
-        var t = Math.min(1, (now - start) / ms);
-        el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
-        if (t < 1) window.requestAnimationFrame(step);
-      }
-      el.textContent = "0";
-      window.requestAnimationFrame(step);
-    })();
-  </script>
 </body>
 </html>

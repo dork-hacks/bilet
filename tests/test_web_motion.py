@@ -1,6 +1,5 @@
 """Gentle motion (#162 part 2): decoration only, and off for prefers-reduced-motion."""
 
-import re
 from pathlib import Path
 
 import pytest
@@ -38,14 +37,16 @@ def test_every_animation_and_transition_sits_behind_the_reduced_motion_guard():
         assert word not in rest, word
 
 
-def test_the_score_is_in_the_page_before_any_script_runs():
+@pytest.mark.parametrize("lang", ["en", "ro"])
+def test_the_real_score_stays_visible_and_accessible_without_a_count_up(lang):
     client = TestClient(create_app(lambda: scan("V6a_before.xml")))
-    html = client.get("/", params={"lang": "en"}).text
+    html = client.get("/", params={"lang": lang}).text
     score = scan("V6a_before.xml")["score"]
     assert f'<span class="number">{score}</span>' in html
-    script = html[html.index("<script>") : html.index("</script>")]
-    assert "prefers-reduced-motion: no-preference" in script
-    assert not re.search(r"\b(fetch|XMLHttpRequest|innerHTML|eval)\b", script)
+    # The numeric score remains ordinary accessible text throughout page load.
+    # Motion is CSS-only: no script may replace it with zero/intermediate values.
+    assert "<script" not in html
+    assert f'<span class="number" aria-hidden="true">{score}</span>' not in html
 
 
 @pytest.mark.parametrize("lang", ["en", "ro"])
