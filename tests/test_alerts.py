@@ -96,3 +96,26 @@ def test_analyze_save_prints_the_alerts(tmp_path, monkeypatch, capsys, lang, wor
     out = capsys.readouterr().out
     assert "saved 2 scans" in out and word in out and "NEW_OPEN_PORT" in out
     assert len(History(tmp_path / "data").scans()) == 2
+
+
+def test_save_stores_unreadable_files_as_error_rows(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("TOOL_DATA_DIR", str(tmp_path / "data"))
+    scans = tmp_path / "scans"
+    scans.mkdir()
+    for name in ("V6b_after.xml", "V7_broken.xml"):
+        (scans / name).write_bytes((VALIDATION / name).read_bytes())
+    assert main(["analyze", str(scans), "--out", str(tmp_path / "out"), "--save"]) == 0
+    rows = {s.file: s.status for s in History(tmp_path / "data").scans()}
+    assert rows == {"V6b_after.xml": "ok", "V7_broken.xml": "error"}
+
+
+def test_save_leaves_the_csvs_byte_identical(tmp_path, monkeypatch):
+    # #75: the Test Set upload must not change because the history is on.
+    monkeypatch.setenv("TOOL_DATA_DIR", str(tmp_path / "data"))
+    main(["analyze", str(VALIDATION), "--out", str(tmp_path / "plain")])
+    main(["analyze", str(VALIDATION), "--out", str(tmp_path / "saved"), "--save"])
+    for name in ("findings.csv", "scores.csv"):
+        assert (tmp_path / "plain" / name).read_bytes() == (tmp_path / "saved" / name).read_bytes()
+        assert (tmp_path / "saved" / name).read_bytes() == (
+            VALIDATION / f"expected_{name}"
+        ).read_bytes()

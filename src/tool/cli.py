@@ -95,15 +95,17 @@ _ALERT_TEXT = {
 
 
 def save_and_alert(results: list, lang: str) -> None:
-    """Store readable results in the history and print what appeared since the last scan."""
+    """Store every result in the history (unreadable ones as error rows, which are never
+    compared) and print what appeared since the previous readable scan."""
     from tool.history import History
 
     history = History()
-    ids = [history.add(r) for r in results if r.status == "ok"]
+    ids = [history.add(r) for r in results]
     print(f"saved {len(ids)} scans to the local history")
-    if not ids:
+    readable = [i for i, r in zip(ids, results, strict=True) if r.status == "ok"]
+    if not readable:
         return
-    newest = max(ids, key=[s.id for s in history.scans()].index)
+    newest = max(readable, key=[s.id for s in history.scans()].index)
     for alert in history.alerts_for(newest):
         text = _ALERT_TEXT[alert.code][lang]
         print(text.format(ip=alert.ip, port=alert.port, protocol=alert.protocol), f"({alert.code})")
