@@ -128,6 +128,10 @@ def run_nmap(args: list[str], on_progress: Progress | None = None) -> bytes:
 def nmap_binary() -> str:
     """The nmap to run with sudo: the first system install in _NMAP_PATHS, else the one on
     PATH, but never one that this user could have replaced (#119, agent-A's review of #93).
+
+    This stops an `nmap` planted earlier in PATH. Homebrew's bin folders are owned by the
+    user, so a Homebrew nmap is only as trusted as the user's own account: refusing it
+    would make scanning impossible on a Mac.
     """
     for path in _NMAP_PATHS:
         if os.path.isfile(path) and os.access(path, os.X_OK):

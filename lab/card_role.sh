@@ -112,7 +112,13 @@ cat > "$MNT/lab-firstrun.sh" <<'EOF'
 #!/bin/bash
 B=/boot/firmware
 cleanup() {
-  sed -i -E 's/ ?systemd\.(run|run_success_action|run_failure_action)=[^ ]*//g; s/ ?systemd\.unit=kernel-command-line\.target//' "$B/cmdline.txt"
+  # No in-place sed: BSD sed (macOS, where the tests also run) reads -E as its backup suffix.
+  # cmdline.txt is replaced only when the edit worked and left a non-empty line.
+  if sed -E 's/ ?systemd\.(run|run_success_action|run_failure_action)=[^ ]*//g; s/ ?systemd\.unit=kernel-command-line\.target//' "$B/cmdline.txt" > "$B/cmdline.txt.tmp" && [[ -s $B/cmdline.txt.tmp ]]; then
+    mv -f "$B/cmdline.txt.tmp" "$B/cmdline.txt"
+  else
+    rm -f "$B/cmdline.txt.tmp"
+  fi
   rm -rf "$B/lab" "$B/lab-firstrun.sh"
   sync
 }
