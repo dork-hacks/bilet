@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ ui.page_title }} · {{ display_name }}</title>
 {% include "_style.html" %}
+{% from "_icons.html" import device_icon %}
 </head>
 <body>
   <a class="skip" href="#main">{{ ui.score_heading }}</a>
@@ -118,7 +119,7 @@
       {% if view.devices %}<p>{{ ui.devices_intro }}</p>{% endif %}
       {% for device in view.devices %}
       <article class="device" id="{{ device.anchor }}" aria-labelledby="{{ device.anchor }}-h">
-        <h3 id="{{ device.anchor }}-h">{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
+        <h3 id="{{ device.anchor }}-h">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
           <span class="muted">· {{ ui.points.replace("{n}", device.risk_points|string) }}</span></h3>
         {% if device.hostname or device.mac_masked %}
         <p class="muted">
@@ -152,7 +153,7 @@
         <summary>{{ ui.safe_devices.replace("{n}", view.safe_devices|length|string) }}</summary>
         <ul>
           {% for device in view.safe_devices %}
-          <li id="{{ device.anchor }}">{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}{% if device.hostname %}
+          <li id="{{ device.anchor }}">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}{% if device.hostname %}
             (<span class="muted">{{ device.hostname }}</span>){% endif %}: {{ ui.no_problems }}</li>
           {% endfor %}
         </ul>
