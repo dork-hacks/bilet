@@ -60,24 +60,32 @@ UI = {
     "map_heading": {"ro": "Harta rețelei tale", "en": "Your network map"},
     "map_intro": {
         "ro": (
-            "Fiecare cutie este un dispozitiv din casa ta. Liniile arată cum se leagă de "
-            "router. Culoarea, semnul și textul arată cât de grav este."
+            "Harta grupează dispozitivele în jurul routerului; liniile nu sunt cabluri reale. "
+            "Culoarea, semnul și cuvintele arată cât de gravă este o problemă."
         ),
         "en": (
-            "Each box is a device in your home. The lines show how it links to your router. "
-            "The colour, the sign and the words show how serious it is."
+            "The map groups devices around your router; the lines are not real cables. "
+            "The colour, sign and words show how serious a problem is."
         ),
     },
     "map_how": {
-        "ro": (
-            "Trage cu mouse-ul sau cu degetul ca să rotești harta. Folosește rotița sau "
-            "două degete ca să o mărești. Apasă pe un dispozitiv ca să vezi ce are."
-        ),
-        "en": (
-            "Drag with the mouse or a finger to turn the map. Use the wheel or two fingers "
-            "to zoom. Press a device to see what is wrong with it."
-        ),
+        "ro": "Trage pentru rotire. Alege un dispozitiv pentru detalii.",
+        "en": "Drag to explore. Select a device for details.",
     },
+    "map_fullscreen": {"ro": "Ecran complet", "en": "Full screen"},
+    "map_exit_fullscreen": {"ro": "Închide ecranul complet", "en": "Exit full screen"},
+    "map_focus": {"ro": "Arată dispozitivul de aproape", "en": "Zoom to this device"},
+    "map_selected": {"ro": "Dispozitiv selectat", "en": "Selected device"},
+    "map_inspector": {"ro": "Detalii și dispozitive", "en": "Device details and search"},
+    "map_search": {"ro": "Găsește un dispozitiv", "en": "Find a device"},
+    "map_search_hint": {"ro": "Nume, adresă sau tip", "en": "Name, address or type"},
+    "map_count": {"ro": "{shown} din {total} dispozitive", "en": "{shown} of {total} devices"},
+    "map_no_matches": {
+        "ro": "Niciun dispozitiv găsit. Încearcă alt nume sau adresă.",
+        "en": "No devices found. Try another name or address.",
+    },
+    "map_previous": {"ro": "Pagina anterioară", "en": "Previous devices"},
+    "map_next": {"ro": "Pagina următoare", "en": "Next devices"},
     "map_keys": {
         "ro": "Cu tastatura: săgețile rotesc harta, iar + și - o măresc sau o micșorează.",
         "en": "With the keyboard: the arrow keys turn the map, and + and - zoom in and out.",

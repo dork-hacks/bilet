@@ -1,28 +1,14 @@
-// The home screen's 3D network map (#170), in the spirit of Cisco Packet Tracer: the
-// router in the middle, every device linked to it by a cable, each one drawn by its type
-// and coloured by its worst problem.
-//
-// Progressive enhancement: the page already has the same map as a plain list. This script
-// only adds the 3D view on top when WebGL works, and a switch back to the list. All text
-// comes from the page's JSON (built by tool.web.map_view) and is written with textContent,
-// never as HTML: hostnames are attacker-controlled (NFR-03).
+// Local-only progressive enhancement of the server-rendered device list. All scan
+// strings are textContent, and no network requests or measured-traffic claims are made.
 import * as THREE from "./vendor/three-0.170.0.module.min.js";
+import { buildModel } from "./netmap-models.js";
+import { layoutNodes, matchesDevice } from "./netmap-layout.js";
 
 const section = document.getElementById("network-map");
 const dataTag = document.getElementById("netmap-data");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-// Level colours: the same hues as the chips in _style.html, a little lighter for 3D.
-const LEVEL_COLOURS = {
-  high: 0xc4473d,
-  medium: 0xc98a1e,
-  low: 0x3f7fb5,
-  none: 0x4f9a58,
-};
-const CHIP_COLOURS = { high: 0xa8322a, medium: 0x8a5300, low: 0x1d5a8a, none: 0x2e6b34 };
-const HUB_NEUTRAL = 0x0f5c57;
-const DARK = 0x2b2420;
-const LIGHT = 0xf4efe8;
+const COLOURS = { high: 0xa8322a, medium: 0x8a5300, low: 0x1d5a8a, none: 0x2e6b34 };
+const ACCENT = 0x0f5c57;
 
 function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -34,640 +20,460 @@ function el(tag, props = {}, children = []) {
   for (const child of children) if (child) node.append(child);
   return node;
 }
-
 function webglWorks() {
   try {
-    const canvas = document.createElement("canvas");
-    return !!(window.WebGLRenderingContext &&
-      (canvas.getContext("webgl2") || canvas.getContext("webgl")));
-  } catch {
-    return false;
-  }
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2");
+    if (!gl) return false;
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
+  } catch { return false; }
 }
-
-// ---- device models: simple shapes from primitives, one per device type -------------------
-
-function mat(colour, opts = {}) {
-  return new THREE.MeshStandardMaterial({ color: colour, roughness: 0.55, metalness: 0.05, ...opts });
-}
-
-function box(w, h, d, material, x = 0, y = 0, z = 0) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.set(x, y, z);
-  return mesh;
-}
-
-function cyl(rt, rb, h, material, x = 0, y = 0, z = 0, seg = 24) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), material);
-  mesh.position.set(x, y, z);
-  return mesh;
-}
-
-// Builds the model for `type` in `colour`. The model faces +z; the caller turns it to
-// face the router. Returns [group, height].
-function buildModel(type, colour) {
-  const g = new THREE.Group();
-  const body = mat(colour);
-  const dark = mat(DARK, { roughness: 0.4 });
-  const light = mat(LIGHT);
-  let height = 1;
-  switch (type) {
-    case "router": {
-      g.add(box(1.7, 0.36, 1.05, body, 0, 0.18, 0));
-      g.add(cyl(0.05, 0.05, 0.9, dark, -0.6, 0.75, -0.35));
-      g.add(cyl(0.05, 0.05, 0.9, dark, 0.6, 0.75, -0.35));
-      for (let i = 0; i < 4; i++) g.add(box(0.1, 0.06, 0.02, light, -0.45 + i * 0.3, 0.2, 0.53));
-      height = 1.25;
-      break;
-    }
-    case "camera": {
-      g.add(cyl(0.35, 0.42, 0.12, dark, 0, 0.06, 0));
-      g.add(cyl(0.07, 0.07, 0.55, dark, 0, 0.38, 0));
-      const head = new THREE.Group();
-      head.add(box(0.6, 0.5, 1.0, body));
-      head.add(cyl(0.2, 0.2, 0.18, dark, 0, 0, 0.56).rotateX(Math.PI / 2));
-      head.add(cyl(0.12, 0.12, 0.02, mat(0x5a8bb0, { metalness: 0.4 }), 0, 0, 0.66).rotateX(Math.PI / 2));
-      head.position.set(0, 0.85, 0);
-      head.rotation.x = 0.25;
-      g.add(head);
-      height = 1.2;
-      break;
-    }
-    case "server":
-    case "nas": {
-      const tall = type === "server" ? 1.5 : 1.0;
-      g.add(box(0.8, tall, 1.0, body, 0, tall / 2, 0));
-      const slots = type === "server" ? 4 : 2;
-      for (let i = 0; i < slots; i++) {
-        g.add(box(0.6, 0.06, 0.02, dark, 0, 0.25 + i * (tall - 0.4) / Math.max(1, slots - 1), 0.51));
-        g.add(box(0.06, 0.06, 0.02, light, 0.32, 0.25 + i * (tall - 0.4) / Math.max(1, slots - 1), 0.51));
-      }
-      height = tall;
-      break;
-    }
-    case "iot_hub": {
-      g.add(cyl(0.6, 0.65, 0.35, body, 0, 0.175, 0, 40));
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.58, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), light);
-      dome.position.y = 0.35;
-      g.add(dome);
-      g.add(new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.04, 8, 48), dark).rotateX(Math.PI / 2).translateZ(-0.35));
-      height = 1.0;
-      break;
-    }
-    case "pc": {
-      g.add(box(1.4, 0.9, 0.08, body, 0, 0.95, 0));
-      g.add(box(1.25, 0.75, 0.02, dark, 0, 0.95, 0.05));
-      g.add(cyl(0.06, 0.06, 0.45, dark, 0, 0.35, -0.05));
-      g.add(box(0.6, 0.06, 0.4, dark, 0, 0.03, 0));
-      height = 1.45;
-      break;
-    }
-    case "phone": {
-      g.add(box(0.7, 0.12, 0.5, dark, 0, 0.06, 0));
-      const phone = box(0.5, 0.95, 0.07, body, 0, 0.6, 0);
-      phone.rotation.x = -0.2;
-      g.add(phone);
-      height = 1.1;
-      break;
-    }
-    case "tv": {
-      g.add(box(1.8, 1.05, 0.08, body, 0, 0.75, 0));
-      g.add(box(1.65, 0.92, 0.02, dark, 0, 0.75, 0.05));
-      g.add(box(0.1, 0.25, 0.3, dark, -0.6, 0.12, 0));
-      g.add(box(0.1, 0.25, 0.3, dark, 0.6, 0.12, 0));
-      height = 1.3;
-      break;
-    }
-    case "printer": {
-      g.add(box(1.1, 0.55, 0.85, body, 0, 0.275, 0));
-      g.add(box(0.75, 0.4, 0.04, light, 0, 0.7, -0.25).rotateX(-0.2));
-      g.add(box(0.8, 0.05, 0.3, dark, 0, 0.35, 0.44));
-      height = 1.0;
-      break;
-    }
-    default: {
-      const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 1), body);
-      ball.position.y = 0.6;
-      g.add(ball);
-      height = 1.2;
-    }
-  }
-  g.traverse((m) => {
-    if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
-  });
-  return [g, height];
-}
-
-// ---- the map ----------------------------------------------------------------------------
 
 function start(data) {
-  const wrap3d = section.querySelector(".netmap-3d");
+  const wrap = section.querySelector(".netmap-3d");
   const stage = section.querySelector(".netmap-stage");
   const detail = section.querySelector(".netmap-detail");
   const list = section.querySelector(".netmap-list");
   const switcher = section.querySelector(".netmap-switch");
+  const directory = section.querySelector(".netmap-directory");
+  const search = section.querySelector(".netmap-search");
+  const results = section.querySelector(".netmap-results");
+  const count = section.querySelector(".netmap-count");
+  const previous = section.querySelector("[data-page=previous]");
+  const next = section.querySelector("[data-page=next]");
+  const pageInfo = section.querySelector(".netmap-page-info");
+  const panelLinks = section.querySelector(".netmap-panel-links");
+  const detailsShortcut = section.querySelector(".netmap-details-shortcut");
+  const searchShortcut = section.querySelector(".netmap-search-shortcut");
+  const fullscreen = section.querySelector(".netmap-fullscreen");
   const icons = document.getElementById("netmap-icons");
   const T = data.text;
-
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  } catch {
-    return; // no WebGL after all: the list stays
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled = true;
+  const layout = layoutNodes(data.nodes.length);
+  const large = data.nodes.length > 32;
+  let renderer, contextLost = false;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+  catch { return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, large ? 1 : 1.75));
+  renderer.shadowMap.enabled = !large;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
   const canvas = renderer.domElement;
   canvas.setAttribute("role", "img");
   canvas.setAttribute("aria-label", T.map_canvas_label);
   stage.append(canvas);
-  stage.setAttribute("tabindex", "0");
+  stage.tabIndex = 0;
   stage.setAttribute("aria-label", T.map_canvas_label);
+  stage.setAttribute("aria-describedby", "map-instructions");
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
-  scene.add(new THREE.HemisphereLight(0xfffaf0, 0xb8a58c, 1.6));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-  sun.position.set(6, 12, 8);
-  sun.castShadow = true;
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd1d8d3, 1.9));
+  const sun = new THREE.DirectionalLight(0xfff4df, 2.4);
+  sun.position.set(-4, 12, 7);
+  sun.castShadow = !large;
   sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14 });
-  scene.add(sun);
+  const span = layout.radius + 3;
+  Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span });
+  sun.shadow.normalBias = 0.035; sun.shadow.bias = -0.0003;
+  sun.shadow.camera.updateProjectionMatrix(); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xcce4df, 1.5);
+  fill.position.set(5, 6, -4); scene.add(fill);
 
-  // Devices go round the router. The most dangerous one (first in the data) faces the
-  // camera, the rest are spread evenly, so the layout is the same on every load.
-  const nodes = data.nodes;
-  const radius = Math.max(4.2, nodes.length * 0.85);
-  const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(radius + 2.2, 64),
-    mat(0xf1e6d6, { roughness: 0.95 }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
-  for (const r of [radius * 0.5, radius]) {
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(r - 0.02, r + 0.02, 96),
-      new THREE.MeshBasicMaterial({ color: 0xd9c9b2 }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.005;
-    scene.add(ring);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(layout.radius + 2, 96),
+    new THREE.MeshStandardMaterial({ color: 0xeeeae1, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  const entries = [], pickables = [], edges = [];
+  const plinthGeometry = new THREE.CylinderGeometry(1.04, 1.09, 0.12, 48);
+  const ringGeometry = new THREE.RingGeometry(1.06, 1.105, 48);
+  const plinthMaterial = new THREE.MeshStandardMaterial({ color: 0xe0e3dc, roughness: 0.8 });
+
+  function iconFor(kind) {
+    const match = icons?.content.querySelector(`[data-kind="${CSS.escape(kind)}"]`);
+    return match?.querySelector("svg")?.cloneNode(true) || null;
   }
-
-  const entries = []; // { node, group, pos, height, label, ring, isHub }
-  const pickables = [];
-
-  function addDevice(node, pos, isHub) {
-    const colour = node ? LEVEL_COLOURS[node.level.key] : HUB_NEUTRAL;
-    const [group, height] = buildModel(node ? node.type : "router", colour);
-    group.position.copy(pos);
-    // Devices face away from the router, towards whoever looks at the map.
-    if (!isHub) group.lookAt(pos.x * 2, 0, pos.z * 2);
-    group.scale.setScalar(isHub ? 1.25 : 1);
-    scene.add(group);
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.95, 1.15, 48),
-      new THREE.MeshBasicMaterial({
-        color: node ? CHIP_COLOURS[node.level.key] : HUB_NEUTRAL, transparent: true, opacity: 0.85,
-      }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(pos.x, 0.01, pos.z);
-    ring.scale.setScalar(isHub ? 1.35 : 1);
-    scene.add(ring);
-    const entry = { node, group, pos, height: height * (isHub ? 1.25 : 1), ring, isHub };
-    group.traverse((m) => { if (m.isMesh) { m.userData.entry = entry; pickables.push(m); } });
+  function chip(level) {
+    return el("span", { className: `lvl lvl-${level.key}` }, [
+      el("span", { "aria-hidden": "true", text: level.icon }), " ",
+      el("span", { className: "lvl-word", text: level.label }),
+    ]);
+  }
+  function addDevice(node, x, z, isHub) {
+    const color = node ? COLOURS[node.level.key] : ACCENT;
+    const [group, height] = buildModel(node?.type || "router", color, large);
+    group.position.set(x, 0.13, z); group.rotation.y = 0.28;
+    const plinth = new THREE.Mesh(plinthGeometry, plinthMaterial);
+    plinth.position.set(x, 0.06, z); plinth.receiveShadow = true; scene.add(plinth);
+    const ring = new THREE.Mesh(ringGeometry,
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.65, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.131, z); scene.add(ring, group);
+    const entry = { node, group, ring, height, pos: new THREE.Vector3(x, 0, z), isHub };
+    group.traverse(m => { if (m.isMesh) { m.userData.entry = entry; pickables.push(m); } });
     entries.push(entry);
     return entry;
   }
-
-  const hubEntry = addDevice(data.hub, new THREE.Vector3(0, 0, 0), true);
-  const cables = [];
-  // The first node sits in front, the next ones alternate right and left of it, at most
-  // about 63 degrees apart: a few devices fan out in front of the router instead of
-  // hiding behind it, and many devices still close the full circle.
-  const step = Math.min((Math.PI * 2) / Math.max(1, nodes.length), 1.1);
-  nodes.forEach((node, i) => {
-    const slot = i === 0 ? 0 : Math.ceil(i / 2) * (i % 2 ? 1 : -1);
-    const angle = Math.PI / 2 - slot * step;
-    const pos = new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-    // The most dangerous device starts in front: +z points at the camera's start.
-    const entry = addDevice(node, pos, false);
+  const hub = addDevice(data.hub, 0, 0, true);
+  for (let i = 0; i < data.nodes.length; i++) {
+    const { x, z } = layout.points[i];
+    const entry = addDevice(data.nodes[i], x, z, false);
     const curve = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(0, 0.3, 0),
-      new THREE.Vector3(pos.x / 2, 0.9, pos.z / 2),
-      new THREE.Vector3(pos.x, 0.3, pos.z),
-    );
-    const cable = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 40, node.level.key === "none" ? 0.045 : 0.07, 8),
-      mat(CHIP_COLOURS[node.level.key], { roughness: 0.7 }),
-    );
-    cable.castShadow = true;
-    scene.add(cable);
-    const packet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 16, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffffff }),
-    );
-    packet.visible = false;
-    scene.add(packet);
-    cables.push({ curve, packet, offset: i / Math.max(1, nodes.length), entry });
-  });
-
-  // ---- labels: one real button per device, laid over the canvas -----------------------
-
-  function iconFor(kind) {
-    const holder = icons && icons.content.querySelector(`[data-kind="${CSS.escape(kind)}"]`);
-    const fallback = icons && icons.content.querySelector('[data-kind="unknown"]');
-    const svg = (holder || fallback)?.querySelector("svg");
-    return svg ? svg.cloneNode(true) : null;
+      new THREE.Vector3(0, 0.07, 0), new THREE.Vector3(x * 0.4 - z * 0.08, 0.07, z * 0.4),
+      new THREE.Vector3(x, 0.07, z));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(24)),
+      new THREE.LineBasicMaterial({ color: 0x7b9691, transparent: true, opacity: 0.4 }));
+    scene.add(line); edges.push({ line, entry });
   }
 
-  function chip(level) {
-    const span = el("span", { className: `lvl lvl-${level.key}` });
-    span.append(
-      el("span", { "aria-hidden": "true", text: level.icon }),
-      " ",
-      el("span", { className: "lvl-word", text: level.label }),
-    );
-    return span;
+  let selected = null, page = 0, query = "", touched = false;
+  let frameId = 0, dirty = true, visible = true, alive = true;
+  const PAGE_SIZE = 10;
+  const initial = { theta: 0.26, phi: 0.78, dist: 20 };
+  const view = { ...initial, target: new THREE.Vector3() };
+  const goal = { ...initial, target: new THREE.Vector3() };
+  function jump() { Object.assign(view, { theta: goal.theta, phi: goal.phi, dist: goal.dist }); view.target.copy(goal.target); }
+  function requestFrame() {
+    dirty = true;
+    if (alive && !frameId) frameId = requestAnimationFrame(frame);
   }
+  function clampView() {
+    goal.phi = Math.max(0.28, Math.min(1.25, goal.phi));
+    goal.dist = Math.max(4.5, Math.min(initial.dist * 2.4, goal.dist));
+  }
+  function focus(entry) {
+    touched = true;
+    goal.target.set(entry.pos.x, 0.5, entry.pos.z);
+    goal.dist = stage.clientWidth < 480 ? 8.5 : 7;
+    goal.phi = 0.88;
+    if (reduceMotion.matches) jump();
+    requestFrame();
+  }
+  function showDetail(entry) {
+    detail.replaceChildren();
+    detail.scrollTop = 0;
+    if (!entry.node) { detail.append(el("h3", { text: T.map_hub_virtual })); return; }
+    const node = entry.node;
+    detail.append(el("p", { className: "nm-eyebrow", text: T.map_selected }));
+    const heading = el("h3", {}, [iconFor(node.type), el("span", { text: node.type_label })]);
+    detail.append(heading, chip(node.level));
+    if (node.worst) detail.append(el("p", { className: "nm-priority", text: T.map_most_dangerous }));
+    const facts = el("dl");
+    for (const [label, value] of [[T.map_name, node.name], [T.map_ip, node.ip], [T.map_mac, node.mac]]) {
+      if (value) facts.append(el("dt", { text: label }), el("dd", { text: value }));
+    }
+    detail.append(facts);
+    if (node.findings.length) {
+      const findings = el("ul", { className: "nm-findings" });
+      for (const f of node.findings) {
+        const item = el("li", {}, [el("span", { className: "tag", text: f.severity_label }),
+          el("span", { text: f.title })]);
+        if (f.port) item.append(el("span", { className: "muted", text: T.port.replace("{port}", f.port) }));
+        findings.append(item);
+      }
+      detail.append(findings);
+    } else detail.append(el("p", { text: T.map_no_findings }));
+    const actions = el("div", { className: "nm-detail-actions" });
+    const focusButton = el("button", { type: "button", text: T.map_focus });
+    focusButton.addEventListener("click", () => {
+      focus(entry); stage.scrollIntoView({ block: "center", behavior: "instant" });
+      stage.focus({ preventScroll: true });
+    });
+    const link = el("a", { href: `#${node.id}`, text: node.has_problems ? T.map_go_problems : T.map_go_device });
+    link.addEventListener("click", async () => {
+      if (document.fullscreenElement === section) await document.exitFullscreen();
+      section.classList.remove("is-expanded"); syncFullscreen();
+    });
+    focusButton.className = "nm-focus-action";
+    detail.insertBefore(focusButton, facts);
+    actions.append(link); detail.append(actions);
+  }
+  function select(entry, move = false) {
+    selected = entry;
+    for (const e of entries) {
+      e.label?.setAttribute("aria-pressed", String(e === entry));
+      e.ring.scale.setScalar(e === entry ? 1.17 : 1);
+      e.ring.material.opacity = e === entry ? 1 : 0.45;
+    }
+    for (const edge of edges) {
+      edge.line.material.color.setHex(edge.entry === entry ? ACCENT : 0x7b9691);
+      edge.line.material.opacity = edge.entry === entry ? 0.95 : 0.25;
+    }
+    detailsShortcut.textContent = entry.node
+      ? `${T.map_selected}: ${entry.node.type_label}` : T.map_selected;
+    showDetail(entry); renderDirectory();
+    if (move) focus(entry);
+    requestFrame();
+  }
+
+  // The directory is the complete keyboard route into even a 250-device network.
+  // Only ten rows are mounted at once; searching never removes a device from the map.
+  function renderDirectory() {
+    const found = entries.filter(e => e.node && matchesDevice(e.node, query));
+    const pages = Math.max(1, Math.ceil(found.length / PAGE_SIZE));
+    page = Math.max(0, Math.min(page, pages - 1));
+    const scrollTop = results.scrollTop;
+    const activeRow = results.contains(document.activeElement) ? document.activeElement.dataset.device : null;
+    results.replaceChildren();
+    for (const entry of found.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)) {
+      const node = entry.node;
+      const row = el("button", { type: "button", className: "nm-device-row",
+        "data-device": node.id, "aria-pressed": String(entry === selected),
+        "aria-label": `${node.type_label}, ${node.ip}. ${node.level.label}.` }, [
+        iconFor(node.type), el("span", { className: "nm-row-name" }, [
+          el("strong", { text: node.type_label }), el("span", { text: node.name ? `${node.ip} · ${node.name}` : node.ip }),
+        ]), el("span", { className: `nm-row-status lvl-${node.level.key}`, text: node.level.icon,
+          "aria-hidden": "true" }),
+      ]);
+      row.addEventListener("click", () => {
+        select(entry, true);
+        detail.scrollIntoView({ block: "nearest", behavior: "instant" });
+      });
+      results.append(el("li", {}, [row]));
+    }
+    results.scrollTop = scrollTop;
+    if (activeRow) results.querySelector(`[data-device="${CSS.escape(activeRow)}"]`)?.focus({ preventScroll: true });
+    if (!found.length) results.append(el("li", { className: "nm-no-results", text: T.map_no_matches }));
+    count.textContent = T.map_count.replace("{shown}", String(found.length)).replace("{total}", String(entries.filter(e => e.node).length));
+    pageInfo.textContent = `${page + 1} / ${pages}`;
+    previous.disabled = page === 0; next.disabled = page === pages - 1;
+  }
+  search.addEventListener("input", () => { query = search.value; page = 0; renderDirectory(); });
+  previous.addEventListener("click", () => { page--; renderDirectory(); });
+  next.addEventListener("click", () => { page++; renderDirectory(); });
 
   for (const entry of entries) {
+    // Dense maps keep the worst device, selection and gateway eligible for labels.
     const node = entry.node;
-    const button = el("button", { type: "button", className: "nm-label", "aria-pressed": "false" });
-    if (node) {
-      button.classList.add(`lvl-${node.level.key}-b`);
-      const text = el("span", { className: "nm-text" }, [
-        el("span", { className: "nm-type", text: node.type_label }),
-        chip(node.level),
-        node.worst ? el("span", { className: "worst", text: T.map_most_dangerous }) : null,
-      ]);
-      button.append(iconFor(node.type) || "", text);
-      // The button's name: what a screen reader says on focus.
-      button.setAttribute(
-        "aria-label",
-        `${node.type_label}, ${node.ip}. ${node.level.label}.` +
-          (node.worst ? ` ${T.map_most_dangerous}.` : ""),
-      );
-    } else {
-      button.append(iconFor("router") || "", el("span", { className: "nm-type", text: T.map_hub_virtual }));
-    }
-    button.addEventListener("click", () => select(entry, true));
-    button.addEventListener("focus", () => select(entry, false));
-    stage.append(button);
-    entry.label = button;
+    const label = el("button", { type: "button", className: "nm-label", "aria-pressed": "false",
+      "aria-label": node ? `${node.type_label}, ${node.ip}. ${node.level.label}.` : T.map_hub_virtual }, [
+      el("span", { className: "nm-status-dot", "aria-hidden": "true", text: node?.level.icon || "⌂" }),
+      el("span", { className: "nm-text" }, [
+        el("span", { className: "nm-type", text: node?.type_label || T.map_hub_virtual }),
+        el("span", { className: "nm-address", text: node?.ip || "" }),
+        node ? chip(node.level) : null,
+        node?.worst ? el("span", { className: "nm-worst", text: T.map_most_dangerous }) : null,
+      ]),
+    ]);
+    label.style.setProperty("--node-accent", `#${new THREE.Color(node ? COLOURS[node.level.key] : ACCENT).getHexString()}`);
+    label.addEventListener("focus", () => { if (selected !== entry) select(entry); });
+    label.addEventListener("click", () => {
+      select(entry, true); detail.scrollIntoView({ block: "nearest", behavior: "instant" });
+      detail.focus({ preventScroll: true });
+    });
+    stage.append(label); entry.label = label;
   }
-
   const tools = el("div", { className: "netmap-tools" });
   const zoomIn = el("button", { type: "button", text: "+", "aria-label": T.map_zoom_in });
   const zoomOut = el("button", { type: "button", text: "−", "aria-label": T.map_zoom_out });
   const reset = el("button", { type: "button", text: T.map_reset });
-  tools.append(zoomIn, zoomOut, reset);
-  stage.append(tools);
-
-  // ---- details panel ------------------------------------------------------------------
-
-  function showDetail(entry) {
-    const node = entry.node;
-    detail.replaceChildren();
-    if (!node) {
-      detail.append(el("h3", { text: T.map_hub_virtual }));
-      return;
-    }
-    const heading = el("h3");
-    heading.append(iconFor(node.type) || "", node.type_label, " ", chip(node.level));
-    if (node.worst) heading.append(el("span", { className: "worst", text: T.map_most_dangerous }));
-    detail.append(heading);
-    const facts = el("dl");
-    const fact = (label, value) => {
-      if (value) facts.append(el("dt", { text: label }), el("dd", { text: value }));
-    };
-    fact(T.map_name, node.name);
-    fact(T.map_ip, node.ip);
-    fact(T.map_mac, node.mac);
-    detail.append(facts);
-    if (node.findings.length) {
-      const ul = el("ul");
-      for (const f of node.findings) {
-        const li = el("li", { className: `sev-${f.severity}` });
-        li.append(el("span", { className: "tag", text: f.severity_label }), " ", f.title);
-        if (f.port) li.append(el("span", { className: "muted", text: ` · ${T.port.replace("{port}", f.port)}` }));
-        ul.append(li);
-      }
-      detail.append(ul);
-    } else {
-      detail.append(el("p", { text: T.map_no_findings }));
-    }
-    detail.append(
-      el("p", {}, [
-        el("a", {
-          href: `#${node.id}`,
-          text: node.has_problems ? T.map_go_problems : T.map_go_device,
-        }),
-      ]),
-    );
-  }
-
-  // ---- camera: a simple orbit around the selected device ------------------------------
-
-  // The starting view; resize() fits it to the stage's shape.
-  const START = { theta: 0, phi: 1.0, dist: radius * 2.6 + 4 };
-  let touched = false; // the person moved the map: a resize no longer refits it
-  const view = { ...START, target: new THREE.Vector3() };
-  const goal = { ...START, target: new THREE.Vector3() };
-  let selected = null;
-  let needsRender = true;
-
-  function clampView(v) {
-    v.phi = Math.min(1.35, Math.max(0.3, v.phi));
-    v.dist = Math.min(radius * 5 + 10, Math.max(4, v.dist));
-  }
-
-  // Focus (keyboard) shows the details; a click also turns the map towards the device.
-  function select(entry, moveCamera) {
-    if (selected !== entry) {
-      selected = entry;
-      for (const e of entries) {
-        e.label.setAttribute("aria-pressed", e === entry ? "true" : "false");
-        e.ring.scale.setScalar((e.isHub ? 1.35 : 1) * (e === entry ? 1.3 : 1));
-      }
-      showDetail(entry);
-    }
-    if (moveCamera) {
-      touched = true;
-      goal.target.set(entry.pos.x * 0.6, 0, entry.pos.z * 0.6);
-      if (!entry.isHub) {
-        // The shortest way round, so the map never spins a full turn.
-        const want = Math.atan2(entry.pos.x, entry.pos.z);
-        goal.theta += Math.atan2(Math.sin(want - goal.theta), Math.cos(want - goal.theta));
-      }
-      if (reduceMotion.matches) jump();
-    }
-    needsRender = true;
-  }
-
-  function jump() {
-    view.theta = goal.theta;
-    view.phi = goal.phi;
-    view.dist = goal.dist;
-    view.target.copy(goal.target);
-  }
-
+  tools.append(zoomIn, zoomOut, reset); stage.append(tools);
   function resetView() {
-    touched = false;
-    Object.assign(goal, { theta: START.theta, phi: START.phi, dist: START.dist });
-    goal.target.set(0, 0, 0);
-    if (reduceMotion.matches) jump();
-    needsRender = true;
+    touched = false; goal.target.set(0, 0, 0);
+    Object.assign(goal, initial); if (reduceMotion.matches) jump(); requestFrame();
   }
   reset.addEventListener("click", resetView);
-  function zoom(factor) {
-    touched = true;
-    goal.dist *= factor;
-    clampView(goal);
-    if (reduceMotion.matches) jump();
-    needsRender = true;
-  }
+  function zoom(factor) { touched = true; goal.dist *= factor; clampView(); if (reduceMotion.matches) jump(); requestFrame(); }
   zoomIn.addEventListener("click", () => zoom(1 / 1.2));
   zoomOut.addEventListener("click", () => zoom(1.2));
 
-  function placeCamera() {
-    const { theta, phi, dist, target } = view;
-    camera.position.set(
-      target.x + dist * Math.sin(phi) * Math.sin(theta),
-      target.y + dist * Math.cos(phi),
-      target.z + dist * Math.sin(phi) * Math.cos(theta),
-    );
-    camera.lookAt(target);
+  function syncFullscreen() {
+    const expanded = document.fullscreenElement === section || section.classList.contains("is-expanded");
+    fullscreen.textContent = expanded ? T.map_exit_fullscreen : T.map_fullscreen;
+    fullscreen.setAttribute("aria-pressed", String(expanded));
+    document.body.classList.toggle("netmap-expanded", expanded); resize();
   }
+  fullscreen.addEventListener("click", async () => {
+    if (document.fullscreenElement === section) await document.exitFullscreen();
+    else if (section.classList.contains("is-expanded")) section.classList.remove("is-expanded");
+    else {
+      try {
+        if (!section.requestFullscreen) throw new Error("unavailable");
+        await section.requestFullscreen();
+      } catch { section.classList.add("is-expanded"); }
+    }
+    syncFullscreen();
+  });
+  document.addEventListener("fullscreenchange", syncFullscreen);
+  section.addEventListener("keydown", e => {
+    const expanded = document.fullscreenElement === section || section.classList.contains("is-expanded");
+    if (expanded && e.key === "Tab") {
+      const controls = [...section.querySelectorAll('button, a[href], input, [tabindex="0"]')]
+        .filter(node => !node.disabled && node.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
+    if (e.key === "Escape" && section.classList.contains("is-expanded")) {
+      section.classList.remove("is-expanded"); syncFullscreen(); fullscreen.focus();
+    }
+  });
 
-  // Mouse and touch: drag to turn, wheel or pinch to zoom. One-finger vertical swipes keep
-  // scrolling the page (touch-action: pan-y), so the map never traps someone scrolling.
-  const pointers = new Map();
-  let pinchStart = 0;
-  let downAt = null;
-  // The wheel zooms only once the person has pressed on the map, so scrolling the page
-  // past it never zooms by surprise. Leaving the map gives the wheel back to the page.
-  let wheelZooms = false;
+  detailsShortcut.addEventListener("click", () => {
+    detail.scrollIntoView({ block: "start", behavior: "instant" }); detail.focus({ preventScroll: true });
+  });
+  searchShortcut.addEventListener("click", () => {
+    directory.scrollIntoView({ block: "start", behavior: "instant" }); search.focus({ preventScroll: true });
+  });
+
+  const pointers = new Map(); let downAt = null, pinch = 0, wheelZooms = false;
   stage.addEventListener("pointerleave", () => { wheelZooms = false; });
-  canvas.addEventListener("pointerdown", (e) => {
-    wheelZooms = true;
+  canvas.addEventListener("pointerdown", e => {
+    wheelZooms = true; canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    canvas.setPointerCapture(e.pointerId);
     downAt = { x: e.clientX, y: e.clientY };
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      pinchStart = Math.hypot(a.x - b.x, a.y - b.y);
-    }
   });
-  canvas.addEventListener("pointermove", (e) => {
-    const prev = pointers.get(e.pointerId);
-    if (!prev) return;
-    const now = { x: e.clientX, y: e.clientY };
-    pointers.set(e.pointerId, now);
+  canvas.addEventListener("pointermove", e => {
+    const old = pointers.get(e.pointerId); if (!old) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); touched = true;
     if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinchStart > 0) goal.dist *= pinchStart / d;
-      pinchStart = d;
+      const [a, b] = [...pointers.values()], distance = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch && distance) goal.dist *= pinch / distance;
+      pinch = distance;
     } else {
-      touched = true;
-      goal.theta -= (now.x - prev.x) * 0.008;
-      if (e.pointerType === "mouse") goal.phi -= (now.y - prev.y) * 0.006;
+      goal.theta -= (e.clientX - old.x) * 0.008;
+      if (e.pointerType === "mouse") goal.phi -= (e.clientY - old.y) * 0.006;
     }
-    clampView(goal);
-    jump(); // direct manipulation follows the hand, with or without motion
-    needsRender = true;
+    clampView(); jump(); requestFrame();
   });
-  const release = (e) => {
-    pointers.delete(e.pointerId);
-    if (pointers.size < 2) pinchStart = 0;
-  };
-  canvas.addEventListener("pointerup", (e) => {
-    const moved = downAt ? Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) : 99;
-    release(e);
-    if (moved < 6) pick(e);
-  });
-  canvas.addEventListener("pointercancel", release);
-  canvas.addEventListener("wheel", (e) => {
-    if (!wheelZooms) return;
-    e.preventDefault();
-    zoom(e.deltaY > 0 ? 1.12 : 1 / 1.12);
-  }, { passive: false });
-
   const raycaster = new THREE.Raycaster();
   function pick(e) {
-    const rect = canvas.getBoundingClientRect();
-    const ndc = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1,
-    );
-    raycaster.setFromCamera(ndc, camera);
+    const r = canvas.getBoundingClientRect();
+    raycaster.setFromCamera(new THREE.Vector2(2 * (e.clientX - r.left) / r.width - 1,
+      1 - 2 * (e.clientY - r.top) / r.height), camera);
     const hit = raycaster.intersectObjects(pickables, false)[0];
     if (hit) {
       select(hit.object.userData.entry, true);
-      hit.object.userData.entry.label.focus({ preventScroll: true });
+      detail.scrollIntoView({ block: "nearest", behavior: "instant" }); detail.focus({ preventScroll: true });
     }
   }
-
-  // Keyboard, on the stage: arrows turn, + and - zoom, 0 resets.
-  stage.addEventListener("keydown", (e) => {
-    const step = { ArrowLeft: [0.2, 0], ArrowRight: [-0.2, 0], ArrowUp: [0, -0.12], ArrowDown: [0, 0.12] }[e.key];
-    if (step) {
-      touched = true;
-      goal.theta += step[0];
-      goal.phi += step[1];
-    } else if (e.key === "+" || e.key === "=") goal.dist /= 1.15;
-    else if (e.key === "-" || e.key === "_") goal.dist *= 1.15;
-    else if (e.key === "0" || e.key === "Home") resetView();
+  canvas.addEventListener("pointerup", e => {
+    const click = pointers.size === 1 && downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6;
+    pointers.delete(e.pointerId); pinch = 0;
+    if (click) pick(e);
+  });
+  canvas.addEventListener("pointercancel", e => { pointers.delete(e.pointerId); pinch = 0; });
+  canvas.addEventListener("wheel", e => { if (wheelZooms) { e.preventDefault(); zoom(e.deltaY > 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
+  stage.addEventListener("keydown", e => {
+    if (e.target !== stage && e.target !== canvas) return;
+    const turn = { ArrowLeft: [0.2, 0], ArrowRight: [-0.2, 0], ArrowUp: [0, -0.12], ArrowDown: [0, 0.12] }[e.key];
+    if (turn) { touched = true; goal.theta += turn[0]; goal.phi += turn[1]; }
+    else if (["+", "="].includes(e.key)) zoom(1 / 1.15);
+    else if (["-", "_"].includes(e.key)) zoom(1.15);
+    else if (["0", "Home"].includes(e.key)) resetView();
     else return;
-    e.preventDefault();
-    clampView(goal);
-    if (reduceMotion.matches) jump();
-    needsRender = true;
+    e.preventDefault(); clampView(); if (reduceMotion.matches) jump(); requestFrame();
   });
 
-  // ---- size, labels and the frame loop -------------------------------------------------
-
   function resize() {
-    const w = stage.clientWidth;
-    const h = stage.clientHeight;
+    const w = stage.clientWidth, h = stage.clientHeight;
     if (!w || !h) return;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    // Fit the starting view: tall phone screens look more from above, and the camera
-    // stands just far enough back for the whole ring of devices to fit.
-    START.phi = camera.aspect < 1 ? 0.6 : 1.0;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     const half = THREE.MathUtils.degToRad(camera.fov / 2);
     const halfWide = Math.atan(Math.tan(half) * camera.aspect);
-    const reach = radius + 1.1;
-    START.dist = 1.08 * Math.max(
-      reach / Math.tan(halfWide),
-      (reach * Math.cos(START.phi) + 1.5) / Math.tan(half),
-    );
-    if (!touched) {
-      Object.assign(goal, { theta: START.theta, phi: START.phi, dist: START.dist });
-      if (reduceMotion.matches) jump();
-    }
-    // Small maps get small labels: the device icon and the level's sign (the legend says
-    // what each sign means), and the full text on press. The button's name keeps it all.
+    const reach = layout.radius + 1.6;
+    initial.dist = 1.05 * Math.max(reach / Math.tan(halfWide),
+      (reach * Math.cos(initial.phi) + 1.8) / Math.tan(half));
     stage.classList.toggle("compact", w < 520);
-    needsRender = true;
+    if (!touched) { Object.assign(goal, initial); if (reduceMotion.matches) jump(); }
+    requestFrame();
   }
-  new ResizeObserver(resize).observe(stage);
-
-  const tmp = new THREE.Vector3();
+  const point = new THREE.Vector3();
   function placeLabels() {
-    const w = stage.clientWidth;
-    const h = stage.clientHeight;
-    const camDir = new THREE.Vector3();
-    camera.getWorldDirection(camDir);
-    for (const e of entries) {
-      tmp.set(e.pos.x, e.height + 0.35, e.pos.z).project(camera);
-      const x = (tmp.x * 0.5 + 0.5) * w;
-      const y = (-tmp.y * 0.5 + 0.5) * h;
-      const visible = tmp.z < 1 && x > -40 && x < w + 40 && y > -40 && y < h + 40;
-      e.label.style.visibility = visible ? "visible" : "hidden";
-      // Centred above the device, but always kept whole inside the map.
-      const lw = e.label.offsetWidth;
-      const lh = e.label.offsetHeight;
-      const left = Math.min(Math.max(x - lw / 2, 4), Math.max(4, w - lw - 4));
-      const top = Math.min(Math.max(y - lh, 4), Math.max(4, h - lh - 4));
-      e.label.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
-      // Labels nearer the camera sit on top; the far side of the map is a little faded.
-      const depth = camera.position.distanceTo(e.pos);
-      e.label.style.zIndex = String(1000 - Math.round(depth * 10));
-      e.label.dataset.behind = String(tmp.subVectors(e.pos, view.target).dot(camDir) > radius * 0.6);
+    const w = stage.clientWidth, h = stage.clientHeight, occupied = [];
+    const ordered = [...entries].sort((a, b) => Number(!!b.node?.worst) - Number(!!a.node?.worst) || (b === selected) - (a === selected) || Number(b.isHub) - Number(a.isHub));
+    for (const entry of ordered) {
+      const label = entry.label;
+      if (entries.length > 12 && entry !== selected && !entry.isHub && !entry.node?.worst) { label.hidden = true; continue; }
+      point.set(entry.pos.x, entry.height + 0.65, entry.pos.z).project(camera);
+      const x = (point.x / 2 + 0.5) * w, y = (-point.y / 2 + 0.5) * h;
+      label.hidden = false;
+      const width = label.offsetWidth, height = label.offsetHeight;
+      const left = Math.min(Math.max(x - width / 2, 8), Math.max(8, w - width - 8));
+      // Try a second label row before dropping a colliding label. This keeps
+      // the gateway readable behind the larger most-dangerous-device badge.
+      const candidates = [y - height, y - height - 80, y - height + 80]
+        .map(top => ({ left, right: left + width, top, bottom: top + height }));
+      const box = candidates.find(candidate => candidate.top >= 8 && candidate.bottom <= h - 70 &&
+        !occupied.some(r => candidate.left < r.right + 4 && candidate.right > r.left - 4 && candidate.top < r.bottom + 4 && candidate.bottom > r.top - 4));
+      const outside = point.z > 1 || point.z < -1 || x < 0 || x > w;
+      label.hidden = outside || !box;
+      if (!label.hidden) { label.style.transform = `translate(${Math.round(left)}px, ${Math.round(box.top)}px)`; occupied.push(box); }
     }
   }
-
-  function ease(a, b, k) { return a + (b - a) * k; }
-
-  let last = performance.now();
-  let visibleOnScreen = true;
-  new IntersectionObserver(([entry]) => { visibleOnScreen = entry.isIntersecting; }).observe(stage);
-
-  function frame(now) {
-    requestAnimationFrame(frame);
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    if (!visibleOnScreen || document.hidden || wrap3d.hidden) return;
-    const moving = !reduceMotion.matches;
-    if (moving) {
-      const k = 1 - Math.pow(0.001, dt);
-      view.theta = ease(view.theta, goal.theta, k);
-      view.phi = ease(view.phi, goal.phi, k);
-      view.dist = ease(view.dist, goal.dist, k);
-      view.target.lerp(goal.target, k);
-      // Little packets run along each cable, like Packet Tracer's simulation mode.
-      const t = (now / 2600) % 1;
-      for (const c of cables) {
-        c.packet.visible = true;
-        c.curve.getPoint((t + c.offset) % 1, c.packet.position);
-      }
-      // The most dangerous device's ring breathes gently.
-      for (const e of entries) {
-        if (e.node && e.node.worst) {
-          e.ring.material.opacity = 0.55 + 0.4 * (0.5 + 0.5 * Math.sin(now / 420));
-        }
-      }
-      needsRender = true;
-    } else {
-      for (const c of cables) c.packet.visible = false;
-      for (const e of entries) e.ring.material.opacity = 0.85;
+  function frame() {
+    frameId = 0;
+    if (!alive || !visible || document.hidden || wrap.hidden) return;
+    const moving = Math.abs(view.dist - goal.dist) + Math.abs(view.theta - goal.theta) +
+      Math.abs(view.phi - goal.phi) + view.target.distanceTo(goal.target) > 0.004;
+    if (reduceMotion.matches || !moving) jump();
+    else {
+      view.dist += (goal.dist - view.dist) * 0.17;
+      view.theta += (goal.theta - view.theta) * 0.17;
+      view.phi += (goal.phi - view.phi) * 0.17;
+      view.target.lerp(goal.target, 0.17);
     }
-    if (!needsRender) return;
-    needsRender = false;
-    placeCamera();
-    renderer.render(scene, camera);
-    placeLabels();
+    if (!dirty && !moving) return;
+    dirty = false;
+    camera.position.set(view.target.x + view.dist * Math.sin(view.phi) * Math.sin(view.theta),
+      view.target.y + view.dist * Math.cos(view.phi),
+      view.target.z + view.dist * Math.sin(view.phi) * Math.cos(view.theta));
+    camera.lookAt(view.target); renderer.render(scene, camera); placeLabels();
+    if (moving) requestFrame();
   }
-
-  // ---- the 3D / list switch -----------------------------------------------------------
-
+  const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage);
+  const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; if (visible) requestFrame(); });
+  intersection.observe(stage);
+  const motionChange = () => { jump(); requestFrame(); };
+  reduceMotion.addEventListener("change", motionChange);
+  const visibilityChange = () => { if (!document.hidden) requestFrame(); };
+  document.addEventListener("visibilitychange", visibilityChange);
+  const threeButton = switcher.querySelector('[data-view="3d"]');
+  canvas.addEventListener("webglcontextlost", e => {
+    e.preventDefault(); contextLost = true; threeButton.disabled = true; show("list");
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    contextLost = false; threeButton.disabled = false; requestFrame();
+  });
   function show(mode) {
-    const is3d = mode === "3d";
-    wrap3d.hidden = !is3d;
-    list.hidden = is3d;
-    for (const b of switcher.querySelectorAll("button")) {
-      b.setAttribute("aria-pressed", b.dataset.view === mode ? "true" : "false");
+    if (mode === "3d" && contextLost) return;
+    wrap.hidden = mode !== "3d"; list.hidden = mode === "3d";
+    fullscreen.hidden = mode !== "3d"; panelLinks.hidden = mode !== "3d";
+    for (const b of switcher.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === mode));
+    if (mode === "3d") { resize(); requestFrame(); }
+    else {
+      section.classList.remove("is-expanded");
+      if (document.fullscreenElement === section) document.exitFullscreen().catch(() => {});
+      syncFullscreen();
     }
-    if (is3d) { resize(); needsRender = true; }
   }
-  for (const b of switcher.querySelectorAll("button")) {
-    b.addEventListener("click", () => show(b.dataset.view));
-  }
-  reduceMotion.addEventListener?.("change", () => { jump(); needsRender = true; });
-
-  switcher.hidden = false;
-  show("3d");
-  // A gentle fly-in when motion is allowed; with reduced motion the map just appears.
-  if (!reduceMotion.matches) view.dist = START.dist * 1.6;
-  placeCamera();
-  requestAnimationFrame(frame);
+  for (const b of switcher.querySelectorAll("[data-view]")) b.addEventListener("click", () => show(b.dataset.view));
+  // Rendering stops when the scene settles. No perpetual traffic simulation or pulse.
+  window.addEventListener("pageshow", () => requestFrame());
+  window.addEventListener("pagehide", event => {
+    if (event.persisted) return;
+    alive = false; cancelAnimationFrame(frameId); resizeObserver.disconnect(); intersection.disconnect();
+    reduceMotion.removeEventListener("change", motionChange);
+    document.removeEventListener("visibilitychange", visibilityChange);
+    document.removeEventListener("fullscreenchange", syncFullscreen);
+    const gs = new Set(), ms = new Set();
+    scene.traverse(o => { if (o.geometry) gs.add(o.geometry); for (const m of o.material ? [o.material].flat() : []) ms.add(m); });
+    for (const g of gs) g.dispose(); for (const m of ms) m.dispose(); renderer.dispose();
+  });
+  switcher.hidden = false; directory.hidden = false;
+  show("3d"); jump(); select(entries.find(e => e.node?.worst) || hub);
 }
 
-// A link to a device in the "devices with no problems" list opens that list first.
 function openTarget() {
-  const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
-  const box = target && target.closest("details");
-  if (box && !box.open) {
-    box.open = true;
-    target.scrollIntoView();
-  }
+  let target;
+  try { target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null; }
+  catch { return; }
+  const box = target?.closest("details");
+  if (box && !box.open) { box.open = true; target.scrollIntoView(); }
 }
-
 if (section && dataTag) {
-  window.addEventListener("hashchange", openTarget);
-  openTarget();
-  let data = null;
-  try {
-    data = JSON.parse(dataTag.textContent);
-  } catch {
-    data = null;
-  }
+  window.addEventListener("hashchange", openTarget); openTarget();
+  let data;
+  try { data = JSON.parse(dataTag.textContent); } catch { data = null; }
   if (data && webglWorks()) start(data);
 }

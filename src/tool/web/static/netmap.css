@@ -1,0 +1,125 @@
+/* Map-only refinement of agent-B's warm palette. All device data stays text. */
+body:has(#network-map) { max-width: 68rem; }
+body:has(#network-map) > main > :not(#network-map),
+body:has(#network-map) > header, body:has(#network-map) > footer { max-width: 46rem; margin-inline: auto; }
+[hidden] { display: none !important; }
+.netmap { padding: 1.5rem; border: 1px solid #e3ddd2; border-radius: 1.5rem;
+  background: #ffffff; box-shadow: 0 12px 40px rgba(43, 55, 48, .05); }
+.netmap-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.netmap h2 { margin: .2rem 0 0; font-size: 1.65rem; letter-spacing: -.035em; }
+.nm-eyebrow { margin: 0; color: #5b5048; font-size: .9rem; font-weight: 600; letter-spacing: .035em; }
+.netmap-intro { max-width: 44rem; color: #5b5048; margin: .6rem 0 1rem; }
+.netmap-switch { gap: 0; display: inline-flex; background: #f4f1eb; padding: .25rem;
+  border: 1px solid #e3ddd2; border-radius: .8rem; margin-bottom: 1rem; }
+.netmap-switch button { border: 0; border-radius: .6rem; background: transparent;
+  padding: .45rem 1rem; min-height: 2.6rem; }
+.netmap-switch button[aria-pressed="true"] { background: #0f5c57; color: #ffffff;
+  box-shadow: 0 2px 4px rgba(18, 56, 48, .12); }
+.netmap-workspace { display: block;
+  border: 1px solid #e3ddd2; border-radius: 1rem; overflow: hidden; align-items: stretch; }
+.netmap-viewport { min-width: 0; display: flex; flex-direction: column; background: #f4f1eb; }
+.netmap-stage { height: clamp(22rem, 55dvh, 32rem); flex: none; min-height: 0; border: 0; border-radius: 0;
+  background: radial-gradient(ellipse at 50% 45%, #fcfbf7, #edece4); }
+.netmap-hint { padding: .75rem 1rem; margin: 0; color: #5b5048; font-size: .9rem; }
+.netmap-keys { display: block; margin-top: .3rem; }
+.netmap-panels { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 1fr);
+  align-items: start; gap: 1.25rem; padding: 1.25rem; border-top: 1px solid #e3ddd2; background: #f7f5f0; }
+.netmap-detail { min-width: 0; margin: 0; border: 1px solid #e3ddd2; border-radius: .85rem;
+  padding: 1.4rem; background: #ffffff; scroll-margin-block: 1rem; }
+.netmap-toolbar { display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; margin-block: 1rem; }
+.netmap-toolbar .netmap-switch { margin: 0; }
+.netmap-panel-links { display: flex; gap: .5rem; flex-wrap: wrap; }
+.netmap-panel-links button { border: 1px solid #0f5c57; border-radius: .6rem; background: #fff;
+  color: #0f5c57; padding: .5rem .8rem; min-height: 2.75rem; cursor: pointer; }
+.netmap-detail:focus, .netmap-directory:focus { outline: 3px solid #0f5c57; outline-offset: 3px; }
+.netmap-detail h3 { font-size: 1.3rem; line-height: 1.25; gap: .5rem; margin: .6rem 0 .75rem; }
+.netmap-detail h3 .dev-icon { width: 1.8rem; height: 1.8rem; }
+.netmap-detail .lvl { font-size: .9rem; }
+.netmap-detail dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .5rem 1rem; margin: 1rem 0; font-size: .9rem; }
+.netmap-detail dt { color: #5b5048; font-weight: 400; margin: 0; }
+.netmap-detail dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; word-break: normal; }
+.nm-priority { font-size: .9rem; font-weight: 600; color: #a8322a; margin: .6rem 0; }
+.netmap-detail .nm-findings { list-style: none; padding: 0; display: grid; gap: .75rem; }
+.nm-findings li { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem;
+  border-top: 1px solid #e3ddd2; padding-top: .75rem; font-size: .9rem; }
+.nm-findings .tag { font-size: .9rem; background: #5b5048; }
+.nm-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; margin-top: 1rem; }
+.netmap button, .netmap input { font: inherit; }
+.nm-focus-action, .netmap-fullscreen { min-height: 2.75rem; border: 1px solid #0f5c57;
+  background: #ffffff; color: #0f5c57; border-radius: .65rem; padding: .45rem .8rem;
+  cursor: pointer; font-weight: 600; }
+.nm-focus-action { margin-top: .7rem; background: #0f5c57; color: #ffffff; width: auto; }
+.nm-detail-actions a { font-size: .9rem; }
+.netmap-fullscreen { white-space: nowrap; }
+.netmap-directory { min-width: 0; padding: 1.4rem; border: 1px solid #e3ddd2; border-radius: .85rem; background: #ffffff; scroll-margin-block: 1rem; }
+.netmap-directory label { font-size: .9rem; font-weight: 600; display: block; margin-bottom: .4rem; }
+.netmap-search { box-sizing: border-box; width: 100%; border: 1px solid #8c7d6f;
+  border-radius: .6rem; padding: .6rem; min-height: 2.75rem; background: #ffffff; color: #2b2420; }
+.netmap-search::placeholder { color: #5b5048; opacity: 1; }
+.netmap-count { font-size: .9rem; margin: .6rem 0; }
+.netmap-results { list-style: none; padding: 0; margin: 0; }
+.nm-device-row { display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left;
+  padding: .7rem .4rem; border: 1px solid transparent; border-bottom-color: #e3ddd2;
+  border-radius: .5rem; color: #2b2420; background: transparent; cursor: pointer; }
+.nm-device-row:hover { background: #eeeae1; }
+.nm-device-row[aria-pressed="true"] { background: #edf4f0; border-color: #0f5c57; }
+.nm-device-row .dev-icon { width: 1.5rem; height: 1.5rem; padding: .2rem; }
+.nm-row-name { display: flex; flex-direction: column; min-width: 0; flex: 1; font-size: .9rem; }
+.nm-row-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm-row-name > span { color: #5b5048; font-variant-numeric: tabular-nums; }
+.nm-row-status { width: 1.4rem; height: 1.4rem; display: grid; place-items: center;
+  border-radius: 50%; color: #ffffff; flex: 0 0 auto; font-size: .9rem; }
+.nm-no-results { font-size: .9rem; padding: .5rem 0; }
+.netmap-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: .7rem; }
+.netmap-pagination button { border: 1px solid #8c7d6f; color: #0f5c57; background: #ffffff;
+  border-radius: .5rem; min-height: 2.5rem; min-width: 2.75rem; cursor: pointer; }
+.netmap-pagination button:disabled { opacity: .4; cursor: default; }
+.netmap-page-info { font-size: .9rem; color: #5b5048; font-variant-numeric: tabular-nums; }
+.netmap-tools { right: .8rem; bottom: .8rem; border: 1px solid #d6d8ce; padding: .2rem;
+  background: #ffffff; border-radius: .7rem; gap: .15rem; z-index: 3; }
+.netmap-tools button { border: 0; border-radius: .5rem; background: #ffffff; color: #0f5c57;
+  min-height: 2.6rem; padding: .35rem .65rem; }
+.netmap-tools button:hover { background: #edf4f0; }
+.nm-label { border: 1px solid #d3d8cf; padding: .35rem .6rem; gap: .45rem;
+  box-shadow: 0 3px 10px rgba(40, 55, 48, .07); border-radius: .7rem;
+  max-width: 12rem; font-size: .9rem; line-height: 1.2; }
+.nm-label .nm-text { gap: .2rem; }
+.nm-label .nm-address { font-size: .9rem; color: #5b5048; font-variant-numeric: tabular-nums; }
+.nm-status-dot { color: var(--node-accent); font-weight: 700; font-size: 1rem; }
+.nm-label[aria-pressed="true"] { outline: 2px solid #0f5c57; outline-offset: 2px; }
+.netmap-stage.compact .nm-label .nm-type { display: block; }
+.netmap-stage.compact .nm-label .lvl-word { display: inline; }
+.netmap-stage.compact .nm-label .nm-address { display: none; }
+.netmap-legend { display: flex; justify-content: space-between; align-items: baseline;
+  gap: .75rem; margin-top: .8rem; flex-wrap: wrap; font-size: .9rem; }
+.netmap-legend p { margin: 0; font-size: .9rem; font-weight: 400; color: #5b5048; }
+.netmap-legend .lvl { padding: .1rem .4rem; font-size: .9rem; }
+.netmap:fullscreen, .netmap.is-expanded { box-sizing: border-box; width: 100%; height: 100%;
+  max-width: none; padding: 1.2rem; margin: 0; border-radius: 0; overflow: auto; background: #fbf6ef; }
+.netmap.is-expanded { position: fixed; inset: 0; z-index: 9999; height: 100dvh; }
+.netmap:fullscreen .netmap-stage, .netmap.is-expanded .netmap-stage { height: clamp(20rem, 60dvh, 42rem); }
+@media (max-width: 60rem) { .netmap-panels { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 48rem) {
+  body:has(#network-map) { padding: .85rem; }
+  .netmap { padding: 1rem; }
+  .netmap-heading { align-items: flex-start; gap: .5rem; }
+  .netmap h2 { font-size: 1.4rem; }
+  .netmap-fullscreen { font-size: .9rem; padding-inline: .6rem; }
+  .netmap-stage { height: 24rem; }
+  .netmap-panels { padding: .7rem; gap: .7rem; }
+  .netmap-detail, .netmap-directory { padding: 1rem; }
+  .netmap-detail dl { display: block; }
+  .netmap-detail dt { margin-top: .6rem; }
+  .netmap-panel-links { width: 100%; }
+  .netmap-panel-links button { flex: 1; }
+  .netmap-legend { display: block; }
+  .netmap-legend ul { gap: .3rem; }
+  .netmap:fullscreen .netmap-stage, .netmap.is-expanded .netmap-stage { height: 50dvh; }
+}
+
+body.netmap-expanded { overflow: hidden; }
+
+.nm-label .lvl { font-size: .9rem; }
+.nm-worst { display: block; color: #a8322a; font-size: .9rem; font-weight: 700; }
+.nm-row-name > span { overflow-wrap: anywhere; }
