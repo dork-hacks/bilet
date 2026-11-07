@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V6a_before.xml 192.168.1.0/24" start="1793607841" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793607841" endtime="1793607844"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:C7:BF:88:24:57" addrtype="mac" vendor="TP-Link"/>
+<hostnames><hostname name="router.lan" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="Router Login"><elem key="title">Router Login</elem></script></port>
+<port protocol="udp" portid="1900"><state state="open" reason="udp-response" reason_ttl="64"/><service name="upnp" product="MiniUPnP" version="2.1" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793607845" endtime="1793607848"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.20" addrtype="ipv4"/>
+<address addr="54:E1:AD:7D:53:EC" addrtype="mac" vendor="Lenovo"/>
+<hostnames><hostname name="laptop-ioana" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="1000"><extrareasons reason="reset" count="1000" proto="tcp"/></extraports>
+</ports></host>
+<host starttime="1793607849" endtime="1793607852"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.30" addrtype="ipv4"/>
+<address addr="24:0A:C4:C2:8A:70" addrtype="mac" vendor="Espressif"/>
+<hostnames><hostname name="plug-kitchen" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"/></port>
+</ports></host>
+<runstats><finished time="1793607961" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="3" down="253" total="256"/></runstats>
+</nmaprun>

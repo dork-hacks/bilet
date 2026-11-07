@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V5_nonstandard_ports.xml 192.168.1.0/24" start="1793612349" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793612349" endtime="1793612352"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.5" addrtype="ipv4"/>
+<address addr="24:0A:C4:23:17:74" addrtype="mac" vendor="Espressif"/>
+<hostnames><hostname name="plug-1" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="2323"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793612353" endtime="1793612356"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.6" addrtype="ipv4"/>
+<address addr="3C:EF:8C:94:28:77" addrtype="mac" vendor="Dahua"/>
+<hostnames><hostname name="nvr" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="8081"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" method="probed" conf="10"/><script id="http-title" output="Admin Panel"><elem key="title">Admin Panel</elem></script></port>
+</ports></host>
+<host starttime="1793612357" endtime="1793612360"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.7" addrtype="ipv4"/>
+<address addr="B8:27:EB:33:C2:8E" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames><hostname name="cache" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="6380"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="redis" product="Redis key-value store" version="7.2.4" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793612361" endtime="1793612364"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.8" addrtype="ipv4"/>
+<address addr="24:5A:4C:E8:BA:53" addrtype="mac" vendor="Ubiquiti"/>
+<hostnames><hostname name="access-point" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="8443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" tunnel="ssl" method="probed" conf="10"/><script id="http-title" output="Admin Login"><elem key="title">Admin Login</elem></script></port>
+</ports></host>
+<host starttime="1793612365" endtime="1793612368"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.9" addrtype="ipv4"/>
+<address addr="F8:BC:12:BD:B5:6B" addrtype="mac" vendor="Dell"/>
+<hostnames><hostname name="db-backup" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="3306"><state state="filtered" reason="no-response" reason_ttl="64"/><service name="mysql" method="table" conf="3"/></port>
+</ports></host>
+<runstats><finished time="1793612469" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="5" down="251" total="256"/></runstats>
+</nmaprun>
