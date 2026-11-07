@@ -44,7 +44,7 @@
 
   {% else %}
     {% if not view.scans %}
-    <p>{{ ui.history_empty }}</p>
+    {% if not view.unavailable %}<p>{{ ui.history_empty }}</p>{% endif %}
     {% else %}
 
     <section aria-labelledby="trend-heading">

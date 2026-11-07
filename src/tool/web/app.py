@@ -377,7 +377,14 @@ def create_app(
             return render_history(request, history_view(None, lang))
         if form.get("confirm") != "yes":
             return render_history(request, history_view(history, lang, confirm_delete=True))
-        await run_in_threadpool(history.delete_all)
+        try:
+            await run_in_threadpool(history.delete_all)
+        except (HistoryError, sqlite3.Error, OSError):
+            return render_history(
+                request,
+                history_view(history, lang, message_key="history_delete_failed"),
+                status=503,
+            )
         return RedirectResponse(f"/history?lang={lang}&done=1", status_code=303)
 
     @app.get("/", response_class=HTMLResponse)

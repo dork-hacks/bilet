@@ -2,6 +2,7 @@
 
 import copy
 import re
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -241,3 +242,79 @@ def test_oversized_delete_form_is_refused(before_after):
     res = client(history).post("/history/delete", data={"confirm": "yes", "pad": "x" * 5000})
     assert res.status_code == 413
     assert len(history.scans()) == 2
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_corrupt_database_can_be_deleted_only_after_explicit_confirmation(history, lang):
+    history.folder.mkdir()
+    damaged = b"not a SQLite database" * 100
+    history.path.write_bytes(damaged)
+    browser = client(history)
+    response = browser.get("/history", params={"lang": lang})
+    assert response.status_code == 200
+    assert str(escape(UI["history_read_failed"][lang])) in response.text
+    assert str(escape(UI["history_empty"][lang])) not in response.text
+    assert 'action="/history/delete"' in response.text
+    assert history.path.read_bytes() == damaged
+
+    confirmation = browser.post("/history/delete", data={"lang": lang})
+    assert confirmation.status_code == 200
+    assert str(escape(UI["delete_confirm"][lang])) in confirmation.text
+    assert 'name="confirm" value="yes"' in confirmation.text
+    assert history.path.read_bytes() == damaged
+
+    deleted = browser.post(
+        "/history/delete", data={"lang": lang, "confirm": "yes"}, follow_redirects=False
+    )
+    assert deleted.status_code == 303
+    assert not history.path.exists()
+    assert str(escape(UI["deleted_done"][lang])) in browser.get(deleted.headers["location"]).text
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+@pytest.mark.parametrize("damaged", ["{not json", "[]", '{"devices": null}'])
+def test_corrupt_comparison_keeps_scan_list_without_inventing_changes(before_after, lang, damaged):
+    history, _, after = before_after
+    with sqlite3.connect(history.path) as db:
+        db.execute("UPDATE scans SET result_json = ? WHERE id = ?", (damaged, after))
+    response = client(history).get("/history", params={"lang": lang})
+    assert response.status_code == 200
+    assert str(escape(UI["history_read_failed"][lang])) in response.text
+    assert "V6a_before.xml" in response.text and "V6b_after.xml" in response.text
+    assert '<div class="changes"' not in response.text
+    with sqlite3.connect(history.path) as db:
+        assert (
+            db.execute("SELECT result_json FROM scans WHERE id = ?", (after,)).fetchone()[0]
+            == damaged
+        )
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+@pytest.mark.parametrize("corrupt", [False, True])
+def test_failed_delete_is_honest_and_retryable(before_after, lang, corrupt, monkeypatch):
+    history, *_ = before_after
+    if corrupt:
+        history.path.write_bytes(b"damaged database" * 100)
+    original = history.path.read_bytes()
+    browser = client(history)
+
+    def denied():
+        raise PermissionError("private-path-that-must-not-appear")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(history, "delete_all", denied)
+        response = browser.post(
+            "/history/delete", data={"lang": lang, "confirm": "yes"}, follow_redirects=False
+        )
+    assert response.status_code == 503
+    assert "location" not in response.headers
+    assert str(escape(UI["history_delete_failed"][lang])) in response.text
+    assert str(escape(UI["deleted_done"][lang])) not in response.text
+    assert "private-path-that-must-not-appear" not in response.text
+    assert 'action="/history/delete"' in response.text
+    assert history.path.read_bytes() == original
+    retried = browser.post(
+        "/history/delete", data={"lang": lang, "confirm": "yes"}, follow_redirects=False
+    )
+    assert retried.status_code == 303
+    assert not history.path.exists()
