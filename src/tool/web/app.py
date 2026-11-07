@@ -212,8 +212,8 @@ def create_app(
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # Opened files have no history ID. Keep only bounded report projections, never RAW
-    # scan data, behind an unguessable token; expire after 16 opens or server restart.
+    # Opened files have no history ID. Keep analyzed results (never uploaded XML)
+    # and report projections behind unguessable tokens; expire after 16 opens or restart.
     opened_reports: OrderedDict[str, dict] = OrderedDict()
     report_lock = Lock()
 
@@ -239,15 +239,15 @@ def create_app(
         result: dict | None,
         opened: bool = False,
         status: int = 200,
+        report_token: str | None = None,
     ) -> HTMLResponse:
         # `opened`: the page shows a file the user just opened (#92), not the latest scan.
         # `result` is the scan behind `view`; the network map (#170) is drawn from it.
-        report_token = None
-        if opened and view.kind == "ok":
+        if opened and result is not None and report_token is None:
             report_token = secrets.token_urlsafe(24)
             projections = {code: report_view(result, code) for code in LANGS}
             with report_lock:
-                opened_reports[report_token] = projections
+                opened_reports[report_token] = {"result": result, "reports": projections}
                 while len(opened_reports) > 16:
                     opened_reports.popitem(last=False)
         return templates.TemplateResponse(
@@ -263,6 +263,7 @@ def create_app(
                 **context(view.lang),
             },
             status_code=status,
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
         )
 
     def render_history(request: Request, view: HistoryView, status: int = 200) -> HTMLResponse:
@@ -366,11 +367,18 @@ def create_app(
         return RedirectResponse(f"/history?lang={lang}&done=1", status_code=303)
 
     @app.get("/", response_class=HTMLResponse)
-    def home(request: Request, lang: str | None = None, ai: str | None = None) -> HTMLResponse:
+    def home(
+        request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
-        result, alerts = current_result()
+        if scan is not None:
+            with report_lock:
+                saved = opened_reports.get(scan)
+            result, alerts = (saved["result"] if saved else None), []
+        else:
+            result, alerts = current_result()
         view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
-        return render(request, view, result)
+        return render(request, view, result, opened=scan is not None, report_token=scan)
 
     @app.get("/report", response_class=HTMLResponse)
     def report_page(
@@ -381,7 +389,7 @@ def create_app(
         if scan is not None:
             with report_lock:
                 saved = opened_reports.get(scan)
-            view = saved[lang] if saved else report_view(None, lang)
+            view = saved["reports"][lang] if saved else report_view(None, lang)
             report_token = scan if saved else None
         else:
             result, _ = current_result()
