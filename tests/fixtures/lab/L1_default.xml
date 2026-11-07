@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="/usr/bin/nmap -sS -sU -sV --script http-title --max-rate 100 -p T:21,22,80,139,445,554,1883,2323,6379,9100,U:161,1900 -oX L1_default.xml 192.168.50.158 192.168.50.125 192.168.50.216" start="1794082288" startstr="Sat Nov  7 22:11:28 2026" version="7.92" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="10" services="21-22,80,139,445,554,1883,2323,6379,9100" />
+<scaninfo type="udp" protocol="udp" numservices="2" services="161,1900" />
+<verbose level="0" />
+<debugging level="0" />
+<hosthint><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.158" addrtype="ipv4" />
+<address addr="E4:5F:01:00:00:01" addrtype="mac" vendor="Raspberry Pi Trading" />
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.216" addrtype="ipv4" />
+<address addr="E6:14:F0:00:00:03" addrtype="mac" />
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.125" addrtype="ipv4" />
+<address addr="E4:5F:01:00:00:02" addrtype="mac" vendor="Raspberry Pi Trading" />
+<hostnames>
+</hostnames>
+</hosthint>
+<host starttime="1794082288" endtime="1794082336"><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.158" addrtype="ipv4" />
+<address addr="E4:5F:01:00:00:01" addrtype="mac" vendor="Raspberry Pi Trading" />
+<hostnames>
+<hostname name="camera" type="PTR" />
+</hostnames>
+<ports><port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:2.3.4</cpe></service></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="ssh" product="OpenSSH" version="10.0p2 Debian 7+deb13u4" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:10.0p2</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="http" product="lighttpd" version="1.4.59" method="probed" conf="10"><cpe>cpe:/a:lighttpd:lighttpd:1.4.59</cpe></service><script id="http-title" output="Camera Login"><elem key="title">Camera Login</elem>
+</script><script id="http-server-header" output="lighttpd/1.4.59"><elem>lighttpd/1.4.59</elem>
+</script></port>
+<port protocol="tcp" portid="139"><state state="closed" reason="reset" reason_ttl="64" /><service name="netbios-ssn" method="table" conf="3" /></port>
+<port protocol="tcp" portid="445"><state state="closed" reason="reset" reason_ttl="64" /><service name="microsoft-ds" method="table" conf="3" /></port>
+<port protocol="tcp" portid="554"><state state="closed" reason="reset" reason_ttl="64" /><service name="rtsp" method="table" conf="3" /></port>
+<port protocol="tcp" portid="1883"><state state="closed" reason="reset" reason_ttl="64" /><service name="mqtt" method="table" conf="3" /></port>
+<port protocol="tcp" portid="2323"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="telnet" servicefp="SF-Port2323-TCP:V=7.92%I=7%D=11/7%Time=6AEF85F7%P=x86_64-redhat-linux-gnu%r(NULL,C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03&quot;)%r(tn3270,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(GenericLines,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(GetRequest,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(RPCCheck,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(Help,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(SIPOptions,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;)%r(NCP,1C,&quot;\xff\xfd\x01\xff\xfd\x1f\xff\xfb\x01\xff\xfb\x03\r\n\(none\)\x20login:\x20&quot;);" method="probed" conf="10" /><script id="fingerprint-strings" output="&#10;  GenericLines, GetRequest, Help, NCP, RPCCheck, SIPOptions, tn3270: &#10;    (none) login:"><elem key="GenericLines, GetRequest, Help, NCP, RPCCheck, SIPOptions, tn3270">
+    (none) login:</elem>
+</script></port>
+<port protocol="tcp" portid="6379"><state state="closed" reason="reset" reason_ttl="64" /><service name="redis" method="table" conf="3" /></port>
+<port protocol="tcp" portid="9100"><state state="closed" reason="reset" reason_ttl="64" /><service name="jetdirect" method="table" conf="3" /></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="snmp" method="table" conf="3" /></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="upnp" method="table" conf="3" /></port>
+</ports>
+<times srtt="47417" rttvar="67626" to="317921" />
+</host>
+<host starttime="1794082288" endtime="1794082336"><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.125" addrtype="ipv4" />
+<address addr="E4:5F:01:00:00:02" addrtype="mac" vendor="Raspberry Pi Trading" />
+<hostnames>
+<hostname name="server" type="PTR" />
+</hostnames>
+<ports><port protocol="tcp" portid="21"><state state="closed" reason="reset" reason_ttl="64" /><service name="ftp" method="table" conf="3" /></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="ssh" product="OpenSSH" version="10.0p2 Debian 7+deb13u4" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:10.0p2</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="closed" reason="reset" reason_ttl="64" /><service name="http" method="table" conf="3" /></port>
+<port protocol="tcp" portid="139"><state state="closed" reason="reset" reason_ttl="64" /><service name="netbios-ssn" method="table" conf="3" /></port>
+<port protocol="tcp" portid="445"><state state="closed" reason="reset" reason_ttl="64" /><service name="microsoft-ds" method="table" conf="3" /></port>
+<port protocol="tcp" portid="554"><state state="closed" reason="reset" reason_ttl="64" /><service name="rtsp" method="table" conf="3" /></port>
+<port protocol="tcp" portid="1883"><state state="closed" reason="reset" reason_ttl="64" /><service name="mqtt" method="table" conf="3" /></port>
+<port protocol="tcp" portid="2323"><state state="closed" reason="reset" reason_ttl="64" /><service name="3d-nfsd" method="table" conf="3" /></port>
+<port protocol="tcp" portid="6379"><state state="closed" reason="reset" reason_ttl="64" /><service name="redis" method="table" conf="3" /></port>
+<port protocol="tcp" portid="9100"><state state="closed" reason="reset" reason_ttl="64" /><service name="jetdirect" method="table" conf="3" /></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="snmp" method="table" conf="3" /></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="upnp" method="table" conf="3" /></port>
+</ports>
+<times srtt="45336" rttvar="63007" to="297364" />
+</host>
+<host starttime="1794082288" endtime="1794082336"><status state="up" reason="arp-response" reason_ttl="0" />
+<address addr="192.168.50.216" addrtype="ipv4" />
+<address addr="E6:14:F0:00:00:03" addrtype="mac" />
+<hostnames>
+</hostnames>
+<ports><port protocol="tcp" portid="21"><state state="closed" reason="reset" reason_ttl="64" /><service name="ftp" method="table" conf="3" /></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="ssh" product="OpenSSH" version="10.0p2 Debian 7+deb13u4" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:10.0p2</cpe><cpe>cpe:/o:linux:linux_kernel</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="closed" reason="reset" reason_ttl="64" /><service name="http" method="table" conf="3" /></port>
+<port protocol="tcp" portid="139"><state state="closed" reason="reset" reason_ttl="64" /><service name="netbios-ssn" method="table" conf="3" /></port>
+<port protocol="tcp" portid="445"><state state="closed" reason="reset" reason_ttl="64" /><service name="microsoft-ds" method="table" conf="3" /></port>
+<port protocol="tcp" portid="554"><state state="closed" reason="reset" reason_ttl="64" /><service name="rtsp" method="table" conf="3" /></port>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64" /><service name="mqtt" method="probed" conf="10" /><script id="mqtt-subscribe" output="Connection rejected: Not Authorized"><elem key="ERROR">Connection rejected: Not Authorized</elem>
+</script></port>
+<port protocol="tcp" portid="2323"><state state="closed" reason="reset" reason_ttl="64" /><service name="3d-nfsd" method="table" conf="3" /></port>
+<port protocol="tcp" portid="6379"><state state="closed" reason="reset" reason_ttl="64" /><service name="redis" method="table" conf="3" /></port>
+<port protocol="tcp" portid="9100"><state state="closed" reason="reset" reason_ttl="64" /><service name="jetdirect" method="table" conf="3" /></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="snmp" method="table" conf="3" /></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64" /><service name="upnp" method="table" conf="3" /></port>
+</ports>
+<times srtt="44385" rttvar="70366" to="325849" />
+</host>
+<runstats><finished time="1794082336" timestr="Sat Nov  7 22:12:16 2026" summary="Nmap done at Sat Nov  7 22:12:16 2026; 3 IP addresses (3 hosts up) scanned in 47.97 seconds" elapsed="47.97" exit="success" /><hosts up="3" down="0" total="3" />
+</runstats>
+</nmaprun>
