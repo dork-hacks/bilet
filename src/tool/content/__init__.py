@@ -8,6 +8,7 @@ an unknown code never crashes a page.
 import re
 from dataclasses import dataclass
 
+from tool.content.device_steps import DEVICE_STEPS
 from tool.content.texts import (
     ALERTS,
     DETECT_ERRORS,
@@ -41,6 +42,7 @@ __all__ = [
     "file_error_message",
     "history_error_message",
     "finding_text",
+    "fix_steps",
     "refusal_message",
     "hosts_found_message",
     "scan_message",
@@ -80,6 +82,40 @@ def finding_text(code: str, lang: str | None = DEFAULT_LANG) -> FindingText:
         owasp_iot=tuple(data["owasp_iot"]),
         is_generic=entry is None,
     )
+
+
+_STEP_FIELD = re.compile(r"\{(ip|url)\}")
+
+
+def _settings_url(ip: str, web_port: int | None) -> str:
+    host = f"[{ip}]" if ":" in ip else ip  # an IPv6 address needs brackets in a URL
+    if web_port is None or web_port == 80:
+        return f"http://{host}"
+    return f"http://{host}:{web_port}"
+
+
+def fix_steps(
+    code: str,
+    lang: str | None = DEFAULT_LANG,
+    device_type: str | None = None,
+    ip: str | None = None,
+    web_port: int | None = None,
+) -> tuple[str, ...]:
+    """The fix steps for one finding on one device (#152). Never raises.
+
+    A variant keyed by (code, device_type) names the device's IP address and its settings
+    page (`web_port` is the port of its web page, when the scan saw one). Without a
+    variant, or without an IP, the code's generic steps are returned. The IP comes from a
+    scan file: it is cleaned, filled in one pass and never expanded as a placeholder.
+    """
+    lang = _lang(lang)
+    variant = DEVICE_STEPS.get((code, device_type or "unknown"))
+    if variant is None or not ip:
+        return finding_text(code, lang).steps
+    clean_ip = _clean_target(ip)
+    port = web_port if isinstance(web_port, int) and 0 < web_port < 65536 else None
+    values = {"ip": clean_ip, "url": _settings_url(clean_ip, port)}
+    return tuple(_STEP_FIELD.sub(lambda m: values[m.group(1)], step) for step in variant[lang])
 
 
 def standards_line(code: str, lang: str | None = DEFAULT_LANG) -> str | None:

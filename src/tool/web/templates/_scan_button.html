@@ -1,0 +1,6 @@
+{% if can_scan %}
+<form method="post" action="/scan">
+  <input type="hidden" name="lang" value="{{ view.lang }}">
+  <button class="button" type="submit">{{ ui.scan_check_again }}</button>
+</form>
+{% endif %}

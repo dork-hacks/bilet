@@ -23,6 +23,7 @@
   </header>
 
   <main id="main">
+  {% include "_scan_button.html" %}
   {% if opened %}
     <p class="opened">{{ ui.open_showing }}
       <a href="/?lang={{ view.lang }}&amp;ai={{ ai_param }}">{{ ui.open_back }}</a></p>
