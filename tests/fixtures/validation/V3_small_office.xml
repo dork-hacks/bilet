@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V3_small_office.xml 192.168.1.0/24" start="1793611506" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793611506" endtime="1793611509"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.10" addrtype="ipv4"/>
+<address addr="3C:D9:2B:D8:AE:8E" addrtype="mac" vendor="HP"/>
+<hostnames><hostname name="office-printer" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="998"><extrareasons reason="reset" count="998" proto="tcp"/></extraports>
+<port protocol="tcp" portid="631"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ipp" product="CUPS" version="2.4" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="jetdirect" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793611510" endtime="1793611513"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.20" addrtype="ipv4"/>
+<address addr="00:11:32:4F:6E:AC" addrtype="mac" vendor="Synology"/>
+<hostnames><hostname name="nas" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="997"><extrareasons reason="reset" count="997" proto="tcp"/></extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="8.9p1" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="netbios-ssn" product="Samba smbd" version="4.15" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="microsoft-ds" product="Samba smbd" version="4.15" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793611514" endtime="1793611517"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.30" addrtype="ipv4"/>
+<address addr="F8:BC:12:34:2F:C2" addrtype="mac" vendor="Dell"/>
+<hostnames><hostname name="desk-01" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ms-wbt-server" product="Microsoft Terminal Services" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793611518" endtime="1793611521"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.40" addrtype="ipv4"/>
+<address addr="F8:BC:12:31:B7:B0" addrtype="mac" vendor="Dell"/>
+<hostnames><hostname name="srv-db" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="998"><extrareasons reason="reset" count="998" proto="tcp"/></extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="8.4p1 Debian 5+deb11u3" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="3306"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mysql" product="MySQL" version="8.0.36" method="probed" conf="10"/></port>
+</ports></host>
+<runstats><finished time="1793611626" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="4" down="252" total="256"/></runstats>
+</nmaprun>
