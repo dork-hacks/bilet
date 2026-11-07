@@ -133,3 +133,55 @@ gh pr list --state open                                      # open PRs; look fo
 | 22 | Hard deadline for the `final` tag. Nothing after it counts. |
 
 Wall-clock times for each hour go in the pinned "Agent sync" issue (#1) once the event dates are known.
+
+## 10. Autonomous mode: worker loops
+
+Agents can run hands-off. Each one is a loop of short headless Claude Code sessions ("ticks"), and **GitHub is the only shared state**. Agents don't talk to each other directly. They read and write issues and PRs exactly as sections 3–7 describe. There is **no orchestrator**: the rules above coordinate the work, and every agent shares a few housekeeping duties.
+
+**Each tick, a worker does the first of these that applies:**
+0. Housekeeping (at most 3 GitHub writes):
+   - Merge PRs that are approved and green but have sat unmerged for 30 minutes.
+   - Chase stale claims (§4).
+   - Ack new agents.
+   - Remind humans about `needs:human` / `needs:mentor` questions that have gone 2 hours without a reply.
+1. Fix or merge its own PRs.
+2. Continue its in-progress issue.
+3. Review other agents' PRs.
+4. Claim new work in its areas.
+5. Write small issues if its areas have none.
+
+The prompt is `agents/worker.md`. Each tick uses the version on `origin/main`, so a merged prompt change reaches every laptop on its next tick.
+
+**Who merges:**
+- The **author** squash-merges its own PR once another tag has commented `approve` and CI is green.
+- If the author hasn't merged 30 minutes after the approval, **any worker** merges it during housekeeping and comments why.
+- **Never merged by an agent:**
+  - a PR without an `approve` from a different tag
+  - a PR with red CI or a `needs:*` label
+  - anything after the §9 freeze
+- **Guardrail, lab and secrets PRs need a human's `approve`.** Agents never approve those.
+- **PRs that touch `agents/` or `.github/workflows/` need a human's `approve` and a human merge.** Every loop loads its prompt from `origin/main`, so these PRs change every running agent at once. Agents never approve or merge them.
+- **Humans** do the hour-21 upload and the `final` tag.
+
+**Start a loop** (needs `claude` and `gh`, both logged in):
+
+```bash
+agents/run-loop.sh agent-C ~/bilet-agents/agent-C
+```
+
+- The second argument is the agent's **own clone**. It's created if missing. Never point it at a checkout someone edits by hand.
+- **A new agent** picks the next free letter and starts a loop.
+  - Its first tick posts `[agent-X] joined` in #1, with its machine, hotspot access, tools and proposed areas.
+  - Another agent acks it.
+  - The new agent then adds itself to the roster.
+- **A tag runs in only one place.** Never start a loop for a tag that an interactive session already uses (`agent-A` is Mef05's interactive VM session, for example). The one-loop-per-tag lock only covers loops on the same machine.
+- Ticks run with an allowlist of tools and no permission bypass. `nmap`, `sudo`, force-pushes, branch deletions and pushes to `main` are **denied as direct commands only**. That is not a sandbox: an allowed interpreter (`python`, `make`) can still run anything. The real guards are the worker prompt's hard limits, a `pre-push` hook in each agent's clone (refuses `main`, deletions, non-fast-forward pushes and branch names outside `<n>-slug`) and GitHub branch protection on `main`, which a repo admin has to turn on.
+- Logs, including the cost and turn count of each tick, are in `~/.local/state/bilet-agents/<tag>/`.
+- For unattended runs longer than a few days, use `claude setup-token`, because a normal sign-in expires.
+
+**Stop or pause:**
+- Label `agents:paused` on #1 pauses **every** loop everywhere until the label is removed.
+- `touch ~/.local/state/bilet-agents/<tag>/STOP` stops one loop.
+- Loops stop on their own after `MAX_HOURS` (default 12), or after 8 idle ticks in a row. Housekeeping alone counts as idle.
+
+Tunables are environment variables: `INTERVAL_MIN`, `INTERVAL_MAX`, `IDLE_STOP_TICKS`, `MAX_HOURS`, `TICK_TIMEOUT`, `AGENT_MODEL`, `TICK_BUDGET_USD`, `AGENT_EXTRA_TOOLS` and `ONE_TICK`. See the top of `agents/run-loop.sh`.
