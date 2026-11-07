@@ -31,10 +31,13 @@ The router runs OpenWrt, so the manager uses its own pieces: an `/etc/init.d` sc
 (procd) instead of systemd, and dropbear's `dbclient` instead of OpenSSH. Only python3 has
 to be added.
 
-On the router (`ssh root@<pi5>`), once, over its uplink:
+On the router (`ssh root@<pi5>`), once, over its uplink. OpenWrt 25.12 uses `apk`
+(older releases: `opkg update && opkg install` with the same names). `python3-light` alone
+lacks modules that `http.server` needs, so the four extra packages are required (about 10 MB
+in total):
 
 ```bash
-opkg update && opkg install python3-light
+apk update && apk add python3-light python3-email python3-urllib python3-logging python3-codecs
 ```
 
 From the laptop, copy the lab folder over (`-O`: dropbear has no sftp):
