@@ -12,7 +12,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # The AI layer's cloud provider (LLM_PROVIDER=anthropic). Findings and scores never use it.
-    "anthropic==0.42.0",
+    # 1.17.0 (2026-10-20) is the first pin tested to accept output_config (#61).
+    "anthropic==1.17.0",
     "defusedxml==0.7.1",
     "fastapi==0.115.6",
     "jinja2==3.1.4",

@@ -128,6 +128,42 @@ def test_provider_error_falls_back(evidence):
     assert out.source == SOURCE_TEMPLATE and out.reason == "unavailable"
 
 
+@pytest.mark.parametrize("error", [TypeError("bad kwarg"), AttributeError("x"), RuntimeError()])
+def test_unexpected_provider_exception_falls_back(evidence, error):
+    # #61: anything a provider raises must end in the template, never in an error page.
+    out = Explainer(FakeProvider(error=error)).explain_finding(evidence, "E1")
+    assert out.source == SOURCE_TEMPLATE and out.reason == "unavailable"
+    assert out.en == template_en()
+
+
+def test_anthropic_provider_turns_sdk_errors_into_unavailable(monkeypatch):
+    anthropic = pytest.importorskip("anthropic")
+
+    class BrokenMessages:
+        def create(self, **kwargs):
+            raise TypeError("Messages.create() got an unexpected keyword argument")
+
+    class BrokenClient:
+        def __init__(self, **kwargs):
+            self.messages = BrokenMessages()
+
+    monkeypatch.setattr(anthropic, "Anthropic", BrokenClient)
+    with pytest.raises(ProviderUnavailable) as info:
+        AnthropicProvider(api_key="test-not-a-key").complete("s", "p", timeout=1)
+    assert str(info.value) == "TypeError"  # only the class name, never the message
+
+
+def test_pinned_anthropic_sdk_accepts_every_argument_the_provider_sends():
+    # #61: anthropic 0.42.0 had no output_config, so every AI call raised TypeError.
+    import inspect
+
+    anthropic = pytest.importorskip("anthropic")
+    client = anthropic.Anthropic(api_key="test-not-a-key", timeout=1, max_retries=0)
+    params = inspect.signature(client.messages.create).parameters
+    for name in ("model", "max_tokens", "system", "messages", "output_config"):
+        assert name in params, name
+
+
 def test_no_provider_uses_template(evidence):
     out = Explainer(None).explain_finding(evidence, "E1")
     assert out.source == SOURCE_TEMPLATE and out.reason == "ai_off"
