@@ -11,12 +11,20 @@
 #   lab/card_role.sh /dev/sdb hub --on ssdp,jetdirect     # pi3
 #   lab/card_role.sh /dev/sdb server                      # pi2
 # Options:
-#   --on SVC[,SVC]     also turn on these toggles of the role (see lab/services.tsv)
+#   --on SVC[,SVC]     also turn on these toggles of the role (see lab/services.tsv);
+#                      smb and snmp are real daemons and also need --with-packages
 #   --with-packages    let setup.sh apt-install samba/snmpd (needs internet; hotspot data is limited)
+# Tests only: lab/card_role.sh --to-dir DIR <role> [options] writes into a plain folder that stands
+# in for the boot partition (no disk checks, no mount), see lab/tests/test_card_role.py.
 set -euo pipefail
 source "$(dirname "$0")/_card.sh"
 
 [[ $# -ge 2 ]] || { sed -n '2,16p' "$0"; exit 1; }
+TO_DIR=
+if [[ $1 == --to-dir ]]; then
+  [[ $# -ge 3 ]] || die "usage: $0 --to-dir DIR <role> [options]"
+  TO_DIR=$2; shift
+fi
 DEV=$1; ROLE=$2; shift 2; ON=(); ARGS=
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -29,16 +37,23 @@ done
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 for svc in "${ON[@]}"; do
-  awk -F'\t' -v s="$svc" -v r="$ROLE" '!/^#/ && $1 == s && $2 == r { f = 1 } END { exit !f }' \
-    "$HERE/services.tsv" || die "'$svc' is not a service of the $ROLE role (see lab/services.tsv)"
+  kind=$(awk -F'\t' -v s="$svc" -v r="$ROLE" '!/^#/ && $1 == s && $2 == r { print $3 }' "$HERE/services.tsv")
+  [[ -n $kind ]] || die "'$svc' is not a service of the $ROLE role (see lab/services.tsv)"
+  # A real daemon (samba, snmpd) only exists if setup.sh installed it; without it the
+  # install on the Pi would fail on every boot.
+  [[ $kind != real || -n $ARGS ]] || die "'$svc' needs a real daemon: add --with-packages"
 done
-check_card "$DEV"
-
-BOOT=$(part "$DEV" 1)
-[[ $(lsblk -no LABEL "$BOOT") == bootfs ]] || die "$BOOT is not a Pi OS boot partition"
-MNT=$(lsblk -no MOUNTPOINTS "$BOOT" | head -n1)
-if [[ -z $MNT ]]; then
-  MNT=$(udisksctl mount -b "$BOOT" | sed 's/.* at //')
+if [[ -n $TO_DIR ]]; then
+  [[ -d $TO_DIR ]] || die "$TO_DIR is not a folder"
+  BOOT=; MNT=$TO_DIR
+else
+  check_card "$DEV"
+  BOOT=$(part "$DEV" 1)
+  [[ $(lsblk -no LABEL "$BOOT") == bootfs ]] || die "$BOOT is not a Pi OS boot partition"
+  MNT=$(lsblk -no MOUNTPOINTS "$BOOT" | head -n1)
+  if [[ -z $MNT ]]; then
+    MNT=$(udisksctl mount -b "$BOOT" | sed 's/.* at //')
+  fi
 fi
 [[ -f $MNT/cmdline.txt && -w $MNT/cmdline.txt ]] || die "can't write $MNT/cmdline.txt"
 
@@ -73,11 +88,14 @@ if [[ $ROLE == hub ]]; then
 fi
 EOF
 
+# Not After=cloud-final.service: that one runs after multi-user.target, which waits for this
+# unit, so systemd would break the cycle by dropping a job. cloud-init.service (users, SSH
+# keys) runs before network-online.target.
 cat > "$MNT/lab/lab-install.service" <<'EOF'
 [Unit]
 Description=Install the lab role (lab/card_role.sh)
 Wants=network-online.target
-After=network-online.target cloud-final.service ssh.service
+After=network-online.target cloud-init.service ssh.service
 
 [Service]
 Type=oneshot
@@ -116,7 +134,9 @@ sync
 
 echo "DONE: the card will install the '$ROLE' role on its next boot${ON[*]:+, with ${ON[*]} on}."
 echo "  It boots, reboots, then installs once online. Check on the Pi: journalctl -u lab-install"
-if command -v udisksctl >/dev/null && udisksctl unmount -b "$BOOT" >/dev/null 2>&1; then
+if [[ -z $BOOT ]]; then
+  :  # --to-dir: nothing to unmount
+elif command -v udisksctl >/dev/null && udisksctl unmount -b "$BOOT" >/dev/null 2>&1; then
   echo "Unmounted $BOOT; safe to remove the card."
 else
   echo "Unmount $BOOT (eject the card) before removing it."

@@ -2,7 +2,7 @@
 
 A local network security checker for the R Systems Hackathon 2026. It scans a small network you own, explains each risk in plain Romanian and English, gives step-by-step fixes and a score, and keeps a history so you can see the score improve.
 
-The product name isn't decided yet, so the docs call it "the tool" and the command is `tool`. Team plan: [MASTERPLAN.md](MASTERPLAN.md). How we work: [WORKFLOW.md](WORKFLOW.md).
+The name comes from "bile, bile", Romanian Gen-Z slang for "good": that's what it makes your network. The command is still `tool`. Team plan: [MASTERPLAN.md](MASTERPLAN.md). How we work: [WORKFLOW.md](WORKFLOW.md).
 
 ## Setup
 

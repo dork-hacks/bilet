@@ -1,13 +1,13 @@
 """Single place for the product name and runtime settings.
 
-The product name is not decided yet (MASTERPLAN.md). Change DISPLAY_NAME here
-and nowhere else. All settings come from environment variables (NFR-01).
+The product name is bilet (MASTERPLAN.md). Change DISPLAY_NAME here and nowhere
+else. All settings come from environment variables (NFR-01).
 """
 
 import os
 from pathlib import Path
 
-DISPLAY_NAME = "the tool"
+DISPLAY_NAME = "bilet"
 
 
 def data_dir() -> Path:

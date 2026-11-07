@@ -3,7 +3,7 @@ requires = ["setuptools==75.6.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# The product name is undecided (MASTERPLAN.md). The user-facing name lives in
+# The product name is bilet (MASTERPLAN.md). The user-facing name lives in
 # src/tool/config.py; "tool" here is only the internal package and command name.
 name = "tool"
 version = "0.1.0"
@@ -37,7 +37,9 @@ where = ["src"]
 "tool.web" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# lab/tests are plain unittest files (they also run on a Pi without pytest); listing them
+# here makes CI's `make test` run them too (#108).
+testpaths = ["tests", "lab/tests"]
 addopts = "-q"
 
 [tool.ruff]
