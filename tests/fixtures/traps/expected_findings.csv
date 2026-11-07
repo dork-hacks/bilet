@@ -66,3 +66,11 @@ T25_ip_sort_order.xml,192.168.1.9,1883,MQTT_EXPOSED,medium
 T25_ip_sort_order.xml,192.168.1.9,10883,MQTT_EXPOSED,medium
 T25_ip_sort_order.xml,192.168.1.10,21,FTP_CLEARTEXT,medium
 T25_ip_sort_order.xml,192.168.1.100,1883,MQTT_EXPOSED,medium
+T27_samba_3x_4x.xml,192.168.1.20,445,SMB_EXPOSED,medium
+T28_method_table_catalog.xml,192.168.1.30,23,TELNET_OPEN,high
+T28_method_table_catalog.xml,192.168.1.30,161,SNMP_EXPOSED,medium
+T28_method_table_catalog.xml,192.168.1.30,3389,RDP_EXPOSED,high
+T30_outdated_without_own_finding.xml,192.168.1.50,80,OUTDATED_SERVICE,high
+T30_outdated_without_own_finding.xml,192.168.1.51,443,OUTDATED_SERVICE,high
+T31_outdated_samba_139_and_445.xml,192.168.1.62,445,OUTDATED_SERVICE,high
+T31_outdated_samba_139_and_445.xml,192.168.1.62,445,SMB_EXPOSED,medium

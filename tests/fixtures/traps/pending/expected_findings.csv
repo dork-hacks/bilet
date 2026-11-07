@@ -1,9 +1,0 @@
-file,ip,port,finding_code,severity
-P01_samba_3x_4x.xml,192.168.1.20,445,SMB_EXPOSED,medium
-P02_method_table_catalog.xml,192.168.1.30,23,TELNET_OPEN,high
-P02_method_table_catalog.xml,192.168.1.30,161,SNMP_EXPOSED,medium
-P02_method_table_catalog.xml,192.168.1.30,3389,RDP_EXPOSED,high
-P04_outdated_without_own_finding.xml,192.168.1.50,80,OUTDATED_SERVICE,high
-P04_outdated_without_own_finding.xml,192.168.1.51,443,OUTDATED_SERVICE,high
-P05_outdated_samba_139_and_445.xml,192.168.1.62,445,OUTDATED_SERVICE,high
-P05_outdated_samba_139_and_445.xml,192.168.1.62,445,SMB_EXPOSED,medium
