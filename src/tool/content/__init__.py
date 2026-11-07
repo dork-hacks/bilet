@@ -18,6 +18,7 @@ from tool.content.texts import (
     GENERIC_FILE_ERROR,
     GENERIC_FINDING,
     GENERIC_REFUSAL,
+    HISTORY_FAILED,
     LANGS,
     REFUSALS,
     SCAN_MESSAGES,
@@ -38,6 +39,7 @@ __all__ = [
     "detect_error_message",
     "device_type_label",
     "file_error_message",
+    "history_error_message",
     "finding_text",
     "refusal_message",
     "hosts_found_message",
@@ -113,6 +115,11 @@ def device_type_label(device_type: str, lang: str | None = DEFAULT_LANG) -> str:
 def file_error_message(error_code: str, lang: str | None = DEFAULT_LANG) -> str:
     lang = _lang(lang)
     return FILE_ERRORS.get(error_code, GENERIC_FILE_ERROR)[lang]
+
+
+def history_error_message(lang: str | None = DEFAULT_LANG) -> str:
+    """The results are saved, but the history couldn't be updated (#132). Never raises."""
+    return HISTORY_FAILED[_lang(lang)]
 
 
 def detect_error_message(code: str, lang: str | None = DEFAULT_LANG) -> str:

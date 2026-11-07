@@ -176,6 +176,17 @@ def test_labels_cover_the_contract_enums():
     assert severity_label("high", "ro") == "Risc ridicat"
 
 
+def test_history_error_message_in_both_languages_with_a_fallback():
+    from tool.content import history_error_message
+
+    en = "Your results are saved, but the history couldn't be updated."
+    ro = "Rezultatele sunt salvate, dar istoricul nu a putut fi actualizat."
+    assert history_error_message("en") == en
+    assert history_error_message("ro") == ro
+    assert history_error_message("xx") == history_error_message("ro")
+    assert history_error_message(None) == history_error_message("ro")
+
+
 def test_refusal_messages_fill_in_the_target():
     for code, texts in REFUSALS.items():
         for lang in LANGS:
