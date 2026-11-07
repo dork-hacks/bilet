@@ -1,8 +1,8 @@
 # Hotspot lab: "house in a box"
 
-Three Raspberry Pi 4s, each playing a household device with **simulated** weak services
-(MASTERPLAN §4.1). Until the Pis arrive, or if the hotspot isolates its clients, the same
-fake services run as three Docker containers (brief setup D).
+Three Raspberry Pi 4s on the team hotspot, each playing a household device with
+**simulated** weak services (MASTERPLAN §4.1). The scanner is still a laptop (the brief
+requires it); only the targets are Pis.
 
 **Simulate, do not expose.** Every weak service is a fake banner (`fakes/fakesvc.py`) or a
 real daemon locked down so it grants nothing. No login ever works, client input is never
@@ -81,26 +81,10 @@ python3 -I lab/fakes/fakesvc.py telnet http --bind 0.0.0.0
 python3 -I lab/fakes/fakesvc.py ftp --bind 127.0.0.1 --port 2121
 ```
 
-## Docker fallback (setup D)
-
-```bash
-docker compose -f lab/docker/compose.yaml up -d            # camera .11, server .12, hub .13 on 10.77.0.0/24
-docker compose -f lab/docker/compose.yaml --profile scan run --rm scanner \
-  -sS -sU -sV --script http-title --max-rate 100 \
-  -p T:21,22,23,80,554,1883,2323,6379,9100,U:161,1900 -oX /out/scan_01.xml 10.77.0.11-13
-docker compose -f lab/docker/compose.yaml down
-```
-
-Scans land in `lab/docker/out/` (git-ignored). Choose the services per device with
-`CAMERA_SERVICES`, `SERVER_SERVICES` and `HUB_SERVICES`, for example
-`CAMERA_SERVICES="http" docker compose -f lab/docker/compose.yaml up -d camera` is the
-camera with telnet fixed. Differences from the Pis: no SSH, Samba or SNMP, and Docker
-gives every container a random MAC with no vendor, so identity-based findings
-(UNKNOWN_DEVICE) don't match the Pi lab.
-
 ## What nmap -sV makes of the fakes
 
-Checked with nmap 7.95 (`instrumentisto/nmap:7.95`) against the Docker lab:
+Checked during development with nmap 7.95 against the fakes running locally in containers
+(not on the hotspot). #34 repeats the check against the Pis:
 
 | Port | Service name | Product / version | `method` |
 |---|---|---|---|
