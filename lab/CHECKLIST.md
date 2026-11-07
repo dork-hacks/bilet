@@ -6,9 +6,10 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
 
 ## Before the event (home Wi-Fi)
 
-- [ ] Each Pi 4 is set up with its role (README "Setting up a Pi"):
-      `sudo lab/setup.sh camera`, `sudo lab/setup.sh server --with-packages`,
-      `sudo lab/setup.sh hub --with-packages`. Packages download here, not over the hotspot.
+- [ ] Each Pi 4 is set up with its role (README "Setting up a Pi"; two Pis since #128):
+      `sudo lab/setup.sh camera` on pi2, `sudo lab/setup.sh hub --with-packages` on pi3, and
+      `sudo lab/setup.sh server --with-packages` on the optional third device. Packages
+      download here, not over the hotspot.
 - [ ] The laptop has nmap (`apt install nmap` / `brew install nmap`), Python 3.11+ and
       `make setup` done, so `.venv/bin/python` and `.venv/bin/tool` exist.
 
@@ -20,14 +21,15 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
 - [ ] The scanner laptop joins `RSH-dork_unit` **and nothing else**: Ethernet unplugged,
       venue Wi-Fi forgotten, VPN off. `.venv/bin/tool detect --lang en` must show a single
       network with a private subnet no larger than a /24.
-- [ ] The three Pis are on the hotspot. Read their IPs from the Pi 5's DHCP leases
-      (LuCI: Status → Overview, or `cat /tmp/dhcp.leases` on the Pi 5):
+- [ ] The camera and hub Pis are on the hotspot. Read their IPs from the Pi 5's DHCP leases
+      (LuCI: Status → Overview, or `cat /tmp/dhcp.leases` on the Pi 5). Leave `SRV` empty
+      until the optional third device is on; the loops below then skip it:
       ```bash
-      CAM=<camera IP>; SRV=<server IP>; HUB=<hub IP>; PI=<your SSH user>
-      ROLES="--camera $CAM --server $SRV --hub $HUB"
+      CAM=<camera IP>; HUB=<hub IP>; SRV=; PI=<your SSH user>
+      ROLES="--camera $CAM --hub $HUB${SRV:+ --server $SRV}"
       ```
-- [ ] **Client isolation test:** `ping -c 3 $CAM`, `ping -c 3 $SRV`, `ping -c 3 $HUB` from
-      the laptop, and `ssh $PI@$CAM ping -c 3 $SRV` between two Pis. If pings fail, the
+- [ ] **Client isolation test:** `ping -c 3 $CAM` and `ping -c 3 $HUB` from the laptop, and
+      `ssh $PI@$CAM ping -c 3 $HUB` between the two Pis. If pings fail, the
       hotspot isolates clients: on the Pi 5, turn off **Isolate Clients** for the
       `RSH-dork_unit` wireless network (LuCI: Network → Wireless → Edit → Advanced Settings).
 
@@ -40,12 +42,12 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
       mkdir -p lab/captures
       for h in $CAM $SRV $HUB; do ssh $PI@$h /usr/local/sbin/labctl status; done > lab/captures/status_1.txt
       ```
-      The LEDs blink red on all three.
+      The LEDs blink red on both.
 
 ## 3. Capture 1: the default lab (score 25)
 
 - [ ] Dry run, nothing is scanned: `python3 -I lab/verify $ROLES --print-only`.
-      Check the "Scope OK" line and the nmap command (only the three IPs, lab ports only).
+      Check the "Scope OK" line and the nmap command (only the Pis' IPs, lab ports only).
 - [ ] Scan and check: `python3 -I lab/verify $ROLES --status-file lab/captures/status_1.txt --confirm`.
       sudo asks for your password for nmap only. Every row must be **PASS**, exit code 0.
       `method=table` on jetdirect and upnp is expected. On a FAIL, read the NOTE column,
@@ -55,12 +57,12 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
       .venv/bin/python -I lab/sanitize lab/captures/scan_<time>.xml L1_default.xml $ROLES \
         --status-file lab/captures/status_1.txt --expected
       ```
-      It must say `engine parser: OK, 3 hosts` and `score 25` (9 findings, 7 types).
+      It must say `engine parser: OK, 2 hosts` and `score 25` (8 findings, 7 types).
 
 ## 4. Capture 2: after two fixes (score 55)
 
 - [ ] On the camera Pi (`ssh $PI@$CAM`): `sudo labctl fix telnet` and `sudo labctl fix http`.
-      Its LED turns steady green.
+      Its LED still blinks: the FTP server is on until `fix ftp` (score 85, LED green).
 - [ ] `for h in $CAM $SRV $HUB; do ssh $PI@$h /usr/local/sbin/labctl status; done > lab/captures/status_2.txt`
 - [ ] `python3 -I lab/verify $ROLES --status-file lab/captures/status_2.txt --confirm`: all PASS.
 - [ ] `.venv/bin/python -I lab/sanitize lab/captures/scan_<time>.xml L2_after_fix.xml $ROLES --status-file lab/captures/status_2.txt --expected`:
@@ -69,9 +71,11 @@ Tick each box in the #34 PR or issue as you go. Commands run from the repo root.
 ## 5. Capture 3: the other toggles (score 20)
 
 This covers the codes captures 1 and 2 don't: CAMERA_STREAM, DB, SMB, UPNP, SNMP, PRINTER.
+DB and SMB live on the optional third device, so set `SRV` and `ROLES` again with it first.
+Without it, the score is 50 and DB_EXPOSED / SMB_EXPOSED aren't covered.
 
-- [ ] Over SSH on each Pi. Camera: `sudo labctl break rtsp`.
-      Server: `sudo labctl fix ftp`, `sudo labctl break redis`, `sudo labctl break smb`.
+- [ ] Over SSH on each Pi. Camera: `sudo labctl fix ftp`, `sudo labctl break rtsp`.
+      Server: `sudo labctl break redis`, `sudo labctl break smb`.
       Hub: `sudo labctl fix mqtt`, `sudo labctl break ssdp`, `sudo labctl break snmp`,
       `sudo labctl break jetdirect`.
 - [ ] `for h in $CAM $SRV $HUB; do ssh $PI@$h /usr/local/sbin/labctl status; done > lab/captures/status_3.txt`
@@ -80,6 +84,16 @@ This covers the codes captures 1 and 2 don't: CAMERA_STREAM, DB, SMB, UPNP, SNMP
 - [ ] `.venv/bin/python -I lab/sanitize lab/captures/scan_<time>.xml L3_toggles.xml $ROLES --status-file lab/captures/status_3.txt --expected`:
       score 20.
 - [ ] `sudo labctl reset` on every Pi. When the event is over: `sudo lab/setup.sh remove`.
+
+## 5b. The router adds nothing (#128)
+
+- [ ] With the default lab back on (`sudo labctl reset` on every Pi), run the tool's own
+      scan of the whole hotspot: `.venv/bin/tool scan --confirm`. The Pi 5 router may show
+      SSH_OPEN (0 points) and nothing else, and the score must still be 25. LuCI on 80/443
+      is fine only if its page title has none of the admin words. If the router adds
+      points, say so in #128 before anyone records the demo.
+      Teammates' laptops on the hotspot are scanned too and can add findings of their own,
+      so for this check only the scanner laptop, the Pis and the router should be on it.
 
 ## 6. Hand-check and commit
 
@@ -93,7 +107,8 @@ This covers the codes captures 1 and 2 don't: CAMERA_STREAM, DB, SMB, UPNP, SNMP
       diff tests/fixtures/lab/expected_scores.csv /tmp/lab-out/scores.csv
       ```
       If they differ, don't copy the engine's output: find out who is wrong and say so in #34.
-- [ ] Privacy: every MAC in the fixtures ends in `00:00:01`, `00:00:02` or `00:00:03`
+- [ ] Privacy: every MAC in the fixtures ends in `00:00:01` (camera), `00:00:02` (server)
+      or `00:00:03` (hub)
       (`grep -ho 'addr="[0-9A-F:]*" addrtype="mac"' tests/fixtures/lab/*.xml | sort -u`),
       and no real hostname, name or home path is left (`grep -i` for them). Run gitleaks.
 - [ ] Commit the three XML files and both expected CSVs on a branch, open a PR that

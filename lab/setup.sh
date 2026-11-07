@@ -4,9 +4,11 @@
 #   sudo lab/setup.sh camera|server|hub [--with-packages]
 #   sudo lab/setup.sh remove
 #
-# camera  Pi 4 #1: telnet (BusyBox banner, 2323) + "Camera Login" web page; RTSP as a toggle
-# server  Pi 4 #2: FTP "vsFTPd 2.3.4" banner; fake Redis and Samba (no shares) as toggles
-# hub     Pi 4 #3: MQTT + no vendor/hostname (UNKNOWN_DEVICE); SSDP, SNMP, JetDirect as toggles
+# camera  pi2: telnet (BusyBox banner, 2323), "Camera Login" web page, FTP "vsFTPd 2.3.4"
+#         (a camera that uploads clips over FTP); RTSP as a toggle
+# hub     pi3: MQTT + no vendor/hostname (UNKNOWN_DEVICE); SSDP, SNMP, JetDirect as toggles
+# server  optional third device (#128): nothing on by default; fake Redis and Samba
+#         (no shares) as toggles, for the "new device" / "new open port" demo
 #
 # --with-packages  apt-installs the real daemons a role can toggle (samba / snmpd).
 #                  Do this at home: hotspot data is limited.

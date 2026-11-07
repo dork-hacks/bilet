@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """lab/sanitize: turn a raw lab capture into a test fixture (#34). See lab/CHECKLIST.md.
 
-  lab/sanitize lab/captures/scan_X.xml L1_default.xml --camera IP --server IP --hub IP
+  lab/sanitize lab/captures/scan_X.xml L1_default.xml --camera IP --hub IP [--server IP]
 
 Writes tests/fixtures/lab/L1_default.xml with:
 - the device half of every MAC replaced (the OUI, so the vendor, stays): camera :00:00:01,
   server :00:00:02, hub :00:00:03, any other MAC :00:00:00;
 - every real hostname replaced by the role name, wherever it appears;
-- every host that isn't one of the three Pis removed.
+- every host that isn't one of the lab Pis given removed.
 Then prints the expected findings.csv rows from services.tsv and the toggles
 (--on/--off/--status-file, as for lab/verify); --expected also writes them into
 tests/fixtures/lab/expected_findings.csv and expected_scores.csv.
