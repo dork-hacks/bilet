@@ -479,6 +479,26 @@ UI = {
         "en": "Nothing changed between these two checks.",
     },
     "diff_resolved": {"ro": "Probleme rezolvate", "en": "Problems you fixed"},
+    "history_read_failed": {
+        "ro": (
+            "Istoricul nu poate fi citit sau comparat acum. Încearcă din nou. "
+            "Dacă alegi să îl ștergi, verificările salvate vor fi pierdute."
+        ),
+        "en": (
+            "History cannot be read or compared right now. Try again. "
+            "If you choose to delete it, your saved checks will be lost."
+        ),
+    },
+    "history_delete_failed": {
+        "ro": (
+            "Istoricul nu a fost șters complet. Verifică dacă ai dreptul să modifici "
+            "fișierele salvate, apoi încearcă din nou."
+        ),
+        "en": (
+            "History was not completely deleted. Check that you have permission to "
+            "change the saved files, then try again."
+        ),
+    },
     "diff_new_findings": {"ro": "Probleme noi", "en": "New problems"},
     "diff_new_devices": {"ro": "Dispozitive noi", "en": "New devices"},
     "diff_removed_devices": {
