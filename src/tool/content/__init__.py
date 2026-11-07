@@ -21,6 +21,8 @@ from tool.content.texts import (
     LANGS,
     REFUSALS,
     SCAN_MESSAGES,
+    SCAN_STEPS,
+    SCAN_TIME_LEFT,
     SEVERITIES,
 )
 from tool.content.ui import UI
@@ -38,7 +40,9 @@ __all__ = [
     "file_error_message",
     "finding_text",
     "refusal_message",
+    "hosts_found_message",
     "scan_message",
+    "scan_progress_message",
     "severity_label",
     "standards_line",
 ]
@@ -158,7 +162,7 @@ def alert_message(
     return _ALERT_FIELD.sub(lambda m: values[m.group(1)], template)
 
 
-_SCAN_FIELD = re.compile(r"\{(targets|address|path|score|findings)\}")
+_SCAN_FIELD = re.compile(r"\{(targets|address|path|score|findings|count|hosts|step|percent|left)\}")
 _MAX_SCAN_VALUE_CHARS = 300  # a saved scan path is longer than a target, so not 64
 
 
@@ -179,3 +183,36 @@ def scan_message(code: str, lang: str | None = DEFAULT_LANG, **values: object) -
     template = SCAN_MESSAGES.get(code, SCAN_MESSAGES["NMAP_FAILED"])[lang]
     filled = {name: _clean_value(value) for name, value in values.items()}
     return _SCAN_FIELD.sub(lambda m: filled.get(m.group(1), "?"), template)
+
+
+def _time_left(seconds: int | None, lang: str) -> str:
+    if seconds is None or seconds < 0:
+        return SCAN_TIME_LEFT["UNKNOWN"][lang]
+    if seconds < 60:
+        return SCAN_TIME_LEFT["UNDER_A_MINUTE"][lang]
+    minutes = round(seconds / 60)
+    if minutes <= 1:
+        return SCAN_TIME_LEFT["ONE_MINUTE"][lang]
+    key = "MANY_MINUTES" if minutes >= 20 else "MINUTES"
+    return SCAN_TIME_LEFT[key][lang].replace("{minutes}", str(minutes))
+
+
+def scan_progress_message(
+    step: str, percent: float, seconds_left: int | None, lang: str | None = DEFAULT_LANG
+) -> str:
+    """One progress line for `tool scan` (#107), for example "Checking ports (TCP): 40%
+    done, about 2 minutes left." An unknown step is shown as OTHER. Never raises."""
+    lang = _lang(lang)
+    name = SCAN_STEPS.get(step, SCAN_STEPS["OTHER"])[lang]
+    try:
+        whole = str(int(min(100.0, max(0.0, float(percent)))))
+    except (TypeError, ValueError):
+        whole = "?"
+    left = _time_left(seconds_left, lang)
+    return scan_message("PROGRESS", lang, step=name, percent=whole, left=left)
+
+
+def hosts_found_message(hosts: list[str], lang: str | None = DEFAULT_LANG) -> str:
+    """The line printed after discovery: how many devices answered, their IP addresses,
+    and that the port check takes a few minutes (#107). Never MACs or hostnames."""
+    return scan_message("HOSTS_FOUND", lang, count=len(hosts), hosts=", ".join(hosts))

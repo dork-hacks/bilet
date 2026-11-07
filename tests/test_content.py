@@ -8,8 +8,10 @@ from tool.content import (
     device_type_label,
     file_error_message,
     finding_text,
+    hosts_found_message,
     refusal_message,
     scan_message,
+    scan_progress_message,
     severity_label,
 )
 from tool.content.texts import (
@@ -20,6 +22,8 @@ from tool.content.texts import (
     GENERIC_FINDING,
     REFUSALS,
     SCAN_MESSAGES,
+    SCAN_STEPS,
+    SCAN_TIME_LEFT,
     SEVERITIES,
 )
 
@@ -227,6 +231,8 @@ def test_unknown_detect_code_or_language_falls_back():
 SCAN_CODES = (
     "RUN_AS_ROOT",
     "START",
+    "HOSTS_FOUND",
+    "PROGRESS",
     "SELF_SKIPPED",
     "DONE",
     "NMAP_NOT_FOUND",
@@ -267,3 +273,63 @@ def test_scan_message_never_raises():
     assert scan_message("IPV6_NOT_SUPPORTED", "de") == SCAN_MESSAGES["IPV6_NOT_SUPPORTED"]["ro"]
     assert scan_message("IPV6_NOT_SUPPORTED", None) == SCAN_MESSAGES["IPV6_NOT_SUPPORTED"]["ro"]
     assert "{" not in scan_message("DONE", "ro")  # a missing value is shown as "?"
+
+
+# --- live scan progress (#107) ----------------------------------------------------------
+
+
+def test_scan_steps_cover_every_step_code_in_both_languages():
+    from tool import scan as live
+
+    codes = {getattr(live, name) for name in dir(live) if name.startswith("STEP_")}
+    assert set(SCAN_STEPS) == codes
+    for texts in [*SCAN_STEPS.values(), *SCAN_TIME_LEFT.values()]:
+        assert texts["ro"].strip() and texts["en"].strip() and texts["ro"] != texts["en"]
+        assert not re.search("[şţŞŢ]", texts["ro"])
+
+
+@pytest.mark.parametrize(
+    ("step", "percent", "lang", "expected"),
+    [
+        ("TCP", 39.9, "en", "Checking ports (TCP): 39% done, "),
+        ("SERVICES", 80, "en", "Identifying services: 80% done, "),
+        ("TITLES", 100, "en", "Reading web page titles: 100% done, "),
+        ("DEVICES", 50, "ro", "Se caută dispozitive: 50% gata, "),
+        ("UDP", 1, "ro", "Se verifică porturile (UDP): 1% gata, "),
+        ("NEW", 1, "en", "The scan is still running: 1% done, "),
+    ],
+)
+def test_scan_progress_message_names_the_step(step, percent, lang, expected):
+    assert scan_progress_message(step, percent, 30, lang).startswith(expected)
+
+
+@pytest.mark.parametrize(
+    ("left", "lang", "expected"),
+    [
+        (11, "en", "less than a minute left."),
+        (70, "en", "about 1 minute left."),
+        (150, "en", "about 2 minutes left."),
+        (None, "en", "time left not known yet."),
+        (30, "ro", "mai puțin de un minut rămas."),
+        (60, "ro", "aproximativ un minut rămas."),
+        (300, "ro", "aproximativ 5 minute rămase."),
+        (1500, "ro", "aproximativ 25 de minute rămase."),
+    ],
+)
+def test_scan_progress_message_says_the_time_left(left, lang, expected):
+    assert scan_progress_message("TCP", 10, left, lang).endswith(", " + expected)
+
+
+def test_scan_progress_message_never_raises():
+    assert "?%" in scan_progress_message("TCP", "x", 10, "en")
+    assert "100%" in scan_progress_message("TCP", 1e9, -5, "de")
+    assert "timpul rămas" in scan_progress_message("TCP", 1, -5, None)
+
+
+def test_hosts_found_message_lists_only_the_addresses():
+    hosts = ["192.168.50.1", "192.168.50.10"]
+    en = hosts_found_message(hosts, "en")
+    assert en.startswith("Devices found: 2 (192.168.50.1, 192.168.50.10).")
+    assert "few minutes" in en
+    assert hosts_found_message(hosts, "ro").startswith("Dispozitive găsite: 2 (")
+    assert len(hosts_found_message([f"192.168.50.{i}" for i in range(254)], "en")) < 500
