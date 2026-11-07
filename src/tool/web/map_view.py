@@ -11,7 +11,13 @@ import re
 
 from tool.content import DEVICE_TYPES, device_type_label, finding_text, severity_label
 from tool.content.ui import MAP_LEVELS, UI
-from tool.web.view import device_anchor, most_dangerous, pick_lang
+from tool.web.view import (
+    RESULT_DATA_ERRORS,
+    device_anchor,
+    most_dangerous,
+    pick_lang,
+    scan_fields_ok,
+)
 
 # Worst first. A device's level is its worst finding's severity; "none" when it has no
 # finding above "info" (an info finding scores 0 points and needs no fix).
@@ -107,6 +113,16 @@ def _hub_index(devices: list[dict]) -> int | None:
 
 
 def network_map(result: dict | None, lang: str | None) -> dict | None:
+    """Return no map for malformed saved data instead of exposing a partial map."""
+    if not scan_fields_ok(result):
+        return None
+    try:
+        return _network_map(result, lang)
+    except RESULT_DATA_ERRORS:
+        return None
+
+
+def _network_map(result: dict, lang: str | None) -> dict | None:
     """The map data for a readable scan, or None (no scan, an unreadable file, no devices).
 
     `hub` is the router node, or None. `nodes` are the other devices in the device list's
