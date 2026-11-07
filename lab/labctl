@@ -2,18 +2,22 @@
 # labctl: turn this Pi's simulated weak services on and off, and show them on the LEDs.
 #
 #   labctl status            what runs on this Pi, with catalog codes and points
-#   labctl state             the same as "SERVICE on|off" lines (for the switch helper)
-#   labctl list              every service of every role
+#   labctl state             the same as "SERVICE on|off [default]" lines (for the switch helper)
+#   labctl list              every service, with the role it belongs to by default
+#   labctl presets           the devices this Pi can play (camera, hub, printer, ...)
 #   sudo labctl fix SVC      turn a weak service off (the "fix" in the before/after demo)
-#   sudo labctl break SVC    turn it back on
-#   sudo labctl reset        back to the default lab (score 25 across the three Pis)
+#   sudo labctl break SVC    turn it on; any service works on any Pi (#155)
+#   sudo labctl preset NAME  play another device: its services on, everything else off
+#   sudo labctl reset        back to this Pi's preset (the default lab scores 25)
 #   sudo labctl leds         refresh the LEDs: blinking red = weak service on, steady green = all fixed
 #   sudo labctl leds-restore give the LEDs back to the system
 set -euo pipefail
 
 LAB_DIR=${LAB_DIR:-/opt/lab}
 SERVICES=${LAB_SERVICES:-$LAB_DIR/services.tsv}
+PRESETS=${LAB_PRESETS:-$LAB_DIR/presets.tsv}
 ROLE_FILE=${LAB_ROLE_FILE:-/etc/lab/role}
+PRESET_FILE=${LAB_PRESET_FILE:-/etc/lab/preset}
 
 die() { echo "labctl: $*" >&2; exit 1; }
 need_root() { [[ $EUID -eq 0 ]] || die "run with sudo: sudo labctl $*"; }
@@ -29,11 +33,39 @@ role() {
 rows() { awk -F'\t' -v r="${1:-}" '!/^#/ && NF >= 8 && (r == "" || $2 == r)' "$SERVICES"; }
 
 row_for() {
-  local r; r=$(role)
-  local line; line=$(rows "$r" | awk -F'\t' -v s="$1" '$1 == s')
-  [[ -n $line ]] || die "'$1' is not a service of the $r role. Try: labctl status"
+  local line; line=$(rows | awk -F'\t' -v s="$1" '$1 == s')
+  [[ -n $line ]] || die "'$1' is not a lab service. Try: labctl list"
   echo "$line"
 }
+
+# --- presets (#155): which device this Pi plays ------------------------------
+# camera, server and hub are the roles' default-on rows in services.tsv. presets.tsv adds
+# more devices (preset<TAB>services<TAB>description); "custom" starts with nothing on.
+
+preset_names() {
+  printf '%s\n' camera server hub
+  [[ -r $PRESETS ]] && awk -F'\t' '!/^#/ && NF >= 3 { print $1 }' "$PRESETS"
+  return 0
+}
+
+valid_preset() { [[ $1 =~ ^[a-z][a-z0-9-]{0,15}$ ]] && preset_names | grep -qx -- "$1"; }
+
+preset() { # the active preset: /etc/lab/preset, else the role setup.sh installed
+  local p=""
+  [[ -r $PRESET_FILE ]] && p=$(<"$PRESET_FILE")
+  [[ -n $p ]] || p=$(role)
+  valid_preset "$p" || die "bad preset '$p' in $PRESET_FILE. Try: labctl presets"
+  echo "$p"
+}
+
+preset_services() { # NAME -> one service per line
+  case $1 in
+    camera | server | hub) rows "$1" | awk -F'\t' '$8 == "on" { print $1 }' ;;
+    *) awk -F'\t' -v p="$1" '!/^#/ && NF >= 3 && $1 == p { n = split($2, s, ","); for (i = 1; i <= n; i++) if (s[i] != "-") print s[i] }' "$PRESETS" ;;
+  esac
+}
+
+in_preset() { preset_services "$2" | grep -qx -- "$1"; } # service preset
 
 # --- identity (hub only): random MAC + no DHCP hostname -> UNKNOWN_DEVICE ----
 
@@ -91,7 +123,12 @@ unit_installed() { systemctl cat "$1" >/dev/null 2>&1; }
 set_service() { # on|off kind unit service reconnect
   local want=$1 kind=$2 unit=$3 svc=$4 reconnect=${5:-yes}
   case $kind in
-    identity) identity_set "$want" "$reconnect" ;;
+    identity)
+      # Only touch the Wi-Fi when the state changes: every change reconnects it, and a
+      # preset or reset turns this row off on every Pi that doesn't play the hub.
+      if [[ $want == on ]]; then identity_active && return 0; else identity_active || return 0; fi
+      identity_set "$want" "$reconnect"
+      ;;
     fake | real)
       if ! unit_installed "$unit"; then
         [[ $want == off ]] && return 0
@@ -108,7 +145,9 @@ set_service() { # on|off kind unit service reconnect
 
 # --- LEDs ----------------------------------------------------------------------
 
-led_path() { local n; for n in "$@"; do [[ -d /sys/class/leds/$n ]] && { echo "/sys/class/leds/$n"; return; }; done; }
+# Prints nothing when there's no such LED, and still succeeds: under set -e a failing
+# $(led_path ...) would end `labctl fix` with exit 1 after the fix was done.
+led_path() { local n; for n in "$@"; do [[ -d /sys/class/leds/$n ]] && { echo "/sys/class/leds/$n"; return 0; }; done; return 0; }
 
 led() { # path trigger [brightness]
   [[ -n $1 && -w $1/trigger ]] || return 0
@@ -121,13 +160,12 @@ led() { # path trigger [brightness]
 }
 
 update_leds() {
-  local green red weak=0 r svc kind unit
+  local green red weak=0 svc kind unit
   green=$(led_path ACT led0); red=$(led_path PWR led1)
   [[ -n $green || -n $red ]] || { echo "No on-board LEDs found; skipping."; return 0; }
-  r=$(role)
   while IFS=$'\t' read -r svc _ kind unit _; do
     if is_on "$kind" "$unit" "$svc"; then weak=1; break; fi
-  done < <(rows "$r")
+  done < <(rows)
   if (( weak )); then
     led "$green" none 0; led "$red" timer
     echo "LEDs: blinking red (a weak service is on)"
@@ -140,9 +178,9 @@ update_leds() {
 # --- commands ------------------------------------------------------------------
 
 cmd_status() {
-  local r total=0 svc kind unit port codes points state
-  r=$(role)
-  printf 'Role: %s\n\n%-10s %-9s %-32s %6s  %s\n' "$r" SERVICE PORT CODES POINTS STATE
+  local p total=0 svc kind unit port codes points state
+  p=$(preset)
+  printf 'Preset: %s (installed as %s)\n\n%-10s %-9s %-32s %6s  %s\n' "$p" "$(role)" SERVICE PORT CODES POINTS STATE
   while IFS=$'\t' read -r svc _ kind unit port codes points _; do
     if is_on "$kind" "$unit" "$svc"; then
       state="ON (weak)"; total=$((total + points))
@@ -151,17 +189,29 @@ cmd_status() {
     else
       state="off (fixed)"
     fi
+    in_preset "$svc" "$p" && state="$state, in the preset"
     printf '%-10s %-9s %-32s %6s  %s\n' "$svc" "$port" "$codes" "$points" "$state"
-  done < <(rows "$r")
+  done < <(rows)
   printf '\nPoints from this Pi: %d (plus SSH_OPEN, 0 points, for the admin SSH server)\n' "$total"
-  echo "Network score = max(0, 100 - points from all three Pis)."
+  echo "Network score = max(0, 100 - points from all the lab Pis)."
 }
 
 cmd_state() {
-  local svc kind unit
+  local p svc kind unit on
+  p=$(preset)
+  echo "preset $p"
   while IFS=$'\t' read -r svc _ kind unit _; do
-    if is_on "$kind" "$unit" "$svc"; then echo "$svc on"; else echo "$svc off"; fi
-  done < <(rows "$(role)")
+    if is_on "$kind" "$unit" "$svc"; then on=on; else on=off; fi
+    if in_preset "$svc" "$p"; then echo "$svc $on default"; else echo "$svc $on"; fi
+  done < <(rows)
+}
+
+cmd_presets() {
+  local name list
+  while read -r name; do
+    list=$(preset_services "$name" | paste -sd, -)
+    printf '%-12s %s\n' "$name" "${list:-(nothing on)}"
+  done < <(preset_names)
 }
 
 cmd_list() {
@@ -169,23 +219,46 @@ cmd_list() {
   rows | awk -F'\t' '{ printf "%-10s %-7s %-9s %-32s %6s  %s\n", $1, $2, $5, $6, $7, $8 }'
 }
 
+# Another service that is on and uses the same port (two web pages can't share port 80).
+port_taken_by() { # service port
+  local svc kind unit port
+  [[ $2 == - ]] && return 1
+  while IFS=$'\t' read -r svc _ kind unit port _; do
+    [[ $svc != "$1" && $port == "$2" ]] && is_on "$kind" "$unit" "$svc" && { echo "$svc"; return 0; }
+  done < <(rows)
+  return 1
+}
+
 cmd_toggle() { # on|off service
-  local line svc kind unit
+  local line svc kind unit port other
   line=$(row_for "$2")
-  IFS=$'\t' read -r svc _ kind unit _ <<<"$line"
+  IFS=$'\t' read -r svc _ kind unit port _ <<<"$line"
+  if [[ $1 == on ]] && other=$(port_taken_by "$svc" "$port"); then
+    die "$svc needs $port, which $other already uses. Turn $other off first."
+  fi
   set_service "$1" "$kind" "$unit" "$svc" yes
   echo "$svc: $([[ $1 == on ]] && echo 'ON (weak)' || echo 'off (fixed)')"
   update_leds
 }
 
-cmd_reset() {
-  local r svc kind unit default
-  r=$(role)
-  while IFS=$'\t' read -r svc _ kind unit _ _ _ default; do
-    set_service "$default" "$kind" "$unit" "$svc" "${LAB_RECONNECT:-yes}" </dev/null
-  done < <(rows "$r")
+cmd_reset() { # apply the active preset: its services on, every other service off
+  local p svc kind unit want
+  p=$(preset)
+  # Everything off first, so a preset never trips over a port the old one held.
+  while IFS=$'\t' read -r svc _ kind unit _; do
+    in_preset "$svc" "$p" || set_service off "$kind" "$unit" "$svc" "${LAB_RECONNECT:-yes}" </dev/null
+  done < <(rows)
+  while IFS=$'\t' read -r svc _ kind unit _; do
+    in_preset "$svc" "$p" && set_service on "$kind" "$unit" "$svc" "${LAB_RECONNECT:-yes}" </dev/null
+  done < <(rows)
   update_leds
   cmd_status
+}
+
+cmd_preset() { # NAME
+  valid_preset "$1" || die "unknown preset '$1'. Try: labctl presets"
+  echo "$1" >"$PRESET_FILE"
+  cmd_reset
 }
 
 main() {
@@ -194,6 +267,8 @@ main() {
     status) cmd_status ;;
     state) cmd_state ;;
     list) cmd_list ;;
+    presets) cmd_presets ;;
+    preset) [[ $# -eq 2 ]] || die "usage: sudo labctl preset NAME"; need_root "$@"; cmd_preset "$2" ;;
     fix) [[ $# -eq 2 ]] || die "usage: sudo labctl fix SERVICE"; need_root "$@"; cmd_toggle off "$2" ;;
     break) [[ $# -eq 2 ]] || die "usage: sudo labctl break SERVICE"; need_root "$@"; cmd_toggle on "$2" ;;
     reset) need_root "$@"; cmd_reset ;;
@@ -202,7 +277,7 @@ main() {
       need_root "$@"
       led "$(led_path ACT led0)" mmc0; led "$(led_path PWR led1)" default-on
       echo "LEDs given back to the system." ;;
-    -h | --help | help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' ;;
+    -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "unknown command '$cmd'. Try: labctl help" ;;
   esac
 }

@@ -12,7 +12,7 @@ _spec = importlib.util.spec_from_file_location("switchd", LAB / "switchd.py")
 switchd = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(switchd)
 
-CAMERA = switchd.role_services("camera", LAB / "services.tsv")
+NAMES = switchd.Names.load(LAB / "services.tsv", LAB / "presets.tsv")
 
 
 class FakeLabctl:
@@ -26,27 +26,41 @@ class FakeLabctl:
 
 
 class SwitchdTests(unittest.TestCase):
-    def test_roles_come_from_services_tsv(self):
-        self.assertIn("telnet", CAMERA)
-        self.assertNotIn("redis", CAMERA)
-        for role in ("camera", "server", "hub"):
-            self.assertTrue(switchd.role_services(role, LAB / "services.tsv"), role)
+    def test_names_come_from_services_tsv_and_presets_tsv(self):
+        for name in ("telnet", "redis", "unknown"):
+            self.assertIn(name, NAMES.services)
+        for name in ("camera", "server", "hub", "printer", "smart-light", "custom"):
+            self.assertIn(name, NAMES.presets)
 
     def test_fix_and_break_run_labctl_with_a_fixed_argv(self):
-        for verb in ("fix", "break"):
+        # Any service on any Pi (#155): redis isn't a camera service, and that's fine.
+        for verb, service in (("fix", "telnet"), ("break", "redis")):
             run = FakeLabctl()
-            self.assertEqual(switchd.handle(f"{verb} telnet\n".encode(), CAMERA, run), b"ok\n")
-            self.assertEqual(run.calls, [[switchd.LABCTL, verb, "telnet"]])
+            line = f"{verb} {service}\n".encode()
+            self.assertEqual(switchd.handle(line, NAMES, run), b"ok\n")
+            self.assertEqual(run.calls, [[switchd.LABCTL, verb, service]])
 
-    def test_status_passes_on_only_well_formed_lines_for_this_role(self):
-        run = FakeLabctl(stdout=b"telnet on\nhttp off\nredis on\nrm -rf / on\ntelnet maybe\n")
-        reply = switchd.handle(b"status\n", CAMERA, run)
-        self.assertEqual(reply, b"telnet on\nhttp off\nok\n")
+    def test_preset_runs_labctl_preset(self):
+        run = FakeLabctl()
+        self.assertEqual(switchd.handle(b"preset smart-light\n", NAMES, run), b"ok\n")
+        self.assertEqual(run.calls, [[switchd.LABCTL, "preset", "smart-light"]])
+
+    def test_status_passes_on_only_well_formed_lines(self):
+        out = (
+            b"preset camera\ntelnet on default\nredis off\nrm -rf / on\ntelnet maybe\n"
+            b"preset toaster\nnosuch on\nhttp on default extra\n"
+        )
+        run = FakeLabctl(stdout=out)
+        reply = switchd.handle(b"status\n", NAMES, run)
+        self.assertEqual(reply, b"preset camera\ntelnet on default\nredis off\nok\n")
         self.assertEqual(run.calls, [[switchd.LABCTL, "state"]])
 
     def test_everything_else_is_refused_without_running_labctl(self):
         bad = [
-            b"fix redis\n",  # another role's service
+            b"fix nosuch\n",  # not a lab service
+            b"preset toaster\n",  # not a preset
+            b"preset\n",
+            b"preset camera hub\n",
             b"fix telnet; reboot\n",
             b"fix  telnet\n",
             b"fix telnet extra\n",
@@ -55,6 +69,7 @@ class SwitchdTests(unittest.TestCase):
             b"fix telnet\r\n",
             b"reset\n",
             b"leds\n",
+            b"state\n",
             b"break $(id)\n",
             b"fix " + b"a" * 80 + b"\n",
             b"\n",
@@ -65,26 +80,20 @@ class SwitchdTests(unittest.TestCase):
         for line in bad:
             with self.subTest(line=line):
                 run = FakeLabctl()
-                self.assertEqual(switchd.handle(line, CAMERA, run), b"refused\n")
+                self.assertEqual(switchd.handle(line, NAMES, run), b"refused\n")
                 self.assertEqual(run.calls, [])
 
-    def test_no_role_means_nothing_can_be_switched(self):
+    def test_without_the_tsv_files_nothing_can_be_switched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            names = switchd.Names.load(pathlib.Path(tmp) / "a", pathlib.Path(tmp) / "b")
         run = FakeLabctl()
-        self.assertEqual(switchd.handle(b"fix telnet\n", [], run), b"refused\n")
+        self.assertEqual(switchd.handle(b"fix telnet\n", names, run), b"refused\n")
         self.assertEqual(run.calls, [])
 
     def test_a_labctl_failure_is_reported_as_refused(self):
         self.assertEqual(
-            switchd.handle(b"fix telnet\n", CAMERA, FakeLabctl(returncode=1)), b"refused\n"
+            switchd.handle(b"fix telnet\n", NAMES, FakeLabctl(returncode=1)), b"refused\n"
         )
-
-    def test_read_role_rejects_anything_but_a_known_role(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = pathlib.Path(tmp) / "role"
-            self.assertIsNone(switchd.read_role(path))
-            for text, expected in (("camera\n", "camera"), ("camera; x", None), ("root", None)):
-                path.write_text(text)
-                self.assertEqual(switchd.read_role(path), expected)
 
     def test_the_socket_unit_lets_only_root_and_lab_web_connect(self):
         unit = (LAB / "systemd" / "lab-switch.socket").read_text()

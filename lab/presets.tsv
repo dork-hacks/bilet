@@ -1,0 +1,9 @@
+# Extra devices a lab Pi can play (#155), besides the roles camera, server and hub (whose
+# default-on rows in services.tsv are their presets). Tab-separated:
+# preset name, the services it turns on (comma-separated, "-" for none), description.
+# Any service runs on any Pi; `sudo labctl preset NAME` turns these on and the rest off.
+#preset	services	description
+printer	jetdirect,snmp	Network printer: anyone can send it print jobs, and it answers SNMP
+smart-light	mqtt,ssdp,unknown	No-name smart bulb: an open MQTT broker, UPnP, and no vendor or name
+nas	smb,ftp	Home storage box: folder sharing and old FTP
+custom	-	Nothing on: turn on any services you like from the manager or with labctl break

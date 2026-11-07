@@ -54,7 +54,14 @@ class FakeHelper:
 
     def __init__(self, path):
         self.path = path
-        self.state = {"telnet": "on", "http": "on", "rtsp": "off"}
+        # Like `labctl state` on the camera: the preset's services carry "default".
+        self.state = {
+            "telnet": "on default",
+            "http": "on default",
+            "ftp": "on default",
+            "rtsp": "off",
+            "redis": "off",
+        }
         self.requests = []
 
     async def start(self):
@@ -65,9 +72,11 @@ class FakeHelper:
         self.requests.append(line)
         verb, _, service = line.partition(" ")
         if verb == "status":
-            writer.write("".join(f"{s} {v}\n" for s, v in self.state.items()).encode() + b"ok\n")
+            lines = "preset camera\n" + "".join(f"{s} {v}\n" for s, v in self.state.items())
+            writer.write(lines.encode() + b"ok\n")
         elif verb in ("fix", "break") and service in self.state:
-            self.state[service] = "off" if verb == "fix" else "on"
+            rest = self.state[service].split()[1:]
+            self.state[service] = " ".join(["off" if verb == "fix" else "on", *rest])
             writer.write(b"ok\n")
         else:
             writer.write(b"refused\n")
@@ -121,6 +130,15 @@ class SettingsPageTests(unittest.IsolatedAsyncioTestCase):
         _, cookie = await self.login()
         self.assertIn(b"<title>Camera Login</title>", await self.request("GET", "/", cookie=cookie))
 
+    async def test_other_methods_get_the_old_401_login_page(self):
+        # nmap's HTTPOptions probe saw this reply before #144; keep it the same.
+        for method in ("OPTIONS", "PUT", "DELETE"):
+            response = await self.request(method, "/")
+            self.assertTrue(response.startswith(b"HTTP/1.1 401"), method)
+            self.assertIn(b"Server: lighttpd/1.4.59", response)
+            self.assertIn(b"<title>Camera Login</title>", response)
+        self.assertEqual(self.helper.requests, [])
+
     async def test_the_label_device_id_signs_in(self):
         response, cookie = await self.login()
         self.assertTrue(response.startswith(b"HTTP/1.1 303"))
@@ -161,10 +179,16 @@ class SettingsPageTests(unittest.IsolatedAsyncioTestCase):
         _, cookie = await self.login()
         page, _ = await self.settings(cookie)
         self.assertIn("Telnet / acces la distanță · Telnet / remote access".encode(), page)
-        self.assertIn("Transmisie video (RTSP)".encode(), page)
+        self.assertIn("FTP / partajare a fișierelor".encode(), page)
         self.assertNotIn(b'value="http"', page)  # the page can't switch itself off
+        # Services outside the preset only show while they are on (#155).
+        self.assertNotIn(b"RTSP", page)
+        self.assertNotIn(b"Database", page)
+        self.helper.state["redis"] = "on"
+        page, _ = await self.settings(cookie)
+        self.assertIn(b"Database connections from other devices", page)
         self.assertIn(b"no-store", page)
-        self.assertEqual(self.helper.requests, ["status"])
+        self.assertEqual(self.helper.requests, ["status", "status"])
 
     async def test_a_switch_asks_the_helper_and_the_page_follows(self):
         _, cookie = await self.login()
@@ -173,7 +197,7 @@ class SettingsPageTests(unittest.IsolatedAsyncioTestCase):
         response = await self.request("POST", "/settings", body, cookie=cookie)
         self.assertTrue(response.startswith(b"HTTP/1.1 303"))
         self.assertIn("fix telnet", self.helper.requests)
-        self.assertEqual(self.helper.state["telnet"], "off")
+        self.assertEqual(self.helper.state["telnet"], "off default")
         page, _ = await self.settings(cookie)
         self.assertRegex(page.decode(), r"Telnet / remote access</legend>\s*<p>Oprit · Off")
 

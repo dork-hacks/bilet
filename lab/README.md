@@ -108,6 +108,15 @@ on the camera → rescan (score 55). `sudo labctl fix ftp` too and its LED turns
 Then power on the optional third device for the "new device" alert (FR-13): no score change,
 and `sudo labctl break redis` on it gives "new open port".
 
+### From the lab manager on the Pi 5 (#155)
+
+Every Pi can play any device: `labctl presets` lists them (`camera`, `server`, `hub`,
+`printer`, `smart-light`, `nas`, `custom`), `sudo labctl preset NAME` switches, and
+`sudo labctl break SVC` turns on any service on any Pi. The lab manager does the same for
+every Pi from one page on the Pi 5, with a button per service; see
+[manager/README.md](manager/README.md). Install the Pis with `--manager-key` so it can
+reach them.
+
 ### From the device's own settings page (#144)
 
 A juror can follow the tool's own fix steps on the camera: open `http://<camera-ip>/`

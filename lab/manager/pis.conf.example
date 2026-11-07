@@ -1,0 +1,4 @@
+# Lab manager (#155): one lab Pi per line, NAME ADDRESS (its IP on RSH-dork_unit).
+# Copy to /etc/lab-manager/pis.conf on the Pi 5. Keep the real file local: it isn't committed.
+pi2 192.168.50.12
+pi3 192.168.50.13
