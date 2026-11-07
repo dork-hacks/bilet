@@ -326,6 +326,8 @@ def create_app(
         form = await read_form(request)
         if form is None:
             return PlainTextResponse("Request too large", status_code=413)
+        if not same_origin(request):
+            return PlainTextResponse("Forbidden", status_code=403)
         # The AI call blocks for up to the timeout, so it runs off the event loop.
         result, alerts = current_result()
         view = await run_in_threadpool(

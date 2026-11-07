@@ -145,7 +145,9 @@ def answer_question(
     if not question:
         return None
     if explainer is None:
-        return QuestionReply(question, t("ai_question_needs_ai", lang), SOURCE_TEMPLATE)
+        steps = summary_steps(build_evidence(result), lang)
+        text = " ".join(steps) if steps else t("ai_summary_nothing", lang)
+        return QuestionReply(question, text, SOURCE_TEMPLATE)
     reply = explainer.answer(build_evidence(result), question)
     return QuestionReply(question, reply.text(lang), reply.source)
 

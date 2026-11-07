@@ -115,7 +115,7 @@
         {% for heading, lines in cmp.sections %}
         <h3>{{ heading }} ({{ lines|length }})</h3>
         <ul>
-          {% for line in lines %}<li>{{ line.text }}{% if line.extra %} (<span class="muted">{{ line.extra }}</span>){% endif %}</li>{% endfor %}
+          {% for line in lines %}<li>{% if heading == ui.diff_resolved %}<span class="done-mark" aria-hidden="true">✓</span>{% endif %}{{ line.text }}{% if line.extra %} (<span class="muted">{{ line.extra }}</span>){% endif %}</li>{% endfor %}
         </ul>
         {% endfor %}
       </div>

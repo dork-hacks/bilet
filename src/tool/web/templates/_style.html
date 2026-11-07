@@ -181,9 +181,35 @@
     @media (prefers-reduced-motion: reduce) {
       .nm-label { will-change: auto; }
     }
+    /* Resolved findings in history get a check mark (#162). The text says "resolved" too. */
+    .done-mark { display: inline-flex; align-items: center; justify-content: center;
+                 width: 1.5rem; height: 1.5rem; margin-right: .4rem; border-radius: 50%;
+                 background: #2e6b34; color: #ffffff; font-weight: 700; font-size: .9rem; }
+    /* Gentle motion (#162 part 2). Only when the visitor has not asked for less motion:
+       with prefers-reduced-motion the page is shown as is, with nothing moving. */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes rise { from { opacity: 0; transform: translateY(.75rem); }
+                        to { opacity: 1; transform: none; } }
+      @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.25); }
+                       100% { transform: scale(1); } }
+      .score, .first, .alerts, .plan, .device, .safe, .changes, .chart {
+        animation: rise .5s ease-out both; }
+      .first { animation-delay: .1s; } .alerts, .plan { animation-delay: .15s; }
+      .device { animation-delay: .2s; } .device + .device { animation-delay: .28s; }
+      .device + .device + .device { animation-delay: .36s; }
+      .done-mark { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both .3s; }
+      .device, .button, .ask button, .history button, nav a {
+        transition: transform .15s ease-out, box-shadow .15s ease-out, background .15s; }
+      .device:hover { transform: translateY(-2px);
+                      box-shadow: 0 8px 22px rgba(80, 55, 30, .1); }
+      .button:hover, .ask button:hover, .history button:hover { transform: translateY(-1px); }
+      .button:active, .ask button:active, .history button:active { transform: none; }
+    }
     /* Phones: less padding, the score stacks, wide tables scroll instead of overflowing. */
     @media (max-width: 32rem) {
-      body { padding: .75rem .75rem 2rem; }
+      body { padding: .75rem .75rem 2rem; overflow-wrap: anywhere; }
+      .score > div { min-width: 0; }
+      .source-tag { white-space: normal; }
       .score { padding: 1.1rem; gap: 1rem; }
       .score .number { font-size: 2.8rem; }
       .device, .first { padding: .85rem 1rem; }
@@ -191,5 +217,23 @@
       .netmap { padding: .25rem .85rem .85rem; }
       .netmap-keys { display: none; }
       .netmap-stage { height: 24rem; }
+    }
+    /* Chat stays local to this page; messages wrap even long hostile input. */
+    .chat-log { display: flex; flex-direction: column; gap: .75rem; }
+    .chat-message { max-width: 85%; padding: .75rem 1rem; border-radius: 1rem;
+                    overflow-wrap: anywhere; }
+    .chat-message p { margin: .25rem 0 .5rem; }
+    .chat-message.assistant { align-self: flex-start; background: #ffffff; }
+    .chat-message.owner { align-self: flex-end; background: #efe5d6; }
+    .chat-suggestions { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chat-suggestions[hidden] { display: none; }
+    .ask button.suggestion { background: #ffffff; color: #0f5c57; text-align: left;
+                            white-space: normal; }
+    .ask button.suggestion:hover { background: #efe5d6; }
+    .chat button:disabled { cursor: wait; opacity: .65; }
+    .chat-status { min-height: 1.6em; }
+    @media (prefers-reduced-motion: no-preference) {
+      .chat-status.waiting { animation: chat-wait 1.4s ease-in-out infinite alternate; }
+      @keyframes chat-wait { from { opacity: 1; } to { opacity: .6; } }
     }
   </style>

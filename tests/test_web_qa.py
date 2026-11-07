@@ -91,9 +91,9 @@ def test_page_shows_the_plan_with_its_label():
 # --- question form ------------------------------------------------------------------------
 
 
-def test_question_form_only_with_ai_on():
+def test_question_form_also_works_with_ai_off():
     app = client(Explainer(TaskProvider()))
-    assert 'action="/ask"' not in app.get("/", params={"ai": "0"}).text
+    assert 'action="/ask"' in app.get("/", params={"ai": "0"}).text
     assert 'action="/ask"' in app.get("/", params={"ai": "1"}).text
 
 
@@ -120,7 +120,9 @@ def test_ask_with_ai_off_never_calls_the_provider():
     provider = TaskProvider()
     page = ask(provider, lang="en", ai="0", q="Is my camera safe?").text
     assert provider.prompts == []
-    assert 'action="/ask"' not in page
+    assert 'action="/ask"' in page
+    assert UI["chat_off"]["en"] in page
+    assert escape(summary_steps(EVIDENCE, "en")[0]) in page
 
 
 def test_empty_question_shows_no_answer_and_no_call():
@@ -146,3 +148,22 @@ def test_get_on_ask_is_not_allowed():
     response = client(Explainer(provider)).get("/ask", params={"ai": "1", "q": "hi"})
     assert response.status_code == 405
     assert provider.tasks("answer") == []
+
+
+def test_cross_origin_question_never_calls_provider():
+    provider = TaskProvider()
+    response = client(Explainer(provider)).post(
+        "/ask",
+        data={"ai": "1", "q": "Is this safe?"},
+        headers={"Origin": "https://other.example"},
+    )
+    assert response.status_code == 403
+    assert provider.prompts == []
+
+
+def test_chat_without_provider_shows_standard_answer():
+    response = client(None).post("/ask", data={"lang": "ro", "q": "Ce repar?"})
+    assert response.status_code == 200
+    assert UI["chat_off"]["ro"] in response.text
+    assert summary_steps(EVIDENCE, "ro")[0] in response.text
+    assert 'class="chat-message assistant chat-answer"' in response.text

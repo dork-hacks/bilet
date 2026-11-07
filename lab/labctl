@@ -177,20 +177,25 @@ update_leds() {
 
 # --- commands ------------------------------------------------------------------
 
+# lab/verify --status-file reads this output (labcheck.parse_status): keep the "Role:"
+# line and the state as the last words of each row.
 cmd_status() {
-  local p total=0 svc kind unit port codes points state
-  p=$(preset)
-  printf 'Preset: %s (installed as %s)\n\n%-10s %-9s %-32s %6s  %s\n' "$p" "$(role)" SERVICE PORT CODES POINTS STATE
-  while IFS=$'\t' read -r svc _ kind unit port codes points _; do
-    if is_on "$kind" "$unit" "$svc"; then
+  local p r total=0 svc role kind unit port codes points state mark on
+  p=$(preset); r=$(role)
+  printf 'Role: %s\nPreset: %s\n\n%-10s %-9s %-32s %6s  %-6s  %s\n' "$r" "$p" SERVICE PORT CODES POINTS PRESET STATE
+  # This Pi's services: its role's rows, its preset's, and anything else that is on.
+  while IFS=$'\t' read -r svc role kind unit port codes points _; do
+    on=no; is_on "$kind" "$unit" "$svc" && on=yes
+    mark=-; in_preset "$svc" "$p" && mark=yes
+    [[ $on == yes || $mark == yes || $role == "$r" ]] || continue
+    if [[ $on == yes ]]; then
       state="ON (weak)"; total=$((total + points))
     elif [[ $kind != identity ]] && ! unit_installed "$unit"; then
       state="not installed"
     else
       state="off (fixed)"
     fi
-    in_preset "$svc" "$p" && state="$state, in the preset"
-    printf '%-10s %-9s %-32s %6s  %s\n' "$svc" "$port" "$codes" "$points" "$state"
+    printf '%-10s %-9s %-32s %6s  %-6s  %s\n' "$svc" "$port" "$codes" "$points" "$mark" "$state"
   done < <(rows)
   printf '\nPoints from this Pi: %d (plus SSH_OPEN, 0 points, for the admin SSH server)\n' "$total"
   echo "Network score = max(0, 100 - points from all the lab Pis)."
