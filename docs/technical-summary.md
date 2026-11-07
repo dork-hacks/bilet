@@ -11,6 +11,8 @@ bilet scans a network you own, scores it against the official catalog and explai
 
 ## Architecture
 
+`bilet scan --confirm` runs all five steps, `bilet analyze <folder>` runs steps 3–5 on saved files, and `bilet serve` shows the results.
+
 1. **Guardrail:** private ranges of /24 or smaller in the connected subnet only. Public, CGNAT 100.64.0.0/10, hostnames and a missing `--confirm` are refused.
 2. **Live scan:** `nmap -sn`, then only the live hosts. Top 1,000 TCP ports plus 5 catalog ports, 5 UDP ports, `-sV`, http-title, 100 packets/s. **Only these two nmap runs use sudo.**
 3. **Parser:** `defusedxml` with a 20 MiB limit. A broken file becomes `ERROR`, never a crash.
@@ -19,10 +21,10 @@ bilet scans a network you own, scores it against the official catalog and explai
 
 MACs are masked and devices keyed by a salted HMAC. History stays local, with one-click delete.
 
-**Checked on `main`, 7 Nov:**
+**Checked on `main` (`c9769b6`), 7 Nov:**
 
-- 799 tests pass.
-- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 25 trap files.
+- 803 tests pass.
+- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 25 trap files and a generated 21 MiB one (`ERROR`).
 - CI runs gitleaks, the tests, the lint check and the golden test on every PR.
 
 ## Assumptions
