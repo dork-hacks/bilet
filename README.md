@@ -32,7 +32,7 @@ tool detect
 tool scan --confirm
 ```
 
-`detect` shows the network you're connected to. `scan` only scans that subnet, refuses public and out-of-scope ranges, and needs `--confirm`. Only its nmap step runs with admin rights (it asks for your password); the analysis and the UI never do. *(Coming in #18, #19 and #20.)*
+`detect` shows the network you're connected to. `scan` only scans that subnet, refuses public and out-of-scope ranges, and needs `--confirm`. Only its nmap step runs with admin rights (it asks for your password); the analysis and the UI never do. Run `tool scan` without `--confirm` to see what it would scan. Extra ranges (for example a second lab network) can only be added explicitly with `TOOL_SCAN_ALLOWLIST=192.168.50.0/24`, and they must be home ranges of at most 256 addresses. *(The nmap step itself arrives in #20.)*
 
 ## Web interface
 
