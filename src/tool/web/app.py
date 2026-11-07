@@ -364,12 +364,15 @@ def create_app(
     @app.post("/history/delete", response_class=HTMLResponse)
     async def delete_history(request: Request) -> Response:
         # POST only, with a confirm step, so a link or a reload never deletes anything.
-        form = await read_form(request)
+        if not same_origin(request):
+            return PlainTextResponse("Forbidden", status_code=403)
+        try:
+            form = await read_form(request)
+        except ValueError:
+            return PlainTextResponse("Invalid form", status_code=400)
         if form is None:
             return PlainTextResponse("Request too large", status_code=413)
         lang = pick_lang(form.get("lang"))
-        if not same_origin(request):
-            return PlainTextResponse("Forbidden", status_code=403)
         if history is None:
             return render_history(request, history_view(None, lang))
         if form.get("confirm") != "yes":
@@ -451,11 +454,14 @@ def create_app(
     @app.post("/ask", response_class=HTMLResponse)
     async def ask(request: Request) -> HTMLResponse:
         # POST, so a link or a page reload never sends a question to the AI by itself.
-        form = await read_form(request)
-        if form is None:
-            return PlainTextResponse("Request too large", status_code=413)
         if not same_origin(request):
             return PlainTextResponse("Forbidden", status_code=403)
+        try:
+            form = await read_form(request)
+        except ValueError:
+            return PlainTextResponse("Invalid form", status_code=400)
+        if form is None:
+            return PlainTextResponse("Request too large", status_code=413)
         # The AI call blocks for up to the timeout, so it runs off the event loop.
         result, alerts = current_result()
         view = await run_in_threadpool(

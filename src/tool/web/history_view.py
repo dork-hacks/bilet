@@ -199,7 +199,7 @@ def comparison(history: History, diff: Diff, lang: str) -> Comparison:
 
 
 def _as_id(value: str | None) -> int | None:
-    if value is None or not value.isdigit() or len(value) > 12:
+    if value is None or not value.isascii() or not value.isdigit() or len(value) > 12:
         return None
     return int(value)
 
