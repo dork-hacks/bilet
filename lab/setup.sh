@@ -86,6 +86,24 @@ ssh_key_only() {
   systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
 }
 
+# The settings page password (#144): printed on a label stuck on the Pi, like a
+# router's sticker password. Public on purpose, never the MAC or a real password.
+# Derived from /etc/machine-id, so it stays the same across reinstalls and role changes.
+device_id() {
+  if [[ ! -s $STATE_DIR/device-id ]]; then
+    python3 -I - "$STATE_DIR/device-id" <<'PY'
+import base64, hashlib, hmac, pathlib, re, secrets, sys
+key = pathlib.Path("/etc/machine-id").read_bytes().strip()
+if not re.fullmatch(rb"[0-9a-f]{32}", key):  # not set up yet on a first boot: random, kept
+    key = secrets.token_bytes(32)
+raw = base64.b32encode(hmac.new(key, b"bilet lab device id", hashlib.sha256).digest()).decode()
+code = raw.replace("O", "8").replace("I", "9")[:8]  # no O/0 or I/1 mix-ups on the label
+pathlib.Path(sys.argv[1]).write_text(f"LAB-{code[:4]}-{code[4:]}\n", encoding="ascii")
+PY
+    chmod 0644 "$STATE_DIR/device-id"
+  fi
+}
+
 install_role() {
   local role=$1 with_packages=$2
 
@@ -112,11 +130,17 @@ install_role() {
 
   say "Installing the lab files ($role)"
   install -d -m 0755 "$LAB_DIR" "$STATE_DIR"
-  install -m 0644 "$HERE/fakes/fakesvc.py" "$HERE/services.tsv" "$HERE/README.md" "$LAB_DIR/"
+  install -m 0644 "$HERE/fakes/fakesvc.py" "$HERE/switchd.py" "$HERE/services.tsv" "$HERE/README.md" "$LAB_DIR/"
   install -m 0755 "$HERE/labctl" /usr/local/sbin/labctl
-  install -m 0644 "$HERE/systemd/lab-fake@.service" "$HERE/systemd/lab-leds.service" "$UNIT_DIR/"
+  install -m 0644 "$HERE/systemd/lab-fake@.service" "$HERE/systemd/lab-leds.service" \
+    "$HERE/systemd/lab-switch.socket" "$HERE/systemd/lab-switch@.service" "$UNIT_DIR/"
+  install -d -m 0755 "$UNIT_DIR/lab-fake@http.service.d"
+  install -m 0644 "$HERE/systemd/lab-fake@http.service.d/switch.conf" "$UNIT_DIR/lab-fake@http.service.d/"
+  getent group lab-web >/dev/null || groupadd --system lab-web
+  device_id
   echo "$role" >"$STATE_DIR/role"
   systemctl daemon-reload
+  systemctl enable --now --quiet lab-switch.socket
 
   [[ $role == server ]] && configure_samba
   [[ $role == hub ]] && configure_snmpd
@@ -127,6 +151,8 @@ install_role() {
   LAB_RECONNECT=no /usr/local/sbin/labctl reset
 
   cat <<EOF
+
+Device ID for the label (the settings page password, user "admin"): $(<"$STATE_DIR/device-id")
 
 Done. Useful commands on this Pi:
   labctl status              what is on, with catalog codes and points
@@ -143,7 +169,7 @@ EOF
 remove_all() {
   say "Stopping every lab service"
   [[ -x /usr/local/sbin/labctl ]] && /usr/local/sbin/labctl leds-restore >/dev/null 2>&1 || true
-  for unit in $(lab_units) lab-leds.service; do systemctl disable --now --quiet "$unit" 2>/dev/null || true; done
+  for unit in $(lab_units) lab-leds.service lab-switch.socket; do systemctl disable --now --quiet "$unit" 2>/dev/null || true; done
 
   if [[ -r $STATE_DIR/role && $(<"$STATE_DIR/role") == hub ]] && command -v nmcli >/dev/null; then
     local con
@@ -164,7 +190,10 @@ remove_all() {
     restore_backup /etc/snmp/snmpd.conf
   fi
 
-  rm -f "$UNIT_DIR/lab-fake@.service" "$UNIT_DIR/lab-leds.service" /usr/local/sbin/labctl
+  rm -f "$UNIT_DIR/lab-fake@.service" "$UNIT_DIR/lab-leds.service" \
+    "$UNIT_DIR/lab-switch.socket" "$UNIT_DIR/lab-switch@.service" /usr/local/sbin/labctl
+  rm -rf "$UNIT_DIR/lab-fake@http.service.d"
+  getent group lab-web >/dev/null && groupdel lab-web 2>/dev/null || true
   rm -rf "$LAB_DIR" "$STATE_DIR"
   systemctl daemon-reload
   say "Removed. Kept on purpose: key-only SSH (/etc/ssh/sshd_config.d/50-lab-key-only.conf) and any apt packages."

@@ -1,0 +1,29 @@
+[Unit]
+Description=Lab switch helper (one request: status, fix SERVICE or break SERVICE)
+Documentation=file:///opt/lab/README.md
+CollectMode=inactive-or-failed
+
+[Service]
+# Root, because labctl starts and stops units and drives the LEDs. switchd.py accepts
+# one line from a fixed grammar and runs labctl with a fixed argv, never a shell.
+ExecStart=/usr/bin/python3 -I /opt/lab/switchd.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=30
+
+# labctl writes unit symlinks in /etc, NetworkManager settings and /sys/class/leds,
+# so no ProtectSystem or ProtectKernelTunables here; everything else is closed.
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+MemoryMax=64M
+TasksMax=32

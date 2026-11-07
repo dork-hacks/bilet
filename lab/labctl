@@ -2,6 +2,7 @@
 # labctl: turn this Pi's simulated weak services on and off, and show them on the LEDs.
 #
 #   labctl status            what runs on this Pi, with catalog codes and points
+#   labctl state             the same as "SERVICE on|off" lines (for the switch helper)
 #   labctl list              every service of every role
 #   sudo labctl fix SVC      turn a weak service off (the "fix" in the before/after demo)
 #   sudo labctl break SVC    turn it back on
@@ -154,6 +155,13 @@ cmd_status() {
   echo "Network score = max(0, 100 - points from all three Pis)."
 }
 
+cmd_state() {
+  local svc kind unit
+  while IFS=$'\t' read -r svc _ kind unit _; do
+    if is_on "$kind" "$unit" "$svc"; then echo "$svc on"; else echo "$svc off"; fi
+  done < <(rows "$(role)")
+}
+
 cmd_list() {
   printf '%-10s %-7s %-9s %-32s %6s  %s\n' SERVICE ROLE PORT CODES POINTS DEFAULT
   rows | awk -F'\t' '{ printf "%-10s %-7s %-9s %-32s %6s  %s\n", $1, $2, $5, $6, $7, $8 }'
@@ -182,6 +190,7 @@ main() {
   local cmd=${1:-status}
   case $cmd in
     status) cmd_status ;;
+    state) cmd_state ;;
     list) cmd_list ;;
     fix) [[ $# -eq 2 ]] || die "usage: sudo labctl fix SERVICE"; need_root "$@"; cmd_toggle off "$2" ;;
     break) [[ $# -eq 2 ]] || die "usage: sudo labctl break SERVICE"; need_root "$@"; cmd_toggle on "$2" ;;
@@ -191,7 +200,7 @@ main() {
       need_root "$@"
       led "$(led_path ACT led0)" mmc0; led "$(led_path PWR led1)" default-on
       echo "LEDs given back to the system." ;;
-    -h | --help | help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//' ;;
+    -h | --help | help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "unknown command '$cmd'. Try: labctl help" ;;
   esac
 }

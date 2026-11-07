@@ -69,7 +69,7 @@ class FakeServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(response.startswith(b"HTTP/1.1 200 OK\r\n"))
         self.assertIn(b"<title>Camera &lt;Login&gt;</title>", response)
 
-    async def test_http_post_always_fails(self):
+    async def test_http_post_fails_without_a_device_id(self):
         reader, writer = await self.connect("http")
         writer.write(b"POST / HTTP/1.0\r\nContent-Length: 20\r\n\r\nuser=admin&password=")
         response = await self.read_all(reader)
