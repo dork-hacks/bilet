@@ -38,10 +38,10 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
 .nm-findings .tag { font-size: .9rem; background: #5b5048; }
 .nm-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; margin-top: 1rem; }
 .netmap button, .netmap input { font: inherit; }
-.nm-detail-actions button, .netmap-fullscreen { min-height: 2.75rem; border: 1px solid #0f5c57;
+.nm-focus-action, .netmap-fullscreen { min-height: 2.75rem; border: 1px solid #0f5c57;
   background: #ffffff; color: #0f5c57; border-radius: .65rem; padding: .45rem .8rem;
   cursor: pointer; font-weight: 600; }
-.nm-detail-actions button { background: #0f5c57; color: #ffffff; width: 100%; }
+.nm-focus-action { margin-top: .7rem; background: #0f5c57; color: #ffffff; width: 100%; }
 .nm-detail-actions a { font-size: .9rem; }
 .netmap-fullscreen { white-space: nowrap; }
 .netmap-directory { padding: 1.2rem; border-top: 1px solid #e3ddd2; background: #fdfbf8; }
@@ -99,7 +99,7 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
   .netmap h2 { font-size: 1.4rem; }
   .netmap-fullscreen { font-size: .9rem; padding-inline: .6rem; }
   .netmap-workspace { grid-template-columns: minmax(0, 1fr); }
-  .netmap-stage { height: 24rem; min-height: 24rem; }
+  .netmap-stage { flex: none; height: 24rem; min-height: 24rem; }
   .netmap-sidebar { display: block; height: auto; border: 0; border-top: 1px solid #e3ddd2; max-height: none; }
   .netmap-results { max-height: 13rem; }
   .netmap:fullscreen .netmap-sidebar, .netmap.is-expanded .netmap-sidebar { height: auto; }

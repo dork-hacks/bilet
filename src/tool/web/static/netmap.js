@@ -148,6 +148,7 @@ function start(data) {
   }
   function showDetail(entry) {
     detail.replaceChildren();
+    detail.scrollTop = 0;
     if (!entry.node) { detail.append(el("h3", { text: T.map_hub_virtual })); return; }
     const node = entry.node;
     detail.append(el("p", { className: "nm-eyebrow", text: T.map_selected }));
@@ -177,7 +178,9 @@ function start(data) {
       if (document.fullscreenElement === section) await document.exitFullscreen();
       section.classList.remove("is-expanded"); syncFullscreen();
     });
-    actions.append(focusButton, link); detail.append(actions);
+    focusButton.className = "nm-focus-action";
+    detail.insertBefore(focusButton, facts);
+    actions.append(link); detail.append(actions);
   }
   function select(entry, move = false) {
     selected = entry;
@@ -201,6 +204,7 @@ function start(data) {
     const found = entries.filter(e => e.node && matchesDevice(e.node, query));
     const pages = Math.max(1, Math.ceil(found.length / PAGE_SIZE));
     page = Math.max(0, Math.min(page, pages - 1));
+    const scrollTop = results.scrollTop;
     const activeRow = results.contains(document.activeElement) ? document.activeElement.dataset.device : null;
     results.replaceChildren();
     for (const entry of found.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)) {
@@ -219,6 +223,7 @@ function start(data) {
       });
       results.append(el("li", {}, [row]));
     }
+    results.scrollTop = scrollTop;
     if (activeRow) results.querySelector(`[data-device="${CSS.escape(activeRow)}"]`)?.focus({ preventScroll: true });
     if (!found.length) results.append(el("li", { className: "nm-no-results", text: T.map_no_matches }));
     count.textContent = T.map_count.replace("{shown}", String(found.length)).replace("{total}", String(entries.filter(e => e.node).length));
@@ -402,6 +407,11 @@ function start(data) {
     fullscreen.hidden = mode !== "3d";
     for (const b of switcher.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === mode));
     if (mode === "3d") { resize(); requestFrame(); }
+    else {
+      section.classList.remove("is-expanded");
+      if (document.fullscreenElement === section) document.exitFullscreen().catch(() => {});
+      syncFullscreen();
+    }
   }
   for (const b of switcher.querySelectorAll("[data-view]")) b.addEventListener("click", () => show(b.dataset.view));
   // Rendering stops when the scene settles. No perpetual traffic simulation or pulse.
