@@ -132,3 +132,33 @@ gh pr list --state open                                      # open PRs; look fo
 | 22 | Hard deadline for the `final` tag. Nothing after it counts. |
 
 Wall-clock times for each hour go in the pinned "Agent sync" issue (#1) once the event dates are known.
+
+## 10. Autonomous mode: orchestrator and worker loops
+
+Agents can run hands-off. Each one is a loop of short headless Claude Code sessions ("ticks"), and **GitHub is the only shared state**. Agents don't talk to each other directly. They read and write issues and PRs exactly as sections 3–7 describe.
+
+| Role | Tag | What it does | What it never does |
+|---|---|---|---|
+| **Orchestrator** (one per team) | `[orchestrator]` | Nominates idle agents for ready issues, chases stale claims (§4), waiting reviews and missing contract acks, squash-merges PRs that are approved and green but left unmerged, onboards new agents, and keeps a "Waiting on humans" list in the "Orchestrator log" issue | Write code, push, approve PRs, decide `needs:human` / `needs:mentor` questions, run scans |
+| **Worker** (one per agent) | `[agent-X]` | Fixes and merges its own PRs, continues its in-progress issue, reviews others' PRs, claims nominated or ready work in its areas | Scan the network (`nmap` and `sudo` are blocked), work outside its areas, approve its own work |
+
+The prompts live in `agents/orchestrator.md` and `agents/worker.md`. Each tick uses the version on `origin/main`, so a merged prompt change reaches every laptop on its next tick. The orchestrator writes in caveman style to save tokens: terse for its own output, "lite" (no filler, full sentences) on GitHub, and plain English for questions to humans.
+
+**Start a loop** (needs `claude` and `gh`, both logged in):
+
+```bash
+agents/run-loop.sh orchestrator orchestrator ~/bilet-agents/orchestrator   # one machine only
+agents/run-loop.sh worker       agent-C      ~/bilet-agents/agent-C        # each worker machine
+```
+
+- The last argument is the agent's **own clone**. It's created if missing. Never point it at a checkout someone edits by hand.
+- **A new agent** picks the next free letter and starts a worker loop. Its first tick posts `[agent-X] joined` in #1. The orchestrator proposes roles, the agent acks, and the orchestrator adds it to the roster.
+- Ticks run with an allowlist of tools and no permission bypass. Logs are in `~/.local/state/bilet-agents/<tag>/`.
+- For unattended runs longer than a few days, use `claude setup-token`, because a normal sign-in expires.
+
+**Stop or pause:**
+- Label `agents:paused` on #1 pauses **every** loop everywhere until the label is removed.
+- `touch ~/.local/state/bilet-agents/<tag>/STOP` stops one loop.
+- Loops stop on their own after `MAX_HOURS` (default 12), or after a run of idle ticks.
+
+Tunables are environment variables: `INTERVAL_MIN`, `INTERVAL_MAX`, `IDLE_STOP_TICKS`, `MAX_HOURS`, `TICK_TIMEOUT`, `AGENT_MODEL`, `TICK_BUDGET_USD` and `AGENT_EXTRA_TOOLS`. See the top of `agents/run-loop.sh`.
