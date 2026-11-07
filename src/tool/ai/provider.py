@@ -62,9 +62,15 @@ class AnthropicProvider:
             )
         except anthropic.APIError as exc:  # timeouts, connection and status errors
             raise ProviderUnavailable(type(exc).__name__) from None
-        if response.stop_reason == "refusal":
+        except Exception as exc:  # an SDK/API mismatch (e.g. TypeError) must not break the page
+            raise ProviderUnavailable(type(exc).__name__) from None
+        try:
+            stop_reason = response.stop_reason
+            text = "".join(b.text for b in response.content if b.type == "text")
+        except Exception as exc:  # an unexpected response shape
+            raise ProviderUnavailable(type(exc).__name__) from None
+        if stop_reason == "refusal":
             raise ProviderUnavailable("refusal")
-        text = "".join(b.text for b in response.content if b.type == "text")
         if not text.strip():
             raise ProviderUnavailable("empty reply")
         return text

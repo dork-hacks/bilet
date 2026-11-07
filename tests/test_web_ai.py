@@ -70,6 +70,15 @@ def test_ai_on_but_unavailable_falls_back_to_the_template():
     assert view.first.explanation_source == "template"
 
 
+def test_unexpected_provider_error_gives_the_template_page_not_a_500():
+    # #61: an SDK mismatch raised TypeError, which used to escape and give a 500 page.
+    explainer = Explainer(CitingProvider(error=TypeError("unexpected keyword argument")))
+    response = get(explainer, lang="en", ai="1")
+    assert response.status_code == 200
+    assert top_template("en") in response.text
+    assert UI["standard_explanation"]["en"] in response.text
+
+
 def test_rejected_answer_falls_back_to_the_template():
     # 8080 is not in the evidence, so the grounding checker rejects it.
     explainer = Explainer(CitingProvider(en="Port 8080 is open too."))
