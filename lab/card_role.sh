@@ -73,11 +73,14 @@ if [[ $ROLE == hub ]]; then
 fi
 EOF
 
+# Not After=cloud-final.service: that one runs after multi-user.target, which waits for this
+# unit, so systemd would break the cycle by dropping a job. cloud-init.service (users, SSH
+# keys) runs before network-online.target.
 cat > "$MNT/lab/lab-install.service" <<'EOF'
 [Unit]
 Description=Install the lab role (lab/card_role.sh)
 Wants=network-online.target
-After=network-online.target cloud-final.service ssh.service
+After=network-online.target cloud-init.service ssh.service
 
 [Service]
 Type=oneshot
