@@ -111,6 +111,8 @@ class CardRoleTest(unittest.TestCase):
         # Everything setup.sh installs for the settings switches (#144).
         for name in (
             "switchd.py",
+            "remote.py",
+            "presets.tsv",
             "systemd/lab-switch.socket",
             "systemd/lab-switch@.service",
             "systemd/lab-fake@http.service.d/switch.conf",

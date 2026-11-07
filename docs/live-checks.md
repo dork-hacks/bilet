@@ -103,7 +103,12 @@ Real run with the Validation Set's own pair (V6a → V6b, a stand-in until #34's
 
 **Live version, if time allows (MASTERPLAN §4.3):**
 1. `bilet scan --confirm`.
-2. `ssh <user>@<camera-pi> sudo labctl fix telnet`, from the laptop (its LED turns green; no keyboard on the Pi needed).
+2. Turn Telnet off on the camera, in one of three ways:
+   - the camera's own settings page (#144): `http://<camera-ip>/`, user `admin`, the device ID on its label, "Telnet / remote access" → Turn off. This is the way that follows our fix steps, so use it when the jury has just read them;
+   - the lab manager on the Pi 5 (#155): `ssh -L 8090:127.0.0.1:8090 <user>@<pi5>`, open `http://127.0.0.1:8090/`, telnet → Turn off;
+   - `ssh <user>@<camera-pi> sudo labctl fix telnet` from the laptop.
+
+   Its LED turns green once nothing weak is left on it.
 3. `bilet scan --confirm` again.
 4. The home screen and `/history` show the score climbing.
 

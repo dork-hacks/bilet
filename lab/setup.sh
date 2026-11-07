@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install one lab role on a Raspberry Pi 4 (Raspberry Pi OS Lite 64-bit, bookworm).
 #
-#   sudo lab/setup.sh camera|server|hub [--with-packages]
+#   sudo lab/setup.sh camera|server|hub [--with-packages] [--manager-key FILE]
 #   sudo lab/setup.sh remove
 #
 # camera  pi2: telnet (BusyBox banner, 2323), "Camera Login" web page, FTP "vsFTPd 2.3.4"
@@ -10,8 +10,13 @@
 # server  optional third device (#128): nothing on by default; fake Redis and Samba
 #         (no shares) as toggles, for the "new device" / "new open port" demo
 #
-# --with-packages  apt-installs the real daemons a role can toggle (samba / snmpd).
+# The role is the device the Pi plays first. Any Pi can later play any preset or any mix
+# of services (`labctl presets`, or the lab manager on the Pi 5, #155).
+#
+# --with-packages  apt-installs the real daemons any preset can toggle (samba, snmpd).
 #                  Do this at home: hotspot data is limited.
+# --manager-key FILE  lets the Pi 5's lab manager switch this Pi (#155). FILE is its SSH
+#                  public key; it gets a user labmgr whose key can only run lab/remote.py.
 # remove           switch everything off and undo the install ("switch everything off afterwards").
 #
 # Every role also gets key-only SSH (SSH_OPEN, 0 points) if you have an authorized key.
@@ -26,7 +31,7 @@ say() { printf '\n==> %s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
 die() { printf 'setup.sh: %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 lab_units() { # every lab-fake@ instance, loaded or just enabled
   { systemctl list-units --all --plain --no-legend 'lab-fake@*' 2>/dev/null | awk '{ print $1 }'
@@ -106,8 +111,29 @@ PY
   fi
 }
 
+# The lab manager on the Pi 5 (#155) switches this Pi over SSH as labmgr. labmgr has no
+# password and owns nothing: its home, .ssh and authorized_keys belong to root, and the one
+# key there is restricted to remote.py, which only forwards a request to the lab-switch
+# helper (a member of lab-web, like the camera's settings page).
+manager_access() { # public key file
+  local key
+  [[ -r $1 ]] || die "can't read the manager key '$1'"
+  key=$(head -n1 "$1")
+  [[ $key =~ ^(ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa)\ [A-Za-z0-9+/]+=*(\ [A-Za-z0-9@._-]+)?$ ]] \
+    || die "'$1' doesn't look like one SSH public key (ssh-ed25519 AAAA... comment)"
+  say "Lab manager access: user labmgr, key restricted to remote.py"
+  id labmgr >/dev/null 2>&1 \
+    || useradd --system --no-create-home --home-dir /var/lib/labmgr --shell /bin/sh labmgr
+  usermod -a -G lab-web labmgr
+  passwd -l labmgr >/dev/null 2>&1 || true
+  install -d -m 0755 -o root -g root /var/lib/labmgr /var/lib/labmgr/.ssh
+  printf 'restrict,command="/usr/bin/python3 -I /opt/lab/remote.py" %s\n' "$key" \
+    >/var/lib/labmgr/.ssh/authorized_keys
+  chmod 0644 /var/lib/labmgr/.ssh/authorized_keys
+}
+
 install_role() {
-  local role=$1 with_packages=$2
+  local role=$1 with_packages=$2 manager_key=${3:-}
 
   python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null \
     || die "python3 3.11 or newer is needed (Raspberry Pi OS bookworm has it)"
@@ -121,9 +147,7 @@ install_role() {
   for unit in $(lab_units); do systemctl disable --now --quiet "$unit" || true; done
 
   if [[ $with_packages == yes ]]; then
-    local pkgs=()
-    [[ $role == server ]] && pkgs+=(samba)
-    [[ $role == hub ]] && pkgs+=(snmpd)
+    local pkgs=(samba snmpd)  # every Pi: a preset may turn SMB or SNMP on anywhere (#155)
     if (( ${#pkgs[@]} )); then
       say "Installing ${pkgs[*]} (needs internet)"
       apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "${pkgs[@]}"
@@ -132,7 +156,8 @@ install_role() {
 
   say "Installing the lab files ($role)"
   install -d -m 0755 "$LAB_DIR" "$STATE_DIR"
-  install -m 0644 "$HERE/fakes/fakesvc.py" "$HERE/switchd.py" "$HERE/services.tsv" "$HERE/README.md" "$LAB_DIR/"
+  install -m 0644 "$HERE/fakes/fakesvc.py" "$HERE/switchd.py" "$HERE/remote.py" \
+    "$HERE/services.tsv" "$HERE/presets.tsv" "$HERE/README.md" "$LAB_DIR/"
   install -m 0755 "$HERE/labctl" /usr/local/sbin/labctl
   install -m 0644 "$HERE/systemd/lab-fake@.service" "$HERE/systemd/lab-leds.service" \
     "$HERE/systemd/lab-switch.socket" "$HERE/systemd/lab-switch@.service" "$UNIT_DIR/"
@@ -141,12 +166,14 @@ install_role() {
   getent group lab-web >/dev/null || groupadd --system lab-web
   device_id
   echo "$role" >"$STATE_DIR/role"
+  rm -f "$STATE_DIR/preset"  # a fresh install plays its role again
   systemctl daemon-reload
   systemctl enable --now --quiet lab-switch.socket
 
-  [[ $role == server ]] && configure_samba
-  [[ $role == hub ]] && configure_snmpd
+  configure_samba  # both do nothing unless the package is installed
+  configure_snmpd
   ssh_key_only
+  [[ -n $manager_key ]] && manager_access "$manager_key"
   systemctl enable --quiet lab-leds.service
 
   say "Applying the default lab for $role"
@@ -195,6 +222,8 @@ remove_all() {
   rm -f "$UNIT_DIR/lab-fake@.service" "$UNIT_DIR/lab-leds.service" \
     "$UNIT_DIR/lab-switch.socket" "$UNIT_DIR/lab-switch@.service" /usr/local/sbin/labctl
   rm -rf "$UNIT_DIR/lab-fake@http.service.d"
+  id labmgr >/dev/null 2>&1 && userdel labmgr 2>/dev/null || true
+  rm -rf /var/lib/labmgr
   getent group lab-web >/dev/null && groupdel lab-web 2>/dev/null || true
   rm -rf "$LAB_DIR" "$STATE_DIR"
   systemctl daemon-reload
@@ -205,16 +234,18 @@ main() {
   [[ $# -ge 1 ]] || usage 1
   [[ $1 == -h || $1 == --help ]] && usage 0
   [[ $EUID -eq 0 ]] || die "run with sudo"
-  local cmd=$1 with_packages=no
+  local cmd=$1 with_packages=no manager_key=""
   shift
-  for arg in "$@"; do
-    case $arg in
+  while (( $# )); do
+    case $1 in
       --with-packages) with_packages=yes ;;
-      *) die "unknown option '$arg'" ;;
+      --manager-key) [[ $# -ge 2 ]] || die "--manager-key needs a file"; manager_key=$2; shift ;;
+      *) die "unknown option '$1'" ;;
     esac
+    shift
   done
   case $cmd in
-    camera | server | hub) install_role "$cmd" "$with_packages" ;;
+    camera | server | hub) install_role "$cmd" "$with_packages" "$manager_key" ;;
     remove) remove_all ;;
     *) usage 1 ;;
   esac

@@ -309,11 +309,15 @@ def make_http(title: str, device_id: str | None = None, switch_socket: str | Non
             state = []
         forms = []
         for line in state:
-            service, _, on = line.partition(" ")
-            if service not in SWITCHES:
+            words = line.split()
+            # "SERVICE on|off [default]". A device shows the switches of its own preset
+            # (#155), plus any other service someone turned on.
+            if len(words) < 2 or words[0] not in SWITCHES:
+                continue
+            service, is_on = words[0], words[1] == "on"
+            if not is_on and "default" not in words[2:]:
                 continue
             en, ro = SWITCHES[service]
-            is_on = on == "on"
             forms.append(
                 SWITCH_FORM.format(
                     ro=html.escape(ro),

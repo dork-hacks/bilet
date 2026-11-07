@@ -60,7 +60,8 @@ fi
 # --- Payload: the lab files setup.sh installs, plus the role -------------------------
 rm -rf "$MNT/lab"
 mkdir -p "$MNT/lab/fakes" "$MNT/lab/systemd/lab-fake@http.service.d"
-cp "$HERE/setup.sh" "$HERE/labctl" "$HERE/switchd.py" "$HERE/services.tsv" "$HERE/README.md" "$MNT/lab/"
+cp "$HERE/setup.sh" "$HERE/labctl" "$HERE/switchd.py" "$HERE/remote.py" "$HERE/services.tsv" \
+  "$HERE/presets.tsv" "$HERE/README.md" "$MNT/lab/"
 cp "$HERE/fakes/fakesvc.py" "$MNT/lab/fakes/"
 cp "$HERE"/systemd/*.service "$HERE"/systemd/*.socket "$MNT/lab/systemd/"
 cp "$HERE/systemd/lab-fake@http.service.d/switch.conf" "$MNT/lab/systemd/lab-fake@http.service.d/"
