@@ -45,6 +45,7 @@ class Evidence:
     payload: dict
     device_refs: dict[str, str] = field(default_factory=dict)  # pseudonym -> device_key
     finding_refs: dict[str, str] = field(default_factory=dict)  # evidence id -> finding id
+    device_ips: dict[str, str] = field(default_factory=dict)  # pseudonym -> IP, local only
 
     @property
     def digest(self) -> str:
@@ -64,10 +65,13 @@ def build_evidence(result: dict) -> Evidence:
     out_devices = []
     device_refs: dict[str, str] = {}
     finding_refs: dict[str, str] = {}
+    device_ips: dict[str, str] = {}
     counter = 0
     for index, device in enumerate(devices):
         ref = pseudonym(index)
         device_refs[ref] = device.get("device_key")
+        if isinstance(device.get("ip"), str) and device["ip"]:
+            device_ips[ref] = device["ip"]
         items = []
         for finding in by_device.get(device.get("device_key"), []):
             counter += 1
@@ -96,7 +100,47 @@ def build_evidence(result: dict) -> Evidence:
         )
 
     payload = {"score": result.get("score"), "devices": out_devices}
-    return Evidence(payload=payload, device_refs=device_refs, finding_refs=finding_refs)
+    return Evidence(
+        payload=payload, device_refs=device_refs, finding_refs=finding_refs, device_ips=device_ips
+    )
+
+
+# What an IP in the owner's question becomes when it isn't one of the scanned devices.
+UNKNOWN_ADDRESS = "[unknown address]"
+_ANY_IP = re.compile(
+    r"(?<![\w.:])(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){2,7})(?![\w.:])",
+    re.IGNORECASE,
+)
+# "Device C" (EN) or "Dispozitivul C" / "dispozitivului C" (RO), not already followed by "(".
+_PSEUDONYM = re.compile(r"\b((?:[Dd]evice|[Dd]ispozitiv\w*)\s+)([A-Z]{1,2})\b(?!\s*\()")
+
+
+def localise_question(question: str, evidence: Evidence) -> str:
+    """Replace every IP in the owner's question before it leaves the computer (#150).
+
+    A scanned device's IP becomes its pseudonym ("Device C"), so the AI knows which
+    device is meant. Any other IP becomes UNKNOWN_ADDRESS. No IP is ever sent.
+    """
+    by_ip = {ip.lower(): ref for ref, ip in evidence.device_ips.items()}
+
+    def swap(match: re.Match) -> str:
+        return by_ip.get(match.group(0).lower(), UNKNOWN_ADDRESS)
+
+    return _ANY_IP.sub(swap, question)
+
+
+def restore_ips(text: str, evidence: Evidence) -> str:
+    """Show the IP next to each pseudonym in an AI answer, locally: "Device C (192.168.1.5)".
+
+    The device list shows IPs, so the owner can match the answer to a device. Runs only
+    after the grounding check, on the text that is displayed.
+    """
+
+    def swap(match: re.Match) -> str:
+        ip = evidence.device_ips.get(f"Device {match.group(2)}")
+        return match.group(0) if ip is None else f"{match.group(1)}{match.group(2)} ({ip})"
+
+    return _PSEUDONYM.sub(swap, text)
 
 
 def ranked_items(evidence: Evidence) -> list[tuple[dict, dict]]:
