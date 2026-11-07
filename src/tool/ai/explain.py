@@ -93,20 +93,31 @@ def clean_question(question: object) -> str:
     return " ".join(text.split())[:MAX_QUESTION_CHARS].strip()
 
 
+def summary_steps(evidence: Evidence, lang: str) -> list[str]:
+    """The built-in plan as a list: "Title (device type): first fix step", rules' order.
+
+    Only findings that score points, at most SUMMARY_ITEMS. Empty when nothing to fix.
+    """
+    pairs = [(d, f) for d, f in ranked_items(evidence) if (f.get("points") or 0) > 0]
+    steps = []
+    for device, item in pairs[:SUMMARY_ITEMS]:
+        text = finding_text(item.get("code") or "", lang)
+        step = text.steps[0] if text.steps else text.explanation
+        label = device_type_label(device.get("type_guess") or "unknown", lang)
+        steps.append(f"{text.title} ({label}): {step}")
+    return steps
+
+
 def summary_template(evidence: Evidence) -> Explanation:
     """The built-in plan: the first fix step of the top findings, in the rules' order."""
-    parts: dict[str, list[str]] = {"en": [], "ro": []}
-    pairs = [(d, f) for d, f in ranked_items(evidence) if (f.get("points") or 0) > 0]
+    parts: dict[str, list[str]] = {}
     for lang in ("en", "ro"):
-        if not pairs:
-            parts[lang].append(UI["ai_summary_nothing"][lang])
+        steps = summary_steps(evidence, lang)
+        if not steps:
+            parts[lang] = [UI["ai_summary_nothing"][lang]]
             continue
-        parts[lang].append(UI["ai_summary_intro"][lang])
-        for number, (device, item) in enumerate(pairs[:SUMMARY_ITEMS], start=1):
-            text = finding_text(item.get("code") or "", lang)
-            step = text.steps[0] if text.steps else text.explanation
-            label = device_type_label(device.get("type_guess") or "unknown", lang)
-            parts[lang].append(f"{number}. {text.title} ({label}): {step}")
+        numbered = [f"{number}. {step}" for number, step in enumerate(steps, start=1)]
+        parts[lang] = [UI["ai_summary_intro"][lang], *numbered]
     return Explanation(" ".join(parts["en"]), " ".join(parts["ro"]), SOURCE_TEMPLATE, "template")
 
 

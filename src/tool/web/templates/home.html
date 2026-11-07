@@ -49,6 +49,14 @@
            border-radius: .3rem; padding: 0 .4rem; color: #4a4a4a; white-space: nowrap; }
     .ai { margin-top: 2rem; border-top: 1px solid #c4c4c4; }
     .ai h2 { font-size: 1.2rem; }
+    .plan ol { margin: .5rem 0; padding-left: 1.5rem; }
+    .ask label { display: block; font-weight: 700; margin: .5rem 0 .25rem; }
+    .ask input[type=text] { font-size: 1rem; width: 100%; box-sizing: border-box;
+           padding: .5rem; border: 2px solid #4a4a4a; border-radius: .5rem; }
+    .ask input[type=text]:focus-visible { outline: 3px solid #0b4f9c; outline-offset: 2px; }
+    .ask button { font-size: 1rem; margin-top: .5rem; background: #ffffff; color: #0b4f9c;
+           cursor: pointer; }
+    .reply { border-left: 6px solid #0b4f9c; padding: .25rem 1rem; background: #f4f4f4; }
     .button { display: inline-block; padding: .5rem 1rem; border: 2px solid #0b4f9c;
               border-radius: .5rem; text-decoration: none; font-weight: 700; }
   </style>
@@ -60,7 +68,7 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="?lang={{ code }}&amp;ai={{ ai_param }}" lang="{{ code }}" hreflang="{{ code }}"
+        <li><a href="/?lang={{ code }}&amp;ai={{ ai_param }}" lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
       </ul>
@@ -104,6 +112,45 @@
       {% endif %}
     </section>
     {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
+
+    {% if view.plan %}
+    <section class="plan" aria-labelledby="plan-heading">
+      <h2 id="plan-heading">{{ ui.plan_heading }}
+        <span class="source-tag">{% if view.plan.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></h2>
+      {% if view.plan.text %}
+      <p>{{ view.plan.text }}</p>
+      {% else %}
+      <p>{{ ui.ai_summary_intro }}</p>
+      <ol>
+        {% for step in view.plan.steps %}<li>{{ step }}</li>{% endfor %}
+      </ol>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if view.ai_on and view.ai_available %}
+    <section class="ask" aria-labelledby="ask-heading">
+      <h2 id="ask-heading">{{ ui.ask_heading }}</h2>
+      <form method="post" action="/ask">
+        <input type="hidden" name="lang" value="{{ view.lang }}">
+        <input type="hidden" name="ai" value="1">
+        <label for="ask-q">{{ ui.ask_label }}</label>
+        <p class="muted" id="ask-hint">{{ ui.ask_hint }}</p>
+        <input type="text" id="ask-q" name="q" maxlength="300" required
+               aria-describedby="ask-hint" autocomplete="off">
+        <button class="button" type="submit">{{ ui.ask_button }}</button>
+      </form>
+      <div aria-live="polite">
+      {% if view.reply %}
+      <div class="reply">
+        <p><strong>{{ ui.ask_you_asked }}</strong> {{ view.reply.question }}</p>
+        <p><strong>{{ ui.ask_answer }}</strong> {{ view.reply.text }}
+          <span class="source-tag">{% if view.reply.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p>
+      </div>
+      {% endif %}
+      </div>
+    </section>
+    {% endif %}
 
     {% if view.devices or view.safe_devices %}
     <section aria-labelledby="devices-heading">
@@ -158,7 +205,7 @@
       {% if view.ai_available %}
       <p>{% if view.ai_on %}{{ ui.ai_on_state }}{% else %}{{ ui.ai_off_state }}{% endif %}</p>
       <p>{{ ui.ai_data_note }}</p>
-      <p><a class="button" href="?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}">
+      <p><a class="button" href="/?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}">
         {% if view.ai_on %}{{ ui.ai_turn_off }}{% else %}{{ ui.ai_turn_on }}{% endif %}</a></p>
       {% else %}
       <p>{{ ui.ai_not_set_up }}</p>
