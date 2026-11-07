@@ -36,7 +36,7 @@ gh issue list --state open --limit 100 --json number,title,labels \
 gh pr list --state open --json number,title,headRefName,statusCheckRollup \
   --jq '.[] | "PR#\(.number) \(.headRefName) ci=\([.statusCheckRollup[]?.conclusion]|unique|join("/")) \(.title)"'
 # recent comments that mention you, in any issue or PR, written by someone else
-gh api "repos/{owner}/{repo}/issues/comments?sort=created&direction=desc&per_page=60" \
+gh api repos/{owner}/{repo}/issues/comments -X GET -f sort=created -f direction=desc -F per_page=60 \
   --jq '.[] | select((.body|contains("`{{TAG}}`")) and (.body|startswith("[{{TAG}}]")|not)) | "#\(.issue_url|split("/")|last) \(.created_at) \(.body|split("\n")[0][0:120])"'
 ```
 
