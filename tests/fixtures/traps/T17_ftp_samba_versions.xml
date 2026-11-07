@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 11:50:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T17_ftp_samba_versions.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: vsftpd 2.3.4 and Samba 3.x add OUTDATED_SERVICE on the same port; vsftpd 3.0.3 and Samba 4.6.2 do not -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T17_ftp_samba_versions.xml 192.168.1.0/24" start="1794052200" startstr="Sat Nov  7 11:50:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794052202" endtime="1794052297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.60" addrtype="ipv4"/>
+<address addr="00:0C:29:00:00:3C" addrtype="mac" vendor="VMware"/>
+<hostnames>
+<hostname name="old-server.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:2.3.4</cpe></service></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794052202" endtime="1794052297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.61" addrtype="ipv4"/>
+<address addr="00:14:22:00:00:3D" addrtype="mac" vendor="Dell"/>
+<hostnames>
+<hostname name="files.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="3.0.3" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:3.0.3</cpe></service></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794052202" endtime="1794052297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.62" addrtype="ipv4"/>
+<address addr="3C:D9:2B:00:00:3E" addrtype="mac" vendor="Hewlett Packard"/>
+<hostnames>
+<hostname name="old-nas.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="139"><state state="closed" reason="reset" reason_ttl="64"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="microsoft-ds" product="Samba smbd" version="3.0.20-Debian" extrainfo="workgroup: WORKGROUP" method="probed" conf="10"><cpe>cpe:/a:samba:samba:3.0.20</cpe></service></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794052202" endtime="1794052297"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.63" addrtype="ipv4"/>
+<address addr="00:11:32:00:00:3F" addrtype="mac" vendor="Synology Incorporated"/>
+<hostnames>
+<hostname name="new-nas.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="microsoft-ds" product="Samba smbd" version="4.6.2" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794052500" timestr="Sat Nov  7 11:55:00 2026" summary="Nmap done at Sat Nov  7 11:55:00 2026; 256 IP addresses (4 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="4" down="252" total="256"/>
+</runstats>
+</nmaprun>

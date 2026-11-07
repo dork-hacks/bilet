@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 12:50:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T23_score_floor.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: more than 100 points of findings floors the score at 0 -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T23_score_floor.xml 192.168.1.0/24" start="1794055800" startstr="Sat Nov  7 12:50:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794055802" endtime="1794055897"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.66" addrtype="ipv4"/>
+<address addr="00:0C:29:00:00:42" addrtype="mac" vendor="VMware"/>
+<hostnames>
+<hostname name="legacy-box.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="Linux telnetd" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="3306"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mysql" product="MySQL" version="5.0.51a-3ubuntu5" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="5900"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="vnc" product="VNC" extrainfo="protocol 3.3" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794055802" endtime="1794055897"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.67" addrtype="ipv4"/>
+<address addr="00:14:22:00:00:43" addrtype="mac" vendor="Dell"/>
+<hostnames>
+<hostname name="reception-pc.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ms-wbt-server" product="Microsoft Terminal Services" ostype="Windows" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794055802" endtime="1794055897"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.68" addrtype="ipv4"/>
+<address addr="C0:56:E3:00:00:44" addrtype="mac" vendor="Hangzhou Hikvision Digital Technology"/>
+<hostnames>
+<hostname name="cam-door.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="554"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="rtsp" product="Hikvision 7513 POE IP camera rtspd" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794056100" timestr="Sat Nov  7 12:55:00 2026" summary="Nmap done at Sat Nov  7 12:55:00 2026; 256 IP addresses (3 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="3" down="253" total="256"/>
+</runstats>
+</nmaprun>
