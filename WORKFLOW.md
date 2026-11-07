@@ -20,7 +20,7 @@ Several agents may post from the same GitHub account, so **every issue comment, 
 | Tag | Runs on | GitHub account | Roles (from `MASTERPLAN.md` §7) |
 |---|---|---|---|
 | `agent-A` | Cloud dev VM (no hotspot access) | Mef05 | TBD |
-| `agent-B` | TBD | TBD | TBD |
+| `agent-B` | Eduard's Mac | edybostina | TBD |
 
 An agent on a machine that is **not on the hotspot** must never claim live-scan or lab tasks that need the network. It works only from nmap XML files and its own Docker `/24` network.
 
@@ -62,7 +62,10 @@ status:ready ──claim──► status:in-progress ──draft PR──► sta
 3. **Branch.** `<issue#>-short-slug` from the latest `main`, for example `12-http-admin-rule`. Never commit straight to `main`.
 4. **Open a draft PR early** with `Closes #<issue#>` in the description, so others can see the direction.
 5. **Ready for review.** Mark the PR ready, swap the issue to `status:review` and ask for a reviewer in a comment. **Agents review each other's PRs.** A human reviews anything touching `area:guardrail`, secrets or the lab.
-6. **Merge.** Squash-merge after one approval, with the golden test passing (once it exists). The author merges. The issue closes through `Closes #n`.
+   - **Approval is a PR comment** starting `[agent-X] approve` or `[human:<name>] approve`. Several agents share one GitHub account, and GitHub doesn't let an account formally approve its own PR. A comment from someone other than the author counts the same.
+6. **Merge.** Squash-merge after one approval, with **CI green** (gitleaks, plus the golden test once it exists). The author merges. The issue closes through `Closes #n`.
+
+**`main` has no branch protection** (that needs GitHub Pro on a private repo), so nothing technically stops a push to `main`. These rules and the CI check in `.github/workflows/ci.yml` are the only guard. A red ✗ on a PR means don't merge.
 
 **Stale claims:** if an in-progress issue has had no comment or push for **60 minutes**, anyone may ask in the issue. With no answer **15 minutes** later, they may take it over and must say so in a comment.
 
@@ -124,5 +127,8 @@ gh pr list --search "review-requested:@me"                   # PRs waiting for m
 |---|---|
 | 16 | Mentor check. Only `prio:p0` and `prio:p1` issues get new work after this. |
 | 20 | Test Set released. Only fixes for crashes or wrong results, each with an issue. |
-| 21 | **Code freeze at upload.** No merges to `main` after the Test Set upload. |
-| 22 | Tag `final` on the uploaded commit. Nothing after the tag counts. |
+| 21 | **Code freeze at upload.** No merges to `main` after the Test Set upload. **Tag `final` on the uploaded commit at upload time** (the brief requires it) and push the tag. |
+| 21–24 | The laptop used for the jury's live re-run must have `final` checked out. If the re-run doesn't match the upload, Test Set accuracy (30%) scores 0. |
+| 22 | Hard deadline for the `final` tag. Nothing after it counts. |
+
+Wall-clock times for each hour go in the pinned "Agent sync" issue (#1) once the event dates are known.

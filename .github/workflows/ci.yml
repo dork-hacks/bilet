@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: gitleaks (NFR-01)
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.21.2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan the whole history, not just the last commit
+
+      # The official gitleaks-action needs a paid license for organization repos,
+      # so download the pinned release binary and check it against the release checksums.
+      - name: Install gitleaks
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "${base}/${tarball}"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${tarball}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "${tarball}" gitleaks
+          rm -f "${tarball}" "gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+
+      - name: Scan repository history
+        run: ./gitleaks detect --source . --redact --verbose --exit-code 1
+
+  golden:
+    name: golden test (Validation Set)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run make validate
+        run: |
+          if [ -f Makefile ] && grep -qE '^validate:' Makefile; then
+            make validate
+          else
+            echo "::notice::No 'validate' target in a Makefile yet; skipping the golden test."
+          fi
