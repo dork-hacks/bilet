@@ -91,11 +91,23 @@ The same file through the UI's "Open a scan file" shows the RO/EN error on the p
 
 ## 6. Before/after from our own lab: the score improves
 
-The lab captures (#34) are the real ones. Load them into the history, then open **`/history`**:
+The lab captures (#34) are the real ones. Load **only L1 and L2** into a **fresh** history, then
+open **`/history`**. Not the whole folder: L3 (score 20, the other toggles) is newer than L2
+(55), the trend runs from the first scan to the last and the compare view defaults to the two
+newest, so with L3 loaded `/history` would say the score went *down* (#225). Older scans in
+your normal history would muddle the chart too.
 
 ```bash
-bilet analyze tests/fixtures/lab --out /tmp/lab --save --lang en
+export TOOL_DATA_DIR=$(mktemp -d)        # a fresh history for this check only
+pair=$(mktemp -d)
+cp tests/fixtures/lab/L1_default.xml tests/fixtures/lab/L2_after_fix.xml "$pair"/
+bilet analyze "$pair" --out /tmp/lab --save --lang en
+bilet serve                              # same shell, so it uses the same TOOL_DATA_DIR
 ```
+
+Expected: `saved 2 scans to the local history`, and `/history` says the score went up from
+25 to 55. Afterwards, `unset TOOL_DATA_DIR` (or open a new terminal) to get your normal history
+back; the temporary one can simply be deleted.
 
 Real run with the Validation Set's own pair (V6a → V6b, a stand-in until #34's captures are in):
 - The command prints `saved 2 scans to the local history` and the alert *"The device at 192.168.1.1 has a new service turned on (port 443/tcp)…"*.
