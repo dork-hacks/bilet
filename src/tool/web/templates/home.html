@@ -201,6 +201,7 @@
             {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
             <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
           <p>{{ finding.explanation }}</p>
+          {% if finding.observed_service %}<p>{{ ui.observed_service }}: {{ finding.observed_service }}</p>{% endif %}
           {% if finding.steps %}
           <p><strong>{{ ui.how_to_fix }}</strong></p>
           <ol>

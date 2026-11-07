@@ -42,12 +42,20 @@ def test_a_variant_names_the_ip_and_the_settings_page():
         s.replace("{ip}", "192.168.50.23").replace("{url}", "http://192.168.50.23:8080")
         for s in DEVICE_STEPS[("TELNET_OPEN", "camera")]["en"]
     )
-    assert "http://192.168.50.23 " in fix_steps("TELNET_OPEN", "en", "camera", "192.168.50.23")[0]
+    assert (
+        "http://192.168.50.23 "
+        in fix_steps("TELNET_OPEN", "en", "camera", "192.168.50.23", web_port=80)[0]
+    )
 
 
 def test_ipv6_gets_brackets_and_a_bad_port_is_ignored():
     steps = fix_steps("TELNET_OPEN", "en", "camera", "fe80::1", web_port=70000)
-    assert "http://[fe80::1] " in steps[0]
+    assert "http://" not in steps[0]
+    assert "fe80::1" in steps[0]
+    assert (
+        "http://[fe80::1]:8080"
+        in fix_steps("TELNET_OPEN", "en", "camera", "fe80::1", web_port=8080)[0]
+    )
 
 
 @pytest.mark.parametrize(
@@ -157,3 +165,12 @@ def test_all_default_camera_findings_have_device_steps(lang):
         steps = fix_steps(finding["code"], lang, "camera", camera["ip"])
         assert camera["ip"] in steps[0]
         assert steps != finding_text(finding["code"], lang).steps
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("key", list(DEVICE_STEPS))
+def test_no_settings_url_without_observed_web_port(lang, key):
+    code, kind = key
+    steps = fix_steps(code, lang, kind, "192.168.50.23")
+    assert "http://192.168.50.23" not in " ".join(steps)
+    assert "192.168.50.23" in " ".join(steps)

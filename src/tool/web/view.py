@@ -57,6 +57,7 @@ class FindingItem:
     port_label: str | None  # "554/tcp", None for UNKNOWN_DEVICE
     explanation: str
     steps: tuple[str, ...]
+    observed_service: str | None = None
     standards: str | None = None  # "Security standards: CIS Controls v8: … · OWASP IoT …"
 
 
@@ -249,6 +250,20 @@ def _finding_item(finding: dict, lang: str, device: dict | None = None) -> Findi
         port_label=f"{port}/{protocol}" if port is not None else None,
         explanation=text.explanation,
         steps=steps,
+        observed_service=(
+            " ".join(
+                str(value)
+                for value in (
+                    (finding.get("evidence") or {}).get("product")
+                    or (finding.get("evidence") or {}).get("service_name"),
+                    (finding.get("evidence") or {}).get("version"),
+                )
+                if value
+            )
+            or None
+        )
+        if finding["code"] == "OUTDATED_SERVICE"
+        else None,
         standards=standards_line(finding["code"], lang),
     )
 
