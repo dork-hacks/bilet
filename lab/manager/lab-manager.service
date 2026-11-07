@@ -1,0 +1,44 @@
+[Unit]
+Description=Lab manager (#155): presets and fix toggles for the lab Pis, on 127.0.0.1 only
+Documentation=file:///opt/lab-manager/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Its own SSH key, made on first start. Put the .pub on each lab Pi:
+#   sudo lab/setup.sh <role> --manager-key lab-manager.pub
+ExecStartPre=/bin/sh -c 'test -s "$STATE_DIRECTORY/id_ed25519" || ssh-keygen -q -t ed25519 -N "" -C lab-manager -f "$STATE_DIRECTORY/id_ed25519"'
+ExecStart=/usr/bin/python3 -I /opt/lab-manager/manager.py --bind 127.0.0.1 --port 8090 --config /etc/lab-manager/pis.conf --lab-dir /opt/lab-manager
+Restart=on-failure
+RestartSec=2
+
+DynamicUser=yes
+StateDirectory=lab-manager
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+MemoryMax=128M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

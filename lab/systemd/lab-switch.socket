@@ -1,0 +1,15 @@
+[Unit]
+Description=Lab switch helper socket (fix/break requests from a fake device's settings page)
+Documentation=file:///opt/lab/README.md
+
+[Socket]
+# Only root and the lab-web group (the fake HTTP service) can connect.
+ListenStream=/run/lab-switch.sock
+SocketUser=root
+SocketGroup=lab-web
+SocketMode=0660
+Accept=yes
+MaxConnections=4
+
+[Install]
+WantedBy=sockets.target
