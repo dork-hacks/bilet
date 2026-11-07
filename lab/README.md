@@ -71,6 +71,18 @@ For the hub, reboot afterwards so the random MAC and "no hostname" take effect. 
 change; find it in the hotspot's client list. The MAC is `stable` (locally administered,
 same after reboots), so history doesn't see a "new device" after every restart.
 
+**Or skip the SSH step:** put the role on the card from the laptop, without sudo (it only
+writes the boot partition), then boot the Pi. It installs the role by itself once it's on
+the hotspot, and the hub reboots once more for its new identity:
+
+```bash
+lab/card_role.sh /dev/sdX hub --on ssdp,jetdirect   # pi3: default hub + SSDP and JetDirect
+lab/card_role.sh /dev/sdX server                    # pi2
+```
+
+`--on` turns on extra toggles from `services.tsv` (`sudo labctl reset` on the Pi goes back
+to the default lab). Progress on the Pi: `journalctl -u lab-install`.
+
 `sudo lab/setup.sh remove` switches everything off and undoes the install.
 
 ## Fixing and breaking (the before/after demo)
