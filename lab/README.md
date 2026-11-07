@@ -37,7 +37,7 @@ optional `server` adds 0 points until one of its toggles is switched on:
 | # | The brief asks for | How we do it |
 |---|---|---|
 | 1 | Gateway: a team phone hotspot `RSH-<team>`, WPA2/WPA3, strong password, data limit | `RSH-dork_unit` on 2.4 GHz. The Pi 5 serves it (mentors said a phone isn't required, #64); a team phone hotspot is the fallback. |
-| 2 | Scanner: one laptop on the hotspot and **nothing else** | Ethernet unplugged, venue Wi-Fi forgotten, VPNs (Tailscale too) off. `tool detect` shows one network. |
+| 2 | Scanner: one laptop on the hotspot and **nothing else** | Ethernet unplugged, venue Wi-Fi forgotten, VPNs (Tailscale too) off on the laptop. `tool detect` shows one network. The camera Pi may stay a Tailscale subnet router for teammates at home ([tailscale/README.md](tailscale/README.md)). |
 | 3 | At least 3 target devices or services | Two Pi 4s with 7 weak services between them, plus the optional third device. |
 | 4 | At least 5 finding types | The default lab has 7 (table below); capture 3 adds the other 6 Pi codes. |
 | 5 | Every scan saved as nmap XML | `nmap -sS -sU -sV -oX`, via `lab/verify` (#34) or `tool scan` (#20). |
@@ -116,6 +116,13 @@ Every Pi can play any device: `labctl presets` lists them (`camera`, `server`, `
 every Pi from one page on the Pi 5, with a button per service; see
 [manager/README.md](manager/README.md). Install the Pis with `--manager-key` so it can
 reach them.
+
+### From home, over Tailscale (#199)
+
+Only Sc1pex has the lab now. The camera Pi can be a Tailscale subnet router for the hotspot
+subnet, so teammates reach the Pis, the lab manager and the settings page from home:
+`sudo lab/tailscale/setup_pi.sh`. Setup, the admin-console steps and what remote scans can't
+see (MACs) are in [tailscale/README.md](tailscale/README.md).
 
 ### From the device's own settings page (#144)
 
