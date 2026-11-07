@@ -163,6 +163,14 @@ class ShellSyntaxTest(unittest.TestCase):
             result = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, f"{path.name}: {result.stderr}")
 
+    def test_no_lab_script_uses_sed_in_place(self):
+        # GNU and BSD sed disagree on -i (#111): on macOS "sed -i -E" takes -E as the
+        # backup suffix and edits nothing. Write to a temporary file and mv it instead.
+        in_place = re.compile(r"\bsed\s+(-[A-Za-z]*\s+)*-[A-Za-z]*i")
+        for path in _bash_scripts():
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                self.assertIsNone(in_place.search(line), f"{path.name}:{number}: {line.strip()}")
+
 
 if __name__ == "__main__":
     unittest.main()
