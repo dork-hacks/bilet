@@ -22,18 +22,37 @@ One page on the Pi 5 (the hotspot router) that controls what every lab Pi plays:
   forwarding. `remote.py` hands one line to the lab-switch helper, which accepts only
   `status`, `fix SERVICE`, `break SERVICE` or `preset NAME` and runs `labctl` with a fixed
   argv. The manager checks the same grammar before it connects.
-- It runs as a throwaway systemd user (`DynamicUser`) with a strict sandbox. Its key lives
-  in `/var/lib/lab-manager` (mode 0700).
+- On the router it runs as the unprivileged user `labmanager` (procd). Its key lives in
+  `/etc/lab-manager/state` (mode 0700).
 
-## Setup
+## Setup on the router (the Pi 5, OpenWrt)
 
-On the Pi 5:
+The router runs OpenWrt, so the manager uses its own pieces: an `/etc/init.d` script
+(procd) instead of systemd, and dropbear's `dbclient` instead of OpenSSH. Only python3 has
+to be added.
+
+On the router (`ssh root@<pi5>`), once, over its uplink:
 
 ```bash
-sudo lab/manager/setup_manager.sh            # installs, starts, prints the public key
-sudoedit /etc/lab-manager/pis.conf            # one line per Pi: NAME IP (see pis.conf.example)
-sudo systemctl restart lab-manager
+opkg update && opkg install python3-light
 ```
+
+From the laptop, copy the lab folder over (`-O`: dropbear has no sftp):
+
+```bash
+scp -O -r lab root@<pi5>:/tmp/lab
+```
+
+On the router:
+
+```bash
+sh /tmp/lab/manager/setup_openwrt.sh     # installs, starts, prints the public key
+vi /etc/lab-manager/pis.conf              # one line per Pi: NAME IP (see pis.conf.example)
+/etc/init.d/lab-manager restart
+```
+
+It runs as the user `labmanager`. Its key and known hosts live in `/etc/lab-manager/state`
+(0700), on flash, so they survive a reboot. `logread -e lab-manager` shows its log.
 
 On each lab Pi, with the printed key saved as `lab-manager.pub`:
 
@@ -44,12 +63,15 @@ sudo lab/setup.sh camera --manager-key lab-manager.pub   # or hub, server
 From the laptop:
 
 ```bash
-ssh -L 8090:127.0.0.1:8090 <user>@<pi5>
+ssh -L 8090:127.0.0.1:8090 root@<pi5>
 ```
 
 Then open http://127.0.0.1:8090/.
 
-`pis.conf` stays on the Pi 5: it isn't committed (MASTERPLAN §3.5).
+`pis.conf` stays on the router: it isn't committed (MASTERPLAN §3.5).
+
+**On a regular Linux machine with systemd** (not our router), `setup_manager.sh` does the
+same with `lab-manager.service` and OpenSSH.
 
 ## Not verified yet
 

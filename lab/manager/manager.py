@@ -159,6 +159,7 @@ class Manager:
         run: Runner,
         key: Path = STATE / "id_ed25519",
         known_hosts: Path = STATE / "known_hosts",
+        client: str = "openssh",
     ):
         self.pis = {p.name: p for p in pis}
         self.services = services
@@ -166,6 +167,7 @@ class Manager:
         self.presets = presets
         self.run = run
         self.key, self.known_hosts = key, known_hosts
+        self.client = client  # "openssh", or "dropbear" on the OpenWrt router
         self.locks = {p.name: threading.Lock() for p in pis}  # one request per Pi at a time
         self.csrf = secrets.token_urlsafe(32)
 
@@ -180,6 +182,11 @@ class Manager:
         return False
 
     def ssh_argv(self, pi: Pi, request: str) -> list[str]:
+        if self.client == "dropbear":
+            # OpenWrt's own client. -y accepts a Pi's host key the first time and keeps it
+            # in $HOME/.ssh/known_hosts (run_ssh sets HOME); a changed key is refused. With
+            # no terminal it can't ask for a password, so only the key can log in.
+            return ["dbclient", "-i", str(self.key), "-y", "-T", f"labmgr@{pi.address}", request]
         return [
             "ssh",
             "-F", "/dev/null",
@@ -406,13 +413,17 @@ def make_handler(manager: Manager, port: int):
     return Handler
 
 
-def run_ssh(argv: list[str], timeout: float) -> tuple[int, str]:
+def run_ssh(argv: list[str], timeout: float, home: Path | None = None) -> tuple[int, str]:
+    env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"}
+    if home is not None:
+        env["HOME"] = str(home)  # where dbclient keeps known_hosts
     done = subprocess.run(  # noqa: S603 (fixed ssh argv; the request is checked first)
         argv,
         stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=timeout,
         check=False,
+        env=env,
     )
     return done.returncode, done.stdout.decode("ascii", "replace")
 
@@ -423,6 +434,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--lab-dir", type=Path, default=HERE)
+    parser.add_argument(
+        "--state-dir", type=Path, default=STATE, help="where the key and known hosts live"
+    )
+    parser.add_argument(
+        "--ssh-client",
+        choices=("openssh", "dropbear"),
+        default="openssh",
+        help="dropbear on the OpenWrt router (its own dbclient), openssh elsewhere",
+    )
     args = parser.parse_args(argv)
     try:
         pis = load_config(args.config)
@@ -431,7 +451,16 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ConfigError) as exc:
         print(f"lab-manager: {exc}", file=sys.stderr)
         return 1
-    manager = Manager(pis, services, presets, run_ssh)
+    key_name = "id_dropbear" if args.ssh_client == "dropbear" else "id_ed25519"
+    manager = Manager(
+        pis,
+        services,
+        presets,
+        lambda cmd, timeout: run_ssh(cmd, timeout, home=args.state_dir),
+        key=args.state_dir / key_name,
+        known_hosts=args.state_dir / "known_hosts",
+        client=args.ssh_client,
+    )
     server = ThreadingHTTPServer((args.bind, args.port), make_handler(manager, args.port))
     print(f"lab-manager: http://{args.bind}:{args.port}/ ({len(pis)} Pis)", file=sys.stderr)
     try:
