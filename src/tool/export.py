@@ -35,16 +35,40 @@ class Report:
     warnings: list[tuple[str, str]] = field(default_factory=list)  # optional-output problems
 
 
-def scan_files(folder: Path) -> list[Path]:
-    """The nmap XML files directly in `folder`, in name order. Hidden files are skipped."""
+# Never scans, even with --all-files: our own results, answer keys and notes.
+NOT_SCANS = frozenset({".csv", ".md"})
+
+
+def scan_files(folder: Path, all_files: bool = False) -> list[Path]:
+    """The nmap XML files directly in `folder`, in name order. Hidden files are skipped.
+
+    `all_files` (#203) reads every other visible file too, except CSVs (our results and
+    answer keys) and *.md notes, so a Test Set file without the .xml ending still gets
+    its ERROR row."""
     return sorted(
-        (
-            p
-            for p in folder.iterdir()
-            if p.is_file() and p.suffix.lower() == ".xml" and not p.name.startswith(".")
-        ),
+        (p for p in _visible_files(folder) if _is_scan(p, all_files)),
         key=lambda p: p.name,
     )
+
+
+def skipped_files(folder: Path, all_files: bool = False) -> list[str]:
+    """Visible files in `folder` that look like they could be scans but aren't read, in
+    name order. CSVs and *.md notes are never scans, so they aren't listed."""
+    return sorted(
+        p.name
+        for p in _visible_files(folder)
+        if not _is_scan(p, all_files) and p.suffix.lower() not in NOT_SCANS
+    )
+
+
+def _visible_files(folder: Path) -> list[Path]:
+    return [p for p in folder.iterdir() if p.is_file() and not p.name.startswith(".")]
+
+
+def _is_scan(path: Path, all_files: bool) -> bool:
+    if path.suffix.lower() == ".xml":
+        return True
+    return all_files and path.suffix.lower() not in NOT_SCANS
 
 
 def finding_rows(result: ScanResult) -> list[tuple[str, str, str, str, str]]:
@@ -65,7 +89,11 @@ def score_row(result: ScanResult) -> tuple[str, str]:
 
 
 def analyze_folder(
-    folder: Path, out: Path, json_dir: Path | None = None, salt: bytes | None = None
+    folder: Path,
+    out: Path,
+    json_dir: Path | None = None,
+    salt: bytes | None = None,
+    all_files: bool = False,
 ) -> Report:
     """Analyse every scan in `folder` and write findings.csv and scores.csv into `out`.
 
@@ -85,7 +113,7 @@ def analyze_folder(
             except OSError:
                 salt = secrets.token_bytes(32)
                 report.warnings.append(("", LOCAL_SALT_UNAVAILABLE))
-    for path in scan_files(folder):
+    for path in scan_files(folder, all_files):
         try:
             result = analyze_file(path, salt=salt)
             rows = finding_rows(result)
