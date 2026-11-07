@@ -251,28 +251,41 @@ def migrate(db: sqlite3.Connection, migrations: tuple[Migration, ...] = MIGRATIO
     what its later steps changed."""
     version = _user_version(db)
     if version > len(migrations):
-        raise HistoryError(
-            f"the history database is from a newer version (schema {version}, this build "
-            f"knows {len(migrations)}); it was not changed"
-        )
+        raise HistoryError(_newer_message(version, len(migrations)))
     previous_mode = db.isolation_level
     db.isolation_level = None  # explicit BEGIN/COMMIT below, nothing implicit
     try:
         for number, step in enumerate(migrations[version:], start=version + 1):
-            db.execute("BEGIN IMMEDIATE")
+            db.execute("BEGIN IMMEDIATE")  # one writer at a time from here on
             try:
+                # Re-read under the lock: another process (`bilet serve` and `bilet scan`
+                # at once) may have applied this step while we waited (agent-D, #131).
+                current = _user_version(db)
+                if current >= number:
+                    db.execute("COMMIT")
+                    if current > len(migrations):
+                        raise HistoryError(_newer_message(current, len(migrations)))
+                    continue
                 for statement in step.statements:
                     db.execute(statement)
                 db.execute(f"PRAGMA user_version = {int(number)}")
                 db.execute("COMMIT")
             except sqlite3.Error as exc:
-                db.execute("ROLLBACK")
+                if db.in_transaction:  # SQLite may already have rolled back (FULL, IOERR)
+                    db.execute("ROLLBACK")
                 raise HistoryError(
                     f"schema step {number} ({step.description}) failed: {exc}"
                 ) from exc
     finally:
         db.isolation_level = previous_mode
     return _user_version(db)
+
+
+def _newer_message(found: int, known: int) -> str:
+    return (
+        f"the history database is from a newer version (schema {found}, this build "
+        f"knows {known}); it was not changed"
+    )
 
 
 def _user_version(db: sqlite3.Connection) -> int:

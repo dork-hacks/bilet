@@ -109,3 +109,37 @@ def test_steps_are_applied_in_order_and_only_once(tmp_path):
     assert migrate(db, later) == SCHEMA_VERSION + 1  # running again changes nothing
     columns = [r[1] for r in db.execute("PRAGMA table_info(scans)")]
     assert columns.count("note") == 1
+
+
+def test_two_processes_racing_never_repeat_a_step(tmp_path, monkeypatch):
+    # agent-D's repro on #131: process A reads the version before B migrates, then gets the
+    # lock after B is done. A must notice under the lock and skip, not re-run the steps.
+    import tool.history as history
+
+    path = tmp_path / "h.sqlite3"
+    steps = (*MIGRATIONS, Migration("add a column", ("ALTER TABLE scans ADD COLUMN note TEXT",)))
+    a, b = sqlite3.connect(path), sqlite3.connect(path)
+
+    real = history._user_version
+    calls = {"n": 0}
+
+    def stale_first_read(db):
+        calls["n"] += 1
+        if db is a and calls["n"] == 1:
+            assert migrate(b, steps) == len(steps)  # B runs everything in between
+            return 0  # A's first read is from before B
+        return real(db)
+
+    monkeypatch.setattr(history, "_user_version", stale_first_read)
+    assert migrate(a, steps) == len(steps)
+    columns = [r[1] for r in a.execute("PRAGMA table_info(scans)")]
+    assert columns.count("note") == 1
+
+
+def test_rollback_is_skipped_when_sqlite_already_rolled_back(tmp_path):
+    db = sqlite3.connect(tmp_path / "h.sqlite3")
+    # ROLLBACK inside the step ends the transaction early, as SQLite does by itself on
+    # SQLITE_FULL / IOERR; the next statement then fails outside a transaction.
+    steps = (*MIGRATIONS, Migration("ends early", ("ROLLBACK", "CREATE TABLE t (x)", "BOGUS")))
+    with pytest.raises(HistoryError, match="BOGUS|syntax"):  # the real error, not "no transaction"
+        migrate(db, steps)
