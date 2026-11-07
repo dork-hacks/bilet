@@ -41,30 +41,21 @@ def build_parser() -> argparse.ArgumentParser:
                 "--confirm", action="store_true", help="confirm this is your own network"
             )
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
+        if name == "analyze":
+            cmd.add_argument("folder", type=Path, help="folder with nmap XML files")
+            cmd.add_argument(
+                "--out", type=Path, default=Path("out"), help="where to write the CSVs"
+            )
+            cmd.add_argument(
+                "--json", action="store_true", help="also write one ScanResult JSON per file"
+            )
+            cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
         if name == "detect":
             cmd.add_argument("--lang", choices=("ro", "en"), default="ro")
             cmd.add_argument("--json", action="store_true", help="machine-readable output")
     return parser
 
 
-# Until area:content adds these to tool.content (asked on #18), so the CLI is usable now.
-_DETECT_ERRORS = {
-    "NO_NETWORK": {
-        "ro": (
-            "Calculatorul nu pare conectat la nicio rețea. "
-            "Conectați-l la hotspot și încercați din nou."
-        ),
-        "en": "This computer doesn't seem to be on any network. Join the hotspot and try again.",
-    },
-    "SEVERAL_NETWORKS": {
-        "ro": "Calculatorul este conectat la mai multe rețele deodată. Lăsați-l doar pe hotspot.",
-        "en": "This computer is on several networks at once. Leave it on the hotspot only.",
-    },
-    "DETECT_FAILED": {
-        "ro": "Nu am putut afla la ce rețea este conectat calculatorul.",
-        "en": "Couldn't work out which network this computer is on.",
-    },
-}
 _DETECT_LABELS = {
     "ro": ("Interfață", "Adresa acestui calculator", "Rețea", "Router (gateway)"),
     "en": ("Interface", "This computer's address", "Network", "Router (gateway)"),
@@ -94,13 +85,33 @@ def scan_command(args: argparse.Namespace) -> int:
     return 2
 
 
+def analyze_command(args: argparse.Namespace) -> int:
+    from tool.content import file_error_message
+    from tool.export import analyze_folder
+
+    folder: Path = args.folder
+    if not folder.is_dir():
+        print(f"{folder}: not a folder", file=sys.stderr)
+        return 2
+    json_dir = args.out / "json" if args.json else None
+    report = analyze_folder(folder, args.out, json_dir=json_dir)
+    for file, code in report.errors:  # a broken file is reported, never fatal
+        print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
+    print(
+        f"{report.files} files, {report.findings} findings, {len(report.errors)} unreadable"
+        f" -> {args.out / 'findings.csv'}, {args.out / 'scores.csv'}"
+    )
+    return 0
+
+
 def detect_command(args: argparse.Namespace) -> int:
+    from tool.content import detect_error_message
     from tool.network import DetectError, detect
 
     try:
         net = detect()
     except DetectError as exc:
-        message = _DETECT_ERRORS.get(exc.code, _DETECT_ERRORS["DETECT_FAILED"])[args.lang]
+        message = detect_error_message(exc.code, args.lang)
         if args.json:
             print(json.dumps({"error": {"code": exc.code, "detail": exc.detail}}))
         else:
@@ -129,10 +140,22 @@ def serve(args: argparse.Namespace) -> int:
         return 2
     import uvicorn
 
+    from tool.ai.explain import Explainer
+    from tool.ai.provider import provider_from_env
+    from tool.config import data_dir
     from tool.web.app import create_app, load_json_file
 
+    # The provider comes from LLM_PROVIDER / LLM_API_KEY; with none set, AI stays off.
+    # Cache and rejection log are local data (NFR-02), never committed.
+    explainer = Explainer(
+        provider_from_env(),
+        cache_dir=data_dir() / "ai_cache",
+        rejection_log=data_dir() / "ai_rejections.jsonl",
+    )
     result_path = args.result
-    app = create_app(lambda: load_json_file(result_path) if result_path else None)
+    app = create_app(
+        lambda: load_json_file(result_path) if result_path else None, explainer=explainer
+    )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
@@ -147,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         return serve(args)
     if args.command == "scan":
         return scan_command(args)
+    if args.command == "analyze":
+        return analyze_command(args)
     if args.command == "detect":
         return detect_command(args)
     _help, issue = COMMANDS[args.command]

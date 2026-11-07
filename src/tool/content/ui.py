@@ -47,6 +47,36 @@ UI = {
     "language": {"ro": "Limba", "en": "Language"},
     "device_at": {"ro": "{device} la adresa {ip}", "en": "{device} at {ip}"},
     "points": {"ro": "{n} puncte de risc", "en": "{n} risk points"},
+    "why": {"ro": "De ce contează:", "en": "Why it matters:"},
+    "explained_by_ai": {"ro": "Explicat de AI", "en": "Explained by AI"},
+    "standard_explanation": {"ro": "Explicație standard", "en": "Standard explanation"},
+    "ai_heading": {"ro": "Explicații cu AI", "en": "AI explanations"},
+    "ai_on_state": {
+        "ro": "Explicațiile cu AI sunt pornite.",
+        "en": "AI explanations are on.",
+    },
+    "ai_off_state": {
+        "ro": "Explicațiile cu AI sunt oprite.",
+        "en": "AI explanations are off.",
+    },
+    "ai_turn_on": {"ro": "Pornește explicațiile cu AI", "en": "Turn on AI explanations"},
+    "ai_turn_off": {"ro": "Oprește explicațiile cu AI", "en": "Turn off AI explanations"},
+    "ai_data_note": {
+        "ro": (
+            "Dacă le pornești, trimitem unui serviciu AI doar tipul problemelor, numerele "
+            "porturilor, numele și versiunea programelor și tipul dispozitivului. "
+            "Nu trimitem niciodată adrese MAC, adrese IP sau numele dispozitivelor."
+        ),
+        "en": (
+            "If you turn them on, we send an AI service only the problem types, port "
+            "numbers, program names and versions, and the device type. "
+            "We never send MAC addresses, IP addresses or device names."
+        ),
+    },
+    "ai_not_set_up": {
+        "ro": "AI nu este configurat pe acest calculator, așa că vezi explicațiile standard.",
+        "en": "AI is not set up on this computer, so you see the standard explanations.",
+    },
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}

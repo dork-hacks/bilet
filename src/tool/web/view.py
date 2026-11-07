@@ -7,6 +7,8 @@ template (Jinja autoescape), never here.
 
 from dataclasses import dataclass
 
+from tool.ai.evidence import build_evidence
+from tool.ai.explain import SOURCE_TEMPLATE, Explainer
 from tool.content import DEFAULT_LANG, LANGS, device_type_label, file_error_message, finding_text
 from tool.content.ui import SCORE_BANDS, UI
 
@@ -28,6 +30,8 @@ class FirstStep:
     risk_points: int
     finding_title: str
     step: str
+    explanation: str
+    explanation_source: str = SOURCE_TEMPLATE  # "ai" | "template": the UI label
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,23 @@ class HomeView:
     band: Band | None = None
     first: FirstStep | None = None
     error_message: str | None = None
+    ai_on: bool = False  # the user opted in (MASTERPLAN §5.4: AI is opt-in)
+    ai_available: bool = False  # a provider is configured (LLM_PROVIDER)
+
+
+def explain_first(
+    result: dict, finding: dict, lang: str, explainer: Explainer | None
+) -> tuple[str, str]:
+    """(text, source) for the top finding. The built-in text unless AI is on and grounded."""
+    template = finding_text(finding["code"], lang).explanation
+    if explainer is None:
+        return template, SOURCE_TEMPLATE
+    evidence = build_evidence(result)
+    eid = next((e for e, f in evidence.finding_refs.items() if f == finding.get("id")), None)
+    if eid is None:
+        return template, SOURCE_TEMPLATE
+    answer = explainer.explain_finding(evidence, eid)
+    return answer.text(lang), answer.source
 
 
 def pick_lang(lang: str | None) -> str:
@@ -75,15 +96,23 @@ def most_dangerous(result: dict) -> tuple[dict, dict] | None:
     return (best_device, best_finding) if best_device else None
 
 
-def home_view(result: dict | None, lang: str | None = DEFAULT_LANG) -> HomeView:
+def home_view(
+    result: dict | None,
+    lang: str | None = DEFAULT_LANG,
+    explainer: Explainer | None = None,
+    ai_on: bool = False,
+) -> HomeView:
+    """The home screen. `explainer` is used only when the user opted in (`ai_on`)."""
     lang = pick_lang(lang)
+    ai_available = explainer is not None and explainer.provider is not None
+    ai = {"ai_on": ai_on, "ai_available": ai_available}
     if result is None:
-        return HomeView(lang=lang, kind="empty")
+        return HomeView(lang=lang, kind="empty", **ai)
     file = result.get("file")
     if result.get("status") != "ok":
         code = (result.get("error") or {}).get("code", "")
         message = file_error_message(code, lang)
-        return HomeView(lang=lang, kind="error", file=file, error_message=message)
+        return HomeView(lang=lang, kind="error", file=file, error_message=message, **ai)
 
     score = int(result.get("score") or 0)
     first = None
@@ -92,13 +121,24 @@ def home_view(result: dict | None, lang: str | None = DEFAULT_LANG) -> HomeView:
         device, finding = pick
         text = finding_text(finding["code"], lang)
         label = device_type_label(device.get("device_type_guess", "unknown"), lang)
+        explanation, source = explain_first(
+            result, finding, lang, explainer if ai_on and ai_available else None
+        )
         first = FirstStep(
             device=t("device_at", lang).replace("{device}", label).replace("{ip}", device["ip"]),
             hostname=device.get("hostname"),
             risk_points=device["risk_points"],
             finding_title=text.title,
             step=text.steps[0] if text.steps else text.explanation,
+            explanation=explanation,
+            explanation_source=source,
         )
     return HomeView(
-        lang=lang, kind="ok", file=file, score=score, band=score_band(score, lang), first=first
+        lang=lang,
+        kind="ok",
+        file=file,
+        score=score,
+        band=score_band(score, lang),
+        first=first,
+        **ai,
     )

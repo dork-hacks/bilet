@@ -1,7 +1,7 @@
 import pytest
 
 from tool import __version__
-from tool.cli import COMMANDS, main
+from tool.cli import main
 
 
 def test_no_command_prints_help(capsys):
@@ -14,9 +14,3 @@ def test_version(capsys):
         main(["--version"])
     assert exc.value.code == 0
     assert __version__ in capsys.readouterr().out
-
-
-@pytest.mark.parametrize("command", sorted(set(COMMANDS) - {"serve", "detect", "scan"}))
-def test_unimplemented_commands_fail_clearly(command, capsys):
-    assert main([command]) == 2
-    assert "not implemented yet" in capsys.readouterr().err
