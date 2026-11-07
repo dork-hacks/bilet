@@ -202,12 +202,14 @@ DEVICE_STEPS: dict[tuple[str, str], dict[str, list[str]]] = {
         "ro": [
             "Deschideți pagina de setări a dispozitivului de stocare de la adresa {ip}: scrieți {url} în bara de adrese a browserului, apoi căutați „partajare”.",
             "Opriți partajarea pentru orice folder care nu trebuie partajat.",
+            "Acesta este pasul care rezolvă problema: dacă nu mai aveți nevoie de partajare, opriți complet partajarea de fișiere Windows (SMB) pe dispozitivul de stocare de la {ip}. Dacă o păstrați accesibilă în rețea, avertismentul rămâne.",
             "Asigurați-vă că fiecare folder partajat cere o parolă puternică și că nu există acces pentru „guest” (oaspete).",
             "Instalați toate actualizările oferite pentru dispozitivul de stocare de la {ip}.",
         ],
         "en": [
             "Open the settings page of the storage box at {ip}: type {url} in your browser's address bar, then look for “sharing”.",
             "Stop sharing any folder that doesn't need to be shared.",
+            "This is the step that fixes it: if you no longer need sharing, turn Windows file sharing (SMB) off completely on the storage box at {ip}. If you keep it reachable on the network, the warning stays.",
             "Make sure every shared folder asks for a strong password and that there is no “guest” access.",
             "Install all updates offered for the storage box at {ip}.",
         ],

@@ -13,7 +13,7 @@ from tool.content import finding_text
 from tool.content.device_steps import FIX_PREFIXES
 from tool.engine.result import analyze_file
 from tool.web.report import report_view
-from tool.web.view import answer_question, device_fix_steps, home_view, network_plan
+from tool.web.view import answer_question, device_fix_steps, first_fix_step, home_view, network_plan
 
 FIXTURES = Path(__file__).parent / "fixtures" / "validation"
 
@@ -79,3 +79,31 @@ def test_report_without_device_context_uses_generic_fixing_step(lang):
     steps = finding_text(finding["code"], lang).steps
     fixing = next(step.removeprefix(prefix) for step in steps if step.startswith(prefix))
     assert report["findings"][0]["step"] == fixing
+
+
+@pytest.mark.parametrize(
+    "lang, removal, warning",
+    [
+        ("en", "turn Windows file sharing (SMB) off completely", "the warning stays"),
+        ("ro", "opriți complet partajarea de fișiere Windows (SMB)", "avertismentul rămâne"),
+    ],
+)
+def test_nas_smb_guidance_recommends_removing_exposure_on_local_surfaces(lang, removal, warning):
+    result = analyze_file(FIXTURES / "V3_small_office.xml", salt=b"test").to_dict()
+    original = copy.deepcopy(result)
+    nas = next(device for device in result["devices"] if device["device_type_guess"] == "nas")
+    finding = next(
+        finding
+        for finding in result["findings"]
+        if finding["code"] == "SMB_EXPOSED" and finding["device_key"] == nas["device_key"]
+    )
+    action = first_fix_step(nas, finding, lang)
+    assert removal in action and warning in action
+    assert nas["ip"] in action
+    assert any(action in step for step in home_view(result, lang).plan.steps)
+    assert action in answer_question(result, "What should I fix first?", lang, None).text
+    report_item = next(
+        item for item in report_view(result, lang)["findings"] if item["code"] == "SMB_EXPOSED"
+    )
+    assert report_item["step"] == action
+    assert result == original
