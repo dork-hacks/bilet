@@ -207,6 +207,13 @@
           <ol>
             {% for step in finding.steps %}<li>{{ step }}</li>{% endfor %}
           </ol>
+          {% if can_scan %}
+          <div class="fix-verification">
+            <p>{{ ui.fix_verify }}</p>
+            {% include "_scan_button.html" %}
+            <p><a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a></p>
+          </div>
+          {% endif %}
           {% endif %}
           {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
           <p><a href="/risks?lang={{ view.lang }}#{{ finding.code }}">{{ ui.risk_more }}</a></p>

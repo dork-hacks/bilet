@@ -77,6 +77,22 @@ UI = {
         ),
     },
     "scan_check_again": {"ro": "Verifică din nou", "en": "Check again"},
+    "fix_verify": {
+        "ro": (
+            "După modificări, verifică din nou întreaga rețea. Compară rezultatele în "
+            "istoric ca să vezi dacă această problemă a dispărut; simpla schimbare a "
+            "parolei poate să nu elimine avertismentul."
+        ),
+        "en": (
+            "After your changes, check the whole network again. Compare the results "
+            "in history to see whether this problem has gone away; changing only "
+            "a password may leave the warning in place."
+        ),
+    },
+    "fix_compare": {
+        "ro": "Vezi ce s-a schimbat în istoric",
+        "en": "See what changed in history",
+    },
     "scan_title": {"ro": "Verificarea rețelei", "en": "Network check"},
     "scan_ready": {
         "ro": "Poți verifica din nou rețeaua ta.",
