@@ -8,9 +8,9 @@ import pytest
 from fastapi.testclient import TestClient
 from markupsafe import escape
 
-from tool.content import finding_text, severity_label
+from tool.content import finding_text, fix_steps, severity_label
 from tool.web.app import create_app
-from tool.web.view import device_list, home_view
+from tool.web.view import device_fix_steps, device_list, home_view
 
 FIXTURES = Path(__file__).parent / "fixtures" / "contract"
 SCAN = json.loads((FIXTURES / "example_scan.json").read_text(encoding="utf-8"))
@@ -57,7 +57,10 @@ def test_finding_item_carries_texts_from_content():
     text = finding_text("CAMERA_STREAM_EXPOSED", "ro")
     assert item.title == text.title
     assert item.explanation == text.explanation
-    assert item.steps == text.steps
+    # The camera's own steps (#152): they name its IP, not the generic text.
+    assert item.steps == fix_steps("CAMERA_STREAM_EXPOSED", "ro", "camera", "192.168.1.40", 80)
+    assert item.steps != text.steps
+    assert "192.168.1.40" in item.steps[0]
     assert 1 <= len(item.steps) <= 5
     assert item.severity == "high"
     assert item.severity_label == severity_label("high", "ro")
@@ -100,10 +103,11 @@ def test_home_view_has_the_lists_and_errors_do_not():
 @pytest.mark.parametrize("lang", ["ro", "en"])
 def test_page_lists_every_finding_with_its_steps(lang):
     html = page(SCAN, lang)
+    devices = {d["ip"]: d for d in SCAN["devices"]}
     for finding in SCAN["findings"]:
         text = finding_text(finding["code"], lang)
         assert str(escape(text.title)) in html  # autoescape turns ' into &#39;
-        for step in text.steps:
+        for step in device_fix_steps(devices[finding["ip"]], finding["code"], lang):
             assert str(escape(step)) in html
     assert "<ol" in html
 
@@ -144,3 +148,56 @@ def test_hostile_hostname_and_vendor_are_escaped():
     assert "<b onmouseover" not in html
     assert "<script>alert(2)" not in html
     assert "&lt;script&gt;alert(2)" in html
+
+
+# --- device-specific steps (#152) -------------------------------------------------------
+
+
+def _camera():
+    return copy.deepcopy(next(d for d in SCAN["devices"] if d["ip"] == "192.168.1.40"))
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_do_this_first_shows_the_fix_instead_of_settings_navigation(lang):
+    view = home_view(SCAN, lang)
+    assert view.first is not None
+    assert "192.168.1.40" in view.first.device
+    assert "RTSP" in view.first.step
+    assert "http://" not in view.first.step
+    assert "This is the step" not in view.first.step
+    assert "Acesta este pasul" not in view.first.step
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_first_action_keeps_generic_fallback_when_no_variant_exists(lang):
+    scan = copy.deepcopy(SCAN)
+    for device in scan["devices"]:
+        device["device_type_guess"] = "unknown"
+    view = home_view(scan, lang)
+    assert view.first.step == finding_text("CAMERA_STREAM_EXPOSED", lang).steps[0]
+
+
+def test_the_settings_url_uses_the_devices_plain_http_port():
+    camera = _camera()
+    for port in camera["open_ports"]:
+        if port["service_name"] == "http":
+            port["port"] = 8080
+    steps = device_fix_steps(camera, "HTTP_ADMIN_CLEARTEXT", "en")
+    assert "http://192.168.1.40:8080 " in steps[0]
+
+
+def test_an_https_only_device_gets_the_plain_address():
+    camera = _camera()
+    for port in camera["open_ports"]:
+        if port["service_name"] == "http":
+            port["port"], port["tunnel"] = 8443, "ssl"
+    steps = device_fix_steps(camera, "TELNET_OPEN", "en")
+    assert "http://192.168.1.40 " in steps[0]
+
+
+def test_a_hostile_ip_in_the_steps_is_escaped_on_the_page():
+    scan = copy.deepcopy(SCAN)
+    camera = next(d for d in scan["devices"] if d["ip"] == "192.168.1.40")
+    camera["ip"] = "<img src=x onerror=alert(3)>"
+    html = page(scan)
+    assert "<img src=x" not in html

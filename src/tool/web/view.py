@@ -17,9 +17,11 @@ from tool.content import (
     device_type_label,
     file_error_message,
     finding_text,
+    fix_steps,
     severity_label,
     standards_line,
 )
+from tool.content.device_steps import FIX_PREFIXES
 from tool.content.ui import SCORE_BANDS, UI
 from tool.history import Alert
 
@@ -191,8 +193,40 @@ def device_anchor(ip: str) -> str:
     return "device-" + ip.replace(".", "-").replace(":", "-")
 
 
-def _finding_item(finding: dict, lang: str) -> FindingItem:
+def _web_port(device: dict) -> int | None:
+    """The lowest TCP port with a plain http page, when the scan saw one (the steps' URL)."""
+    web = [p["port"] for p in device.get("open_ports", []) if _plain_http(p)]
+    return min(web) if web else None
+
+
+def _plain_http(port: dict) -> bool:
+    tcp = port.get("protocol") == "tcp"
+    return tcp and port.get("service_name") == "http" and port.get("tunnel") != "ssl"
+
+
+def device_fix_steps(device: dict, code: str, lang: str) -> tuple[str, ...]:
+    """The fix steps for one finding on this device: they name its type and IP (#152).
+
+    Only the rules' device-type guess, the IP and a port number are used, all from the
+    scan file. tool.content fills them in as text and the template escapes them.
+    """
+    device_type, ip = device.get("device_type_guess"), device.get("ip")
+    return fix_steps(code, lang, device_type, ip, _web_port(device))
+
+
+def _first_step(device: dict, code: str, lang: str, text) -> str:
+    """Show the fixing action first, with the first instruction as a fallback."""
+    steps = device_fix_steps(device, code, lang)
+    prefix = FIX_PREFIXES[lang]
+    return next(
+        (step.removeprefix(prefix) for step in steps if step.startswith(prefix)),
+        steps[0] if steps else text.explanation,
+    )
+
+
+def _finding_item(finding: dict, lang: str, device: dict | None = None) -> FindingItem:
     text = finding_text(finding["code"], lang)
+    steps = device_fix_steps(device, finding["code"], lang) if device else text.steps
     port, protocol = finding.get("port"), finding.get("protocol")
     severity = finding.get("severity", "info")
     return FindingItem(
@@ -203,7 +237,7 @@ def _finding_item(finding: dict, lang: str) -> FindingItem:
         points=int(finding.get("points", 0)),
         port_label=f"{port}/{protocol}" if port is not None else None,
         explanation=text.explanation,
-        steps=text.steps,
+        steps=steps,
         standards=standards_line(finding["code"], lang),
     )
 
@@ -226,7 +260,7 @@ def device_list(result: dict, lang: str) -> tuple[tuple[DeviceItem, ...], tuple[
             mac_masked=device.get("mac_masked"),
             hostname=device.get("hostname"),
             risk_points=int(device.get("risk_points", 0)),
-            findings=tuple(_finding_item(f, lang) for f in own),
+            findings=tuple(_finding_item(f, lang, device) for f in own),
             device_type=device.get("device_type_guess", "unknown"),
         )
         (risky if item.findings else safe).append(item)
@@ -282,7 +316,7 @@ def home_view(
             hostname=device.get("hostname"),
             risk_points=device["risk_points"],
             finding_title=text.title,
-            step=text.steps[0] if text.steps else text.explanation,
+            step=_first_step(device, finding["code"], lang, text),
             explanation=explanation,
             explanation_source=source,
         )
