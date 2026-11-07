@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V4_legacy.xml 192.168.1.0/24" start="1793599131" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793599131" endtime="1793599134"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="A0:40:A0:87:16:EB" addrtype="mac" vendor="Netgear"/>
+<hostnames><hostname name="gateway" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="998"><extrareasons reason="reset" count="998" proto="tcp"/></extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="mini_httpd" version="1.19" method="probed" conf="10"/><script id="http-title" output="Router Setup"><elem key="title">Router Setup</elem></script></port>
+<port protocol="udp" portid="161"><state state="open" reason="udp-response" reason_ttl="64"/><service name="snmp" product="SNMPv1 server" extrainfo="public" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793599135" endtime="1793599138"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.60" addrtype="ipv4"/>
+<address addr="F8:BC:12:3F:C1:28" addrtype="mac" vendor="Dell"/>
+<hostnames><hostname name="oldsrv" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793599139" endtime="1793599142"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.99" addrtype="ipv4"/>
+<address addr="02:1A:7D:96:B9:62" addrtype="mac"/>
+<hostnames></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="8888"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="sun-answerbook" method="probed" conf="10"/></port>
+</ports></host>
+<runstats><finished time="1793599251" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="3" down="253" total="256"/></runstats>
+</nmaprun>

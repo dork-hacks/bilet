@@ -41,6 +41,8 @@ Hardware and AI work must never block the engine.
 
 Each Pi 4 plays a typical household device. This is our hotspot lab (minimum lab required by hour 3).
 
+**The hotspot is `RSH-dork_unit`:** one team phone, WPA2 or WPA3, a strong password and a mobile data limit. The brief says `RSH-<team-number>`; we use our team name `dork_unit` instead (decided by Mef05, #41). Every Pi and the scanner laptop join this network and nothing else.
+
 | Box | Plays the role of | Services (fake or empty) | Catalog codes |
 |---|---|---|---|
 | Pi 4 #1 | IP camera | RTSP on 554, HTTP page titled "Camera Login", BusyBox telnet banner on port 2323 | CAMERA_STREAM_EXPOSED, HTTP_ADMIN_CLEARTEXT, TELNET_OPEN |

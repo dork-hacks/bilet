@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V1_home_basic.xml 192.168.1.0/24" start="1793603810" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793603810" endtime="1793603813"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:C7:BF:39:0C:8C" addrtype="mac" vendor="TP-Link"/>
+<hostnames><hostname name="router.lan" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="997"><extrareasons reason="reset" count="997" proto="tcp"/></extraports>
+<port protocol="tcp" portid="53"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="domain" product="dnsmasq" version="2.89" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="Router Login"><elem key="title">Router Login</elem></script></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" tunnel="ssl" method="probed" conf="10"/><script id="http-title" output="Router Login"><elem key="title">Router Login</elem></script></port>
+</ports></host>
+<host starttime="1793603814" endtime="1793603817"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.20" addrtype="ipv4"/>
+<address addr="F8:BC:12:7D:72:47" addrtype="mac" vendor="Dell"/>
+<hostnames><hostname name="laptop-ana" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="1000"><extrareasons reason="reset" count="1000" proto="tcp"/></extraports>
+</ports></host>
+<host starttime="1793603818" endtime="1793603821"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.35" addrtype="ipv4"/>
+<address addr="8C:79:F5:34:2C:D8" addrtype="mac" vendor="Samsung"/>
+<hostnames><hostname name="galaxy-s23" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="1000"><extrareasons reason="reset" count="1000" proto="tcp"/></extraports>
+</ports></host>
+<runstats><finished time="1793603930" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="3" down="253" total="256"/></runstats>
+</nmaprun>

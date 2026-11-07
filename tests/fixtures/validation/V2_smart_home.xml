@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX V2_smart_home.xml 192.168.1.0/24" start="1793524165" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1793524165" endtime="1793524168"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:C7:BF:0F:2F:6F" addrtype="mac" vendor="TP-Link"/>
+<hostnames><hostname name="router.lan" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="TP-Link Router Admin"><elem key="title">TP-Link Router Admin</elem></script></port>
+<port protocol="udp" portid="1900"><state state="open" reason="udp-response" reason_ttl="64"/><service name="upnp" product="MiniUPnP" version="2.1" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793524169" endtime="1793524172"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.40" addrtype="ipv4"/>
+<address addr="C0:56:E3:77:0D:65" addrtype="mac" vendor="Hikvision"/>
+<hostnames><hostname name="ipcam" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="998"><extrareasons reason="reset" count="998" proto="tcp"/></extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Hikvision IP camera httpd" method="probed" conf="10"/><script id="http-title" output="Camera Web Login"><elem key="title">Camera Web Login</elem></script></port>
+<port protocol="tcp" portid="554"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="rtsp" product="Hikvision 7513 POE IP camera rtspd" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793524173" endtime="1793524176"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.41" addrtype="ipv4"/>
+<address addr="B8:27:EB:D6:70:E5" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames><hostname name="smarthub" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="999"><extrareasons reason="reset" count="999" proto="tcp"/></extraports>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" product="Mosquitto" version="2.0.18" method="probed" conf="10"/></port>
+</ports></host>
+<host starttime="1793524177" endtime="1793524180"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.50" addrtype="ipv4"/>
+<address addr="F4:F5:D8:8E:03:51" addrtype="mac" vendor="Google"/>
+<hostnames><hostname name="living-room-tv" type="PTR"/></hostnames>
+<ports>
+<extraports state="closed" count="998"><extrareasons reason="reset" count="998" proto="tcp"/></extraports>
+<port protocol="tcp" portid="8008"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Google Chromecast httpd" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="8009"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ajp13" method="probed" conf="10"/></port>
+</ports></host>
+<runstats><finished time="1793524285" timestr="" summary="Nmap done" elapsed="120.0" exit="success"/><hosts up="4" down="252" total="256"/></runstats>
+</nmaprun>

@@ -1,0 +1,9 @@
+file,network_score
+V1_home_basic.xml,90
+V2_smart_home.xml,40
+V3_small_office.xml,45
+V4_legacy.xml,25
+V5_nonstandard_ports.xml,50
+V6a_before.xml,60
+V6b_after.xml,100
+V7_broken.xml,ERROR
