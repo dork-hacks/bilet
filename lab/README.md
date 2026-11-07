@@ -33,7 +33,7 @@ Every Pi also runs key-only SSH for administration: `SSH_OPEN`, 0 points.
 Before the event, on home Wi-Fi (hotspot data is limited):
 
 1. Flash Raspberry Pi OS Lite 64-bit (bookworm), enable SSH with your public key in Raspberry Pi Imager.
-2. Join the Pi to the team hotspot (`RSH-<team-number>`) and to nothing else.
+2. Join the Pi to the team hotspot (`RSH-dork_unit`) and to nothing else.
 3. Copy this repo onto the Pi and install its role:
 
 ```bash
