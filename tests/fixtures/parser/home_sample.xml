@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Hand-written in the shape of real nmap XML output (SYN, UDP and version scan with the http-title script). Not a real scan. -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title -oX home_sample.xml 192.168.1.0/24" start="1794042000" startstr="Sat Nov  7 09:00:00 2026" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<host starttime="1794042001" endtime="1794042090"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="50:c7:bf:12:34:56" addrtype="mac" vendor="TP-LINK TECHNOLOGIES"/>
+<hostnames><hostname name="router.lan" type="PTR"/></hostnames>
+<ports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" method="probed" conf="10"/><script id="http-title" output="Router Login"><elem key="title">Router Login</elem></script></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" tunnel="ssl" method="probed" conf="10"/><script id="http-title" output="Router Login"/></port>
+<port protocol="tcp" portid="8080"><state state="closed" reason="reset" reason_ttl="64"/><service name="http-proxy" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open" reason="udp-response" reason_ttl="64"/><service name="domain" product="dnsmasq" version="2.80" method="probed" conf="10"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="1900"><state state="open" reason="udp-response" reason_ttl="64"/><service name="upnp" product="miniupnpd" version="2.1" method="probed" conf="10"/></port>
+</ports>
+</host>
+<host starttime="1794042001" endtime="1794042090"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.99" addrtype="ipv4"/>
+<address addr="02:11:22:33:44:55" addrtype="mac"/>
+<hostnames/>
+<ports>
+<port protocol="tcp" portid="3306"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="mysql" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8888"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="sun-answerbook" method="table" conf="3"/></port>
+</ports>
+</host>
+<host><status state="down" reason="no-response" reason_ttl="0"/>
+<address addr="192.168.1.200" addrtype="ipv4"/>
+</host>
+<runstats><finished time="1794042095" timestr="Sat Nov  7 09:01:35 2026" elapsed="95.00" exit="success"/><hosts up="2" down="1" total="3"/></runstats>
+</nmaprun>

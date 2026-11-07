@@ -1,0 +1,15 @@
+# gitleaks config (NFR-01). Keeps every default rule and only allows our own IDs.
+#
+# The engine's IDs and keys (docs/contracts/data-model.md) are 12 hex characters
+# of a SHA-256 / HMAC with a d_, f_ or m_ prefix. Their entropy sits right at the
+# generic-api-key threshold, so some of them get flagged at random. Only a value
+# that is exactly that shape is allowed; anything longer or different still fails.
+title = "bilet gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Engine device keys, finding IDs and match keys (d_/f_/m_ + 12 hex)"
+regexTarget = "secret"
+regexes = ['''^[dfm]_[0-9a-f]{12}$''']

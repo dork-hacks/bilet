@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "file": "example_broken.xml",
+  "status": "error",
+  "error": {
+    "code": "NOT_XML"
+  },
+  "scan_start": null,
+  "score": null,
+  "points_total": 0,
+  "devices": [],
+  "findings": []
+}
