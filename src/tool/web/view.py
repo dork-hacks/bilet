@@ -8,7 +8,7 @@ template (Jinja autoescape), never here.
 from dataclasses import dataclass
 
 from tool.ai.evidence import build_evidence
-from tool.ai.explain import SOURCE_TEMPLATE, Explainer
+from tool.ai.explain import SOURCE_TEMPLATE, Explainer, clean_question, summary_steps
 from tool.content import (
     DEFAULT_LANG,
     LANGS,
@@ -65,6 +65,26 @@ class DeviceItem:
 
 
 @dataclass(frozen=True)
+class Plan:
+    """The "what to do, in order" plan under "Do this first" (#50).
+
+    Built-in: `steps` is a list in the rules' order. AI: `text` is one short paragraph
+    that the grounding checker accepted, and it cites the findings in the same order.
+    """
+
+    steps: tuple[str, ...] = ()
+    text: str | None = None
+    source: str = SOURCE_TEMPLATE
+
+
+@dataclass(frozen=True)
+class QuestionReply:
+    question: str  # what the owner typed, cleaned; escaped by the template
+    text: str
+    source: str  # "ai" | "template"
+
+
+@dataclass(frozen=True)
 class HomeView:
     lang: str
     kind: str  # "ok" | "error" | "empty"
@@ -77,6 +97,8 @@ class HomeView:
     safe_devices: tuple[DeviceItem, ...] = ()  # devices with no findings, in scan order
     ai_on: bool = False  # the user opted in (MASTERPLAN §5.4: AI is opt-in)
     ai_available: bool = False  # a provider is configured (LLM_PROVIDER)
+    plan: Plan | None = None  # None when nothing scores points
+    reply: QuestionReply | None = None  # the answer to the owner's question, if they asked
 
 
 def explain_first(
@@ -92,6 +114,32 @@ def explain_first(
         return template, SOURCE_TEMPLATE
     answer = explainer.explain_finding(evidence, eid)
     return answer.text(lang), answer.source
+
+
+def network_plan(result: dict, lang: str, explainer: Explainer | None) -> Plan | None:
+    """The plan for the whole network. The AI paragraph only if AI is on and grounded."""
+    evidence = build_evidence(result)
+    steps = tuple(summary_steps(evidence, lang))
+    if not steps:
+        return None
+    if explainer is not None:
+        summary = explainer.summarise(evidence)
+        if summary.source != SOURCE_TEMPLATE:
+            return Plan(text=summary.text(lang), source=summary.source)
+    return Plan(steps=steps)
+
+
+def answer_question(
+    result: dict, question: str, lang: str, explainer: Explainer | None
+) -> QuestionReply | None:
+    """One grounded answer (FR-12). None for an empty question, so nothing is shown."""
+    question = clean_question(question)
+    if not question:
+        return None
+    if explainer is None:
+        return QuestionReply(question, t("ai_question_needs_ai", lang), SOURCE_TEMPLATE)
+    reply = explainer.answer(build_evidence(result), question)
+    return QuestionReply(question, reply.text(lang), reply.source)
 
 
 def pick_lang(lang: str | None) -> str:
@@ -174,10 +222,15 @@ def home_view(
     lang: str | None = DEFAULT_LANG,
     explainer: Explainer | None = None,
     ai_on: bool = False,
+    question: str | None = None,
 ) -> HomeView:
-    """The home screen. `explainer` is used only when the user opted in (`ai_on`)."""
+    """The home screen. `explainer` is used only when the user opted in (`ai_on`).
+
+    `question` is the owner's typed question (untrusted); it is answered only with AI on.
+    """
     lang = pick_lang(lang)
     ai_available = explainer is not None and explainer.provider is not None
+    active = explainer if ai_on and ai_available else None
     ai = {"ai_on": ai_on, "ai_available": ai_available}
     if result is None:
         return HomeView(lang=lang, kind="empty", **ai)
@@ -194,9 +247,7 @@ def home_view(
         device, finding = pick
         text = finding_text(finding["code"], lang)
         label = device_type_label(device.get("device_type_guess", "unknown"), lang)
-        explanation, source = explain_first(
-            result, finding, lang, explainer if ai_on and ai_available else None
-        )
+        explanation, source = explain_first(result, finding, lang, active)
         first = FirstStep(
             device=t("device_at", lang).replace("{device}", label).replace("{ip}", device["ip"]),
             hostname=device.get("hostname"),
@@ -216,5 +267,7 @@ def home_view(
         first=first,
         devices=devices,
         safe_devices=safe_devices,
+        plan=network_plan(result, lang, active),
+        reply=answer_question(result, question, lang, active) if question else None,
         **ai,
     )

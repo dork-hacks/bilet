@@ -92,6 +92,37 @@ UI = {
         "ro": "AI nu este configurat pe acest calculator, așa că vezi explicațiile standard.",
         "en": "AI is not set up on this computer, so you see the standard explanations.",
     },
+    # Summary and Q&A (#50). The "can't tell" sentence is shown whenever the scan
+    # evidence doesn't cover a question, and whenever an AI answer is rejected.
+    "ai_summary_intro": {"ro": "Ordinea recomandată:", "en": "What to do, in order:"},
+    "plan_heading": {"ro": "Planul tău", "en": "Your plan"},
+    "ask_heading": {"ro": "Întreabă despre rețeaua ta", "en": "Ask about your network"},
+    "ask_label": {"ro": "Întrebarea ta", "en": "Your question"},
+    "ask_hint": {
+        "ro": "De exemplu: E sigur că imprimanta mea are portul 9100 deschis?",
+        "en": "For example: Is it safe that my printer has port 9100 open?",
+    },
+    "ask_button": {"ro": "Întreabă", "en": "Ask"},
+    "ask_you_asked": {"ro": "Ai întrebat:", "en": "You asked:"},
+    "ask_answer": {"ro": "Răspuns:", "en": "Answer:"},
+    "ai_summary_nothing": {
+        "ro": "Verificarea nu a găsit nimic de reparat. Nu trebuie să faci nimic acum.",
+        "en": "The scan found nothing to fix. You don't need to do anything right now.",
+    },
+    "ai_cant_tell": {
+        "ro": "Scanarea nu îmi poate spune asta. Uită-te la lista de probleme de mai jos.",
+        "en": "The scan can't tell me that. Please look at the list of problems below.",
+    },
+    "ai_question_needs_ai": {
+        "ro": (
+            "Întrebările au nevoie de explicațiile cu AI pornite. "
+            "Lista de mai jos arată tot ce a găsit scanarea."
+        ),
+        "en": (
+            "Questions need the AI explanations turned on. "
+            "The list below shows everything the scan found."
+        ),
+    },
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}
