@@ -8,6 +8,7 @@ an unknown code never crashes a page.
 from dataclasses import dataclass
 
 from tool.content.texts import (
+    DETECT_ERRORS,
     DEVICE_TYPES,
     FILE_ERRORS,
     FINDINGS,
@@ -26,6 +27,7 @@ __all__ = [
     "DEFAULT_LANG",
     "LANGS",
     "FindingText",
+    "detect_error_message",
     "device_type_label",
     "file_error_message",
     "finding_text",
@@ -79,6 +81,12 @@ def device_type_label(device_type: str, lang: str | None = DEFAULT_LANG) -> str:
 def file_error_message(error_code: str, lang: str | None = DEFAULT_LANG) -> str:
     lang = _lang(lang)
     return FILE_ERRORS.get(error_code, GENERIC_FILE_ERROR)[lang]
+
+
+def detect_error_message(code: str, lang: str | None = DEFAULT_LANG) -> str:
+    """Plain-language text for a network detection error (FR-01). Never raises."""
+    lang = _lang(lang)
+    return DETECT_ERRORS.get(code, DETECT_ERRORS["DETECT_FAILED"])[lang]
 
 
 def _clean_target(target: str) -> str:
