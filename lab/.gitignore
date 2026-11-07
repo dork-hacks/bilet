@@ -1,0 +1,2 @@
+# Raw scans hold real MACs and hostnames. Only sanitised copies (lab/sanitize) go in the repo.
+captures/
