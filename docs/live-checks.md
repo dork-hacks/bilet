@@ -10,8 +10,8 @@ The outputs are copied from real runs on `main` (7 Nov). Checks 1, 4, 5 and 6 us
 
 ```bash
 git checkout final && make setup              # the exact build that made the upload
-tool detect --lang en                         # one private network, a /24 or smaller
-tool serve &                                  # http://127.0.0.1:8000, open it in the browser
+bilet detect --lang en                         # one private network, a /24 or smaller
+bilet serve &                                  # http://127.0.0.1:8000, open it in the browser
 ```
 
 - **Have these ready:** the Test Set folder, the uploaded `findings.csv` / `scores.csv`, the lab before/after captures (`tests/fixtures/lab/`, #34), and gitleaks installed (`brew install gitleaks` / `apt install gitleaks`).
@@ -23,7 +23,7 @@ The jury picks a file. Re-run it alone and compare with the upload. **If this di
 
 ```bash
 mkdir -p /tmp/one && cp <TestSet>/<FILE>.xml /tmp/one/
-tool analyze /tmp/one --out /tmp/rerun --lang en
+bilet analyze /tmp/one --out /tmp/rerun --lang en
 grep '^<FILE>.xml,' <upload>/findings.csv | cmp - <(grep '^<FILE>.xml,' /tmp/rerun/findings.csv) && echo SAME
 grep '^<FILE>.xml,' <upload>/scores.csv /tmp/rerun/scores.csv
 ```
@@ -34,7 +34,7 @@ Real run (V4 from the Validation Set): `1 files, 6 findings, 0 unreadable`, the 
 
 ## 2. Hands-on: "Which device is the most dangerous, and what should I do first?"
 
-A jury member uses the UI without help. Open the scan they'll ask about, e.g. a Test Set file through **"Open a scan file"** on the home screen, or `tool serve --result <file>.json` (`tool analyze <folder> --json` writes those).
+A jury member uses the UI without help. Open the scan they'll ask about, e.g. a Test Set file through **"Open a scan file"** on the home screen, or `bilet serve --result <file>.json` (`bilet analyze <folder> --json` writes those).
 
 What the home screen shows (V2):
 
@@ -52,28 +52,30 @@ Open **`/risks`** (linked from every page). All 15 catalog codes are there, each
 ## 4. Guardrail: try a public IP and the venue network; it must refuse
 
 ```bash
-tool scan 8.8.8.8 --confirm --lang en
-tool scan <venue range, e.g. 192.168.1.0/24> --confirm --lang en
+bilet scan 8.8.8.8 --confirm --lang en
+bilet scan <venue range, e.g. 192.168.1.0/24> --confirm --lang en
 ```
+
+**Use the real venue range, not the example.** Find it before the session: join the venue Wi-Fi briefly on any laptop and run `ip route` (Linux) or `netstat -rn` (macOS), or ask the organizers. Then switch back to `RSH-dork_unit` only. The refusal then names the exact network the jury asked about.
 
 Real run:
 
 ```
-The address 8.8.8.8 is on the internet, not in your home network. The tool only checks your own network.
+The address 8.8.8.8 is on the internet, not in your home network. The bilet app only checks your own network.
 (PUBLIC_ADDRESS)                                                             exit=3
-The address 192.168.1.0/24 is not part of the network this computer is connected to. The tool only checks the network it is connected to.
+The address 192.168.1.0/24 is not part of the network this computer is connected to. The bilet app only checks the network this computer is connected to.
 (OUTSIDE_ALLOWLIST)                                                          exit=3
 ```
 
 Also good to show:
-- `tool scan` with no `--confirm` explains what it *would* scan (`CONFIRM_REQUIRED`).
+- `bilet scan` with no `--confirm` explains what it *would* scan (`CONFIRM_REQUIRED`).
 - `100.64.0.1` (the mobile operator's range), `127.0.0.1`, `router.lan` and `10.0.0.0/16` are all refused, each with its own reason.
 
 ## 5. Open an unreadable file: a clear error, no crash
 
 ```bash
 mkdir -p /tmp/broken && cp tests/fixtures/validation/V7_broken.xml /tmp/broken/
-tool analyze /tmp/broken --out /tmp/bo --lang en ; cat /tmp/bo/scores.csv
+bilet analyze /tmp/broken --out /tmp/bo --lang en ; cat /tmp/bo/scores.csv
 ```
 
 Real run:
@@ -92,7 +94,7 @@ The same file through the UI's "Open a scan file" shows the RO/EN error on the p
 The lab captures (#34) are the real ones. Load them into the history, then open **`/history`**:
 
 ```bash
-tool analyze tests/fixtures/lab --out /tmp/lab --save --lang en
+bilet analyze tests/fixtures/lab --out /tmp/lab --save --lang en
 ```
 
 Real run with the Validation Set's own pair (V6a → V6b, a stand-in until #34's captures are in):
@@ -100,21 +102,23 @@ Real run with the Validation Set's own pair (V6a → V6b, a stand-in until #34's
 - `/history` shows **"score went up from 60 to 100"**, the trend chart, and the compare view with the 3 resolved findings (HTTP admin `.1:80`, UPnP `.1:1900`, telnet `.30:23`).
 
 **Live version, if time allows (MASTERPLAN §4.3):**
-1. `tool scan --confirm`.
-2. `sudo labctl fix telnet` on the camera Pi (its LED turns green).
-3. `tool scan --confirm` again.
+1. `bilet scan --confirm`.
+2. `ssh <user>@<camera-pi> sudo labctl fix telnet`, from the laptop (its LED turns green; no keyboard on the Pi needed).
+3. `bilet scan --confirm` again.
 4. The home screen and `/history` show the score climbing.
 
 ## 7. No secrets in the repository
 
 ```bash
-gitleaks detect --source . --redact --verbose
+gitleaks version                                 # check before the session
+gitleaks git . --redact --verbose                # gitleaks 8.19 or newer
+gitleaks detect --source . --redact --verbose    # older versions (newer ones accept it with a deprecation warning)
 ```
 
-A pass ends with `no leaks found`. CI runs the same scan on every push and PR (the `gitleaks (NFR-01)` check), so the PR page is a backup if gitleaks isn't installed. The API key is only ever in the environment (`.env` is git-ignored; `.env.example` holds empty placeholders).
+Use the command that matches the laptop's version, so a deprecation warning doesn't look like a failure live. A pass ends with `no leaks found`. CI runs the same scan on every push and PR (the `gitleaks (NFR-01)` check), so the PR page is a backup if gitleaks isn't installed. The API key is only ever in the environment (`.env` is git-ignored; `.env.example` holds empty placeholders).
 
 ## Still to do on the day (needs a human on the hotspot)
 
 - Run all seven once on the scanner laptop at the `final` tag, and time the session.
 - Check 6 with the real lab captures from #34 (score 25 → 55 for L1 → L2).
-- `tool scan --confirm` on the full hotspot: record how long it takes (NFR-07: a /24 in under 5 minutes) and check that the laptop's own IP doesn't appear as UNKNOWN_DEVICE.
+- `bilet scan --confirm` on the full hotspot: record how long it takes (NFR-07: a /24 in under 5 minutes) and check that the laptop's own IP doesn't appear as UNKNOWN_DEVICE.
