@@ -47,6 +47,28 @@ git log --oneline -1            # write this commit in #1
 - You're on `main` at the same commit as `origin/main`.
 - `git status --porcelain` prints nothing, so there are no local edits or stray files.
 
+### 1b. The deliverables are in this commit
+
+The `final` tag is everything the jury gets (brief, "Deliverables and submission checklist"), and nothing merges after step 3. So check now that this commit has every deliverable that lives in the repo:
+
+```bash
+ls tests/fixtures/lab/                                    # the lab captures (#34)
+grep -ohE 'addr="([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"' tests/fixtures/lab/*.xml \
+  | grep -vE ':00:00:0[0-3]"'                             # pass: prints nothing
+grep -n "stand-in" docs/live-checks.md                    # pass: prints nothing
+wc -w docs/technical-summary.md                           # pass: under about 700 words
+grep -n "^## " README.md                                  # pass: Setup, Analyse scan files, Live scan
+```
+
+**Pass:**
+- `tests/fixtures/lab/` holds at least two `.xml` captures that form a before/after pair, plus `expected_findings.csv`. The brief asks for "your own hotspot lab scans (nmap XML) including one before/after pair".
+- Every MAC in them is the form that `lab/sanitize` writes (`…:00:00:01` camera, `…:02` server, `…:03` hub, `…:00` other), so no real MAC is in the repo (NFR-02).
+- `docs/live-checks.md` check 6 runs on our own captures, not the Validation Set's V6a → V6b stand-in.
+- `docs/technical-summary.md` fits on one page. Its "Lab setup" matches the lab on the table: the number of Pis, their roles and the default score. It also covers architecture, assumptions, limitations and LLM use.
+- The README explains setup, the live scan and file analysis.
+
+If one of them fails, **stop** and post in #1 what's missing. Its owner (#146) merges the fix before step 3. Then start again at step 1.
+
 ### 2. Setup and the checks, all green
 
 ```bash
