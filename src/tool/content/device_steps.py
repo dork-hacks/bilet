@@ -79,12 +79,12 @@ DEVICE_STEPS: dict[tuple[str, str], dict[str, list[str]]] = {
     ("OUTDATED_SERVICE", "camera"): {
         "ro": [
             "Verificați programul și versiunea veche indicate pentru camera de la adresa {ip}.",
-            "Acesta este pasul care rezolvă problema: actualizați programul vechi sau opriți-l. Dacă avertismentul numește vsftpd, opriți comutatorul „FTP / partajare a fișierelor” de pe pagina {url}.",
+            "Acesta este pasul care rezolvă problema: actualizați programul vechi sau opriți-l.",
             "Avertismentul rămâne dacă doar schimbați parola. El dispare când versiunea veche nu mai este accesibilă; pagina demonstrativă nu are un buton de actualizare.",
         ],
         "en": [
             "Check the old program and version reported for the camera at {ip}.",
-            "This is the step that fixes it: update the old program or turn it off. If the warning names vsftpd, turn off the “FTP / file-sharing” switch on {url}.",
+            "This is the step that fixes it: update the old program or turn it off.",
             "Changing only the password leaves this warning in place. It clears when the old version is no longer reachable; the demo page has no update button.",
         ],
     },

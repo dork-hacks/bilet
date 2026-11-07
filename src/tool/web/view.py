@@ -204,19 +204,30 @@ def _plain_http(port: dict) -> bool:
     return tcp and port.get("service_name") == "http" and port.get("tunnel") != "ssl"
 
 
-def device_fix_steps(device: dict, code: str, lang: str) -> tuple[str, ...]:
+def device_fix_steps(
+    device: dict, code: str, lang: str, finding: dict | None = None
+) -> tuple[str, ...]:
     """The fix steps for one finding on this device: they name its type and IP (#152).
 
     Only the rules' device-type guess, the IP and a port number are used, all from the
     scan file. tool.content fills them in as text and the template escapes them.
     """
     device_type, ip = device.get("device_type_guess"), device.get("ip")
+    if code == "OUTDATED_SERVICE" and device_type == "camera" and finding:
+        # Match the affected service, not a product name or an unrelated FTP port.
+        if any(
+            port.get("port") == finding.get("port")
+            and port.get("protocol") == finding.get("protocol")
+            and port.get("service_name") == "ftp"
+            for port in device.get("open_ports", [])
+        ):
+            code = "FTP_CLEARTEXT"
     return fix_steps(code, lang, device_type, ip, _web_port(device))
 
 
-def _first_step(device: dict, code: str, lang: str, text) -> str:
+def _first_step(device: dict, finding: dict, lang: str, text) -> str:
     """Show the fixing action first, with the first instruction as a fallback."""
-    steps = device_fix_steps(device, code, lang)
+    steps = device_fix_steps(device, finding["code"], lang, finding)
     prefix = FIX_PREFIXES[lang]
     return next(
         (step.removeprefix(prefix) for step in steps if step.startswith(prefix)),
@@ -226,7 +237,7 @@ def _first_step(device: dict, code: str, lang: str, text) -> str:
 
 def _finding_item(finding: dict, lang: str, device: dict | None = None) -> FindingItem:
     text = finding_text(finding["code"], lang)
-    steps = device_fix_steps(device, finding["code"], lang) if device else text.steps
+    steps = device_fix_steps(device, finding["code"], lang, finding) if device else text.steps
     port, protocol = finding.get("port"), finding.get("protocol")
     severity = finding.get("severity", "info")
     return FindingItem(
@@ -316,7 +327,7 @@ def home_view(
             hostname=device.get("hostname"),
             risk_points=device["risk_points"],
             finding_title=text.title,
-            step=_first_step(device, finding["code"], lang, text),
+            step=_first_step(device, finding, lang, text),
             explanation=explanation,
             explanation_source=source,
         )

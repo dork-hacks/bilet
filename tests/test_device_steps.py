@@ -109,7 +109,6 @@ def test_every_lab_device_type_has_at_least_one_variant(device_type):
         ("telnet", ("TELNET_OPEN", "camera")),
         ("ftp", ("FTP_CLEARTEXT", "camera")),
         ("ftp", ("FTP_CLEARTEXT", "server")),
-        ("ftp", ("OUTDATED_SERVICE", "camera")),
     ],
 )
 def test_lab_switch_names_match_the_current_settings_pages(service, key):

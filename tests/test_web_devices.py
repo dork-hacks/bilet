@@ -201,3 +201,25 @@ def test_a_hostile_ip_in_the_steps_is_escaped_on_the_page():
     camera["ip"] = "<img src=x onerror=alert(3)>"
     html = page(scan)
     assert "<img src=x" not in html
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_outdated_camera_ftp_action_uses_the_affected_service(lang):
+    from tool.engine import analyze_file
+
+    scan = analyze_file(
+        Path(__file__).parents[1] / "lab/tests/fixtures/default_lab.xml",
+        salt=b"camera-ftp-action",
+    ).to_dict()
+    view = home_view(scan, lang)
+    assert "FTP /" in view.first.step
+    assert "vsftpd" not in view.first.step
+    camera = next(d for d in scan["devices"] if d["device_type_guess"] == "camera")
+    outdated = next(f for f in scan["findings"] if f["code"] == "OUTDATED_SERVICE")
+    steps = device_fix_steps(camera, outdated["code"], lang, outdated)
+    assert steps == device_fix_steps(camera, "FTP_CLEARTEXT", lang)
+    # Another old service must not receive an unrelated FTP fix.
+    other = {**outdated, "port": 22}
+    fallback = device_fix_steps(camera, other["code"], lang, other)
+    assert "FTP /" not in " ".join(fallback)
+    assert "vsftpd" not in " ".join(fallback)
