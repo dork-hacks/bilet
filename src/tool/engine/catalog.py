@@ -68,3 +68,27 @@ ADMIN_TITLE_WORDS = ("login", "admin", "config", "setup", "router", "settings")
 # SMB_EXPOSED: one finding per device, on the first of these ports that is open.
 SMB_SERVICES = frozenset({"microsoft-ds", "netbios-ssn"})
 SMB_PREFERRED_PORTS = (445, 139)
+
+
+@dataclass(frozen=True)
+class OutdatedRule:
+    """OUTDATED_SERVICE when nmap's product contains `product` and the version matches.
+
+    `parts` is how many leading version numbers must be readable (never guess from fewer).
+    `test` compares that tuple: "eq", "lt" (strictly older than `bound`) or "le".
+    """
+
+    product: str  # lower-case substring of nmap's product
+    parts: int
+    test: str
+    bound: tuple[int, ...]
+
+
+# The brief's outdated list, exactly.
+OUTDATED_RULES: tuple[OutdatedRule, ...] = (
+    OutdatedRule("vsftpd", 3, "eq", (2, 3, 4)),  # vsftpd 2.3.4
+    OutdatedRule("openssh", 2, "lt", (7, 4)),  # OpenSSH below 7.4
+    OutdatedRule("apache httpd", 2, "le", (2, 2)),  # Apache httpd 2.2.x or older
+    OutdatedRule("microsoft iis", 2, "le", (7, 5)),  # Microsoft IIS 7.5 or older
+    OutdatedRule("samba", 1, "le", (3,)),  # Samba 3.x or older
+)
