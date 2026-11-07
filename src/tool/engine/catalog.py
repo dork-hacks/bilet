@@ -60,3 +60,11 @@ SERVICE_RULES: tuple[ServiceRule, ...] = (
     ServiceRule("PRINTER_RAW_EXPOSED", frozenset({"jetdirect"})),
     ServiceRule("SSH_OPEN", frozenset({"ssh"})),
 )
+
+# HTTP_ADMIN_CLEARTEXT: service exactly "http", no SSL tunnel, title contains one of these.
+HTTP_SERVICE = "http"
+ADMIN_TITLE_WORDS = ("login", "admin", "config", "setup", "router", "settings")
+
+# SMB_EXPOSED: one finding per device, on the first of these ports that is open.
+SMB_SERVICES = frozenset({"microsoft-ds", "netbios-ssn"})
+SMB_PREFERRED_PORTS = (445, 139)

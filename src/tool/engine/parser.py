@@ -156,11 +156,9 @@ def _parse_port(el: ET.Element) -> RawPort | None:
 
     service = el.find("service")
     get = (lambda key: _raw(service.get(key))) if service is not None else (lambda key: None)
-    title = None
-    for script in el.findall("script"):
-        if script.get("id") == "http-title":
-            title = _raw(script.get("output"))
-            break
+    title = next(
+        (_http_title(s) for s in el.findall("script") if s.get("id") == "http-title"), None
+    )
     return RawPort(
         port=number,
         protocol=protocol,
@@ -171,6 +169,22 @@ def _parse_port(el: ET.Element) -> RawPort | None:
         method=get("method"),
         http_title=title,
     )
+
+
+# http-title writes these instead of a title. "Did not follow redirect to …/login.htm"
+# must not count as an admin page title.
+_NOT_A_TITLE = ("did not follow redirect", "site doesn't have a title", "request failed")
+
+
+def _http_title(script: ET.Element) -> str | None:
+    """The page title from an http-title script, or None if there is no real title."""
+    elems = script.findall("elem")
+    if elems:  # structured output: only an explicit title element is a title
+        return next((_raw(e.text) for e in elems if e.get("key") == "title"), None)
+    output = _raw(script.get("output"))
+    if output is None or output.lower().startswith(_NOT_A_TITLE):
+        return None
+    return output
 
 
 def _merge(first: RawHost, other: RawHost) -> RawHost:
