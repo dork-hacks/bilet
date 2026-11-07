@@ -57,6 +57,13 @@ UI = {
     "device_name": {"ro": "Nume:", "en": "Name:"},
     "port": {"ro": "Port {port}", "en": "Port {port}"},
     "how_to_fix": {"ro": "Cum rezolvi:", "en": "How to fix it:"},
+    # Followed by the CIS Controls and OWASP IoT Top 10 reference codes (#66).
+    "standards": {"ro": "Standarde de securitate:", "en": "Security standards:"},
+    # Shown with AI on: how often the safety check replaced an AI answer (MASTERPLAN §5.3).
+    "ai_blocked": {
+        "ro": "Răspunsuri AI blocate de verificarea de siguranță: {n}",
+        "en": "AI answers blocked by the safety check: {n}",
+    },
     "no_problems": {"ro": "Nu am găsit probleme", "en": "No problems found"},
     "safe_devices": {
         "ro": "Dispozitive fără probleme ({n})",

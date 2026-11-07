@@ -19,6 +19,7 @@ from tool.content.texts import (
     REFUSALS,
     SEVERITIES,
 )
+from tool.content.ui import UI
 
 DEFAULT_LANG = "ro"
 _MAX_TARGET_CHARS = 64
@@ -33,6 +34,7 @@ __all__ = [
     "finding_text",
     "refusal_message",
     "severity_label",
+    "standards_line",
 ]
 
 
@@ -66,6 +68,26 @@ def finding_text(code: str, lang: str | None = DEFAULT_LANG) -> FindingText:
         owasp_iot=tuple(data["owasp_iot"]),
         is_generic=entry is None,
     )
+
+
+def standards_line(code: str, lang: str | None = DEFAULT_LANG) -> str | None:
+    """The CIS Controls and OWASP IoT Top 10 references of a catalog code, as one line.
+
+    The reference codes are the same in both languages; only the label is translated.
+    None when the code has no references (the generic text), so nothing is shown.
+    """
+    lang = _lang(lang)
+    entry = FINDINGS.get(code)
+    if entry is None:
+        return None
+    parts = []
+    if entry["cis"]:
+        parts.append("CIS Controls v8: " + ", ".join(entry["cis"]))
+    if entry["owasp_iot"]:
+        parts.append("OWASP IoT Top 10: " + ", ".join(entry["owasp_iot"]))
+    if not parts:
+        return None
+    return UI["standards"][lang] + " " + " · ".join(parts)
 
 
 def severity_label(severity: str, lang: str | None = DEFAULT_LANG) -> str:

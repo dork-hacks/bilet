@@ -180,6 +180,7 @@
             {% for step in finding.steps %}<li>{{ step }}</li>{% endfor %}
           </ol>
           {% endif %}
+          {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
         </div>
         {% endfor %}
       </article>
@@ -205,6 +206,7 @@
       {% if view.ai_available %}
       <p>{% if view.ai_on %}{{ ui.ai_on_state }}{% else %}{{ ui.ai_off_state }}{% endif %}</p>
       <p>{{ ui.ai_data_note }}</p>
+      {% if view.ai_blocked is not none %}<p class="muted">{{ ui.ai_blocked.replace("{n}", view.ai_blocked|string) }}</p>{% endif %}
       <p><a class="button" href="/?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}">
         {% if view.ai_on %}{{ ui.ai_turn_off }}{% else %}{{ ui.ai_turn_on }}{% endif %}</a></p>
       {% else %}
