@@ -5,9 +5,9 @@ bilet scans a network you own, scores it against the official catalog and explai
 ## Lab setup
 
 - **Hotspot:** a Raspberry Pi 5 on OpenWrt serves `RSH-dork_unit` (WPA2/WPA3), locked down to key-only SSH.
-- **Targets:** two Pi 4s play a camera and a "mystery" smart hub, and an optional third device plays an old office server that joins later for the "new device" alert (#128). Their weak services are **simulated** (`lab/`): no login on them works, except the camera's settings page, whose password is the public device ID on its label and which only switches the simulated services off and on (#144).
+- **Targets:** two Pi 4s play a camera and a "mystery" smart hub; an optional third plays an old office server that joins later for the "new device" alert (#128). Their weak services are **simulated** (`lab/`): no login works except the camera's settings page (#144), which only switches those services off and on.
 - **Default lab:** score 25 with 7 finding types. `labctl fix telnet` and `labctl fix http` raise it to 55.
-- **Lab captures are targeted:** `lab/verify` scans only the Pis' IPs and the lab ports, so the fixtures in `tests/fixtures/lab` hold just the lab devices. The whole-hotspot scan (`bilet scan --confirm`) is the separate check that the router adds no points (lab/CHECKLIST.md §5b).
+- **Captures:** `tests/fixtures/lab` holds the real before/after pair (L1 25 → L2 55), scanned on the Pis' IPs only. A whole-hotspot `bilet scan --confirm` checks that the router adds no points.
 - **Scanner:** a laptop on the hotspot and nothing else.
 
 ## Architecture
@@ -22,11 +22,11 @@ bilet scans a network you own, scores it against the official catalog and explai
 
 MACs are masked and devices keyed by a salted HMAC. History stays local, with one-click delete.
 
-**Checked on `main` (`c9769b6`), 7 Nov:**
+**Checked on `main` (`c7d2b03`), 8 Nov:**
 
-- 803 tests pass.
-- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 25 trap files and a generated 21 MiB one (`ERROR`).
-- CI runs gitleaks, the tests, the lint check and the golden test on every PR.
+- 1,566 tests pass.
+- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 31 trap files, a generated 21 MiB one (`ERROR`) and the lab captures.
+- CI runs gitleaks, tests, lint and the golden test on every PR.
 
 ## Assumptions
 

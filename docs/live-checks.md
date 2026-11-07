@@ -106,9 +106,9 @@ Expected: `saved 2 scans to the local history`, and `/history` says the score we
 25 to 55. Afterwards, `unset TOOL_DATA_DIR` (or open a new terminal) to get your normal history
 back; the temporary one can simply be deleted.
 
-Real run with the Validation Set's own pair (V6a → V6b, a stand-in until #34's captures are in):
-- The command prints `saved 2 scans to the local history` and the alert *"The device at 192.168.1.1 has a new service turned on (port 443/tcp)…"*.
-- `/history` shows **"score went up from 60 to 100"**, the trend chart, and the compare view with the 3 resolved findings (HTTP admin `.1:80`, UPnP `.1:1900`, telnet `.30:23`).
+Real run on `main` `c7d2b03`, 8 Nov (the L1 + L2 captures from #227, with a fresh `TOOL_DATA_DIR`):
+- The command prints `2 files, 16 findings, 0 unreadable` and `saved 2 scans to the local history`. `scores.csv` gives L1 25 and L2 55.
+- `/history` shows **"Your score went up from 25 to 55"**, the trend chart, and the compare view with **"Problems you fixed (2)"**: the settings page without encryption (camera, `80/tcp`) and Telnet (camera, `2323/tcp`), plus "Ports that are now closed (2)".
 
 **Live version, if time allows (MASTERPLAN §4.3):**
 1. `bilet scan --confirm`.
