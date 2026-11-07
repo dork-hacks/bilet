@@ -16,6 +16,7 @@ from tool.content import (
     file_error_message,
     finding_text,
     severity_label,
+    standards_line,
 )
 from tool.content.ui import SCORE_BANDS, UI
 
@@ -51,6 +52,7 @@ class FindingItem:
     port_label: str | None  # "554/tcp", None for UNKNOWN_DEVICE
     explanation: str
     steps: tuple[str, ...]
+    standards: str | None = None  # "Security standards: CIS Controls v8: … · OWASP IoT …"
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,7 @@ class HomeView:
     ai_available: bool = False  # a provider is configured (LLM_PROVIDER)
     plan: Plan | None = None  # None when nothing scores points
     reply: QuestionReply | None = None  # the answer to the owner's question, if they asked
+    ai_blocked: int | None = None  # AI answers the safety check replaced; None with AI off
 
 
 def explain_first(
@@ -189,6 +192,7 @@ def _finding_item(finding: dict, lang: str) -> FindingItem:
         port_label=f"{port}/{protocol}" if port is not None else None,
         explanation=text.explanation,
         steps=text.steps,
+        standards=standards_line(finding["code"], lang),
     )
 
 
@@ -258,6 +262,8 @@ def home_view(
             explanation_source=source,
         )
     devices, safe_devices = device_list(result, lang)
+    plan = network_plan(result, lang, active)
+    reply = answer_question(result, question, lang, active) if question else None
     return HomeView(
         lang=lang,
         kind="ok",
@@ -267,7 +273,9 @@ def home_view(
         first=first,
         devices=devices,
         safe_devices=safe_devices,
-        plan=network_plan(result, lang, active),
-        reply=answer_question(result, question, lang, active) if question else None,
+        plan=plan,
+        reply=reply,
+        # Counted after this page's AI calls, so the number includes them.
+        ai_blocked=active.rejection_count() if active is not None else None,
         **ai,
     )

@@ -318,10 +318,14 @@ class Explainer:
         return Explanation(answer["en"], answer["ro"], SOURCE_AI, "ok", cites), "ok"
 
     def rejection_count(self) -> int:
-        if self.rejection_log is None or not self.rejection_log.exists():
+        """How many AI answers the checks rejected. 0 when the log is missing or unreadable."""
+        if self.rejection_log is None:
             return 0
-        with self.rejection_log.open(encoding="utf-8") as fh:
-            return sum(1 for line in fh if line.strip())
+        try:
+            with self.rejection_log.open(encoding="utf-8", errors="replace") as fh:
+                return sum(1 for line in fh if line.strip())
+        except OSError:
+            return 0
 
     # -- internals ---------------------------------------------------------------
 
