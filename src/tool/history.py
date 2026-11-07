@@ -14,6 +14,7 @@ Findings are then matched by (paired device, protocol, port, code), not by match
 """
 
 import hashlib
+import ipaddress
 import json
 import os
 import shutil
@@ -45,8 +46,33 @@ CREATE TABLE IF NOT EXISTS scans (
 """
 
 
+# Change alerts (FR-13). Codes only; the RO/EN text belongs to tool.content.
+NEW_DEVICE = "NEW_DEVICE"
+NEW_OPEN_PORT = "NEW_OPEN_PORT"
+
+
 class HistoryError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class Alert:
+    """Something appeared since the previous scan. `port`/`protocol` are None for devices."""
+
+    code: str  # NEW_DEVICE | NEW_OPEN_PORT
+    device_key: str
+    ip: str
+    protocol: str | None = None
+    port: int | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "code": self.code,
+            "device_key": self.device_key,
+            "ip": self.ip,
+            "protocol": self.protocol,
+            "port": self.port,
+        }
 
 
 @dataclass(frozen=True)
@@ -155,6 +181,15 @@ class History:
         ok = [s for s in self.scans() if s.status == "ok"]
         return self.diff(ok[-2].id, ok[-1].id) if len(ok) >= 2 else None
 
+    def alerts_for(self, scan_id: int) -> list[Alert]:
+        """What appeared in this scan since the readable scan before it (in scan order)."""
+        ok = [s for s in self.scans() if s.status == "ok"]
+        ids = [s.id for s in ok]
+        if scan_id not in ids or ids.index(scan_id) == 0:
+            return []
+        previous = ids[ids.index(scan_id) - 1]
+        return alerts_from_diff(self.diff(previous, scan_id))
+
     def score_trend(self) -> list[tuple[ScanSummary, int]]:
         return [(s, s.score) for s in self.scans() if s.status == "ok" and s.score is not None]
 
@@ -224,6 +259,21 @@ def diff_results(
         resolved_findings=[f for k, f in old_findings.items() if k not in new_findings],
         new_findings=[f for k, f in new_findings.items() if k not in old_findings],
     )
+
+
+def alerts_from_diff(d: Diff) -> list[Alert]:
+    """A NEW_DEVICE for each device that wasn't there before, and a NEW_OPEN_PORT for each
+    port that opened on a device that was. A new device's own ports aren't repeated."""
+    devices = sorted(d.new_devices, key=lambda dev: _ip_key(dev["ip"]))
+    alerts = [Alert(NEW_DEVICE, dev["device_key"], dev["ip"]) for dev in devices]
+    ports = sorted(d.opened_ports, key=lambda p: (_ip_key(p.ip), p.protocol, p.port))
+    alerts += [Alert(NEW_OPEN_PORT, p.device, p.ip, p.protocol, p.port) for p in ports]
+    return alerts
+
+
+def _ip_key(ip: str) -> tuple[int, int]:
+    addr = ipaddress.ip_address(ip)
+    return (addr.version, int(addr))
 
 
 def pair_devices(old: list[dict], new: list[dict]) -> dict[str, str]:
