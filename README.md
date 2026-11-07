@@ -42,7 +42,26 @@ The scan first finds the devices that are up, then checks only those: the top 1,
 tool serve
 ```
 
-*(Coming from the UI issues.)*
+Then open <http://127.0.0.1:8000>. By default it listens on this computer only; `--host` and `--port` change that. It refuses to start as root: only the live scan's nmap step ever needs admin rights. Every page has a Română / English switch.
+
+- **Home (`/`):** the score as a traffic light (icon, label and number), the most dangerous device and the first thing to do, then every device with its problems and fix steps, and an alert when a new device or a new open port appears. It shows the newest scan in the history; `--result path/to/result.json` (from `tool analyze --json`) shows that file instead. "Open a scan file" checks any nmap XML file without saving it, and a broken file gives a plain error, not a crash.
+- **Every risk explained (`/risks`):** the explanation and fix steps for all 15 problem types, with their CIS Controls and OWASP IoT references.
+- **History (`/history`):** the score over time, a comparison of any two scans (new and removed devices, opened and closed ports, fixed problems), and "Delete my history".
+
+History, the device-key salt and the AI cache live in `data/` (git-ignored; set `TOOL_DATA_DIR` to move it). "Delete my history" removes all three. The raw scan files under `scans/` are kept; delete that folder yourself if you want them gone too.
+
+### AI explanations (optional)
+
+AI is off unless you set it up and then turn it on with the button on the home screen. When it's on, an AI service rewrites the explanations for your devices, suggests what to do first, and answers questions about your scan. It never decides what is wrong or what the score is: those come only from the built-in rules. It is sent only the problem types, port numbers, program names and versions, and the device type, never MAC addresses, IP addresses, device names or what the devices say about themselves. If it is slow, unavailable, or says something the scan doesn't support, the built-in text is shown instead, labelled "Standard explanation".
+
+`tool` reads its settings from the environment; it doesn't read `.env` by itself. So copy `.env.example` to `.env`, fill in `LLM_PROVIDER=anthropic` and `LLM_API_KEY`, and load it into the shell before starting the server:
+
+```bash
+set -a; . ./.env; set +a
+tool serve
+```
+
+Never commit `.env`: it is git-ignored, and CI runs gitleaks on every push.
 
 ## Development
 
