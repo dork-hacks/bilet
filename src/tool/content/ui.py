@@ -59,8 +59,14 @@ UI = {
     # Network map on the home screen (#170).
     "map_heading": {"ro": "Harta rețelei tale", "en": "Your network map"},
     "map_intro": {
-        "ro": "Dispozitivele tale, dintr-o privire. Legăturile arată o schemă simplificată, nu conexiuni măsurate.",
-        "en": "Your devices, at a glance. Links show a simplified layout, not measured connections.",
+        "ro": (
+            "Dispozitivele tale, dintr-o privire. "
+            "Legăturile arată o schemă simplificată, nu conexiuni măsurate."
+        ),
+        "en": (
+            "Your devices, at a glance. "
+            "Links show a simplified layout, not measured connections."
+        ),
     },
     "map_how": {
         "ro": "Trage pentru rotire. Alege un dispozitiv pentru detalii.",

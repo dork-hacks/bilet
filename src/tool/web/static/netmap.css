@@ -21,10 +21,10 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
 .netmap-stage { height: 31rem; flex: 1; min-height: 26rem; border: 0; border-radius: 0;
   background: radial-gradient(ellipse at 50% 45%, #fcfbf7, #edece4); }
 .netmap-hint { padding: .75rem 1rem; margin: 0; color: #5b5048; font-size: .9rem; }
-.netmap-keys { display: none; }
-.netmap-sidebar { min-width: 0; max-height: 39rem; overflow-y: auto; border-left: 1px solid #e3ddd2;
+.netmap-keys { display: block; margin-top: .3rem; }
+.netmap-sidebar { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; height: 39rem; overflow: hidden; border-left: 1px solid #e3ddd2;
   background: #ffffff; scrollbar-width: thin; }
-.netmap-detail { margin: 0; border: 0; border-radius: 0; padding: 1.2rem; background: #ffffff; }
+.netmap-detail { min-height: 0; overflow-y: auto; margin: 0; border: 0; border-radius: 0; padding: 1.2rem; background: #ffffff; }
 .netmap-detail h3 { font-size: 1.3rem; line-height: 1.25; gap: .5rem; margin: .6rem 0 .75rem; }
 .netmap-detail h3 .dev-icon { width: 1.8rem; height: 1.8rem; }
 .netmap-detail .lvl { font-size: .9rem; }
@@ -50,7 +50,7 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
   border-radius: .6rem; padding: .6rem; min-height: 2.75rem; background: #ffffff; color: #2b2420; }
 .netmap-search::placeholder { color: #5b5048; opacity: 1; }
 .netmap-count { font-size: .9rem; margin: .6rem 0; }
-.netmap-results { list-style: none; padding: 0; margin: 0; max-height: 17rem; overflow: auto; }
+.netmap-results { list-style: none; padding: 0; margin: 0; max-height: 8rem; overflow: auto; }
 .nm-device-row { display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left;
   padding: .7rem .4rem; border: 1px solid transparent; border-bottom-color: #e3ddd2;
   border-radius: .5rem; color: #2b2420; background: transparent; cursor: pointer; }
@@ -90,7 +90,7 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
   max-width: none; padding: 1.2rem; margin: 0; border-radius: 0; overflow: auto; background: #fbf6ef; }
 .netmap.is-expanded { position: fixed; inset: 0; z-index: 9999; height: 100dvh; }
 .netmap:fullscreen .netmap-workspace, .netmap.is-expanded .netmap-workspace { height: calc(100dvh - 14rem); min-height: 26rem; }
-.netmap:fullscreen .netmap-sidebar, .netmap.is-expanded .netmap-sidebar { max-height: none; }
+.netmap:fullscreen .netmap-sidebar, .netmap.is-expanded .netmap-sidebar { height: 100%; }
 @media (max-width: 64rem) { .netmap-workspace { grid-template-columns: minmax(0, 1fr) 17rem; } }
 @media (max-width: 48rem) {
   body:has(#network-map) { padding: .85rem; }
@@ -100,8 +100,9 @@ body:has(#network-map) > main > .first { max-width: 48rem; margin-inline: auto; 
   .netmap-fullscreen { font-size: .9rem; padding-inline: .6rem; }
   .netmap-workspace { grid-template-columns: minmax(0, 1fr); }
   .netmap-stage { height: 24rem; min-height: 24rem; }
-  .netmap-sidebar { border: 0; border-top: 1px solid #e3ddd2; max-height: none; }
+  .netmap-sidebar { display: block; height: auto; border: 0; border-top: 1px solid #e3ddd2; max-height: none; }
   .netmap-results { max-height: 13rem; }
+  .netmap:fullscreen .netmap-sidebar, .netmap.is-expanded .netmap-sidebar { height: auto; }
   .netmap-legend { display: block; }
   .netmap-legend ul { gap: .3rem; }
   .netmap:fullscreen .netmap-workspace, .netmap.is-expanded .netmap-workspace { height: auto; }

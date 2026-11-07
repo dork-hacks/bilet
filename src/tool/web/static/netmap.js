@@ -56,7 +56,7 @@ function start(data) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.25;
+  renderer.toneMappingExposure = 1.05;
   const canvas = renderer.domElement;
   canvas.setAttribute("role", "img");
   canvas.setAttribute("aria-label", T.map_canvas_label);
@@ -67,8 +67,8 @@ function start(data) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd1d8d3, 2.8));
-  const sun = new THREE.DirectionalLight(0xfff4df, 3.2);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd1d8d3, 1.9));
+  const sun = new THREE.DirectionalLight(0xfff4df, 2.4);
   sun.position.set(-4, 12, 7);
   sun.castShadow = !large;
   sun.shadow.mapSize.set(1024, 1024);
