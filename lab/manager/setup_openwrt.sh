@@ -97,7 +97,7 @@ PUB=$(dropbearkey -y -f $STATE/id_dropbear | grep -E '^(ssh-|ecdsa-)')
 cat <<EOM
 
 Lab manager installed. Next:
-  1. Put the lab Pis' IPs in $CONF/pis.conf (NAME IP per line), then: $INIT restart
+  1. Put the lab Pis' MACs in $CONF/pis.conf (NAME MAC[,MAC] per line, from /tmp/dhcp.leases), then: $INIT restart
   2. Save this public key as lab-manager.pub and copy it to each lab Pi:
 $PUB
      then on each Pi: sudo lab/setup.sh <role> --manager-key lab-manager.pub
