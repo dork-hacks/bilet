@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 13:10:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T25_ip_sort_order.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: rows sort by IP and port numerically (.2 < .9 < .10 < .100, 1883 < 10883), UNKNOWN_DEVICE (empty port) first; hosts are out of order in the file -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T25_ip_sort_order.xml 192.168.1.0/24" start="1794057000" startstr="Sat Nov  7 13:10:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794057002" endtime="1794057097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.100" addrtype="ipv4"/>
+<address addr="24:0A:C4:00:00:64" addrtype="mac" vendor="Espressif"/>
+<hostnames>
+<hostname name="sensor-1.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794057002" endtime="1794057097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.9" addrtype="ipv4"/>
+<address addr="B8:27:EB:00:00:09" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames>
+<hostname name="broker.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="10883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" product="Mosquitto version" version="2.0.11" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" product="Mosquitto version" version="2.0.11" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794057002" endtime="1794057097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.10" addrtype="ipv4"/>
+<address addr="50:C7:BF:00:00:0A" addrtype="mac" vendor="Tp-link Technologies"/>
+<hostnames>
+<hostname name="extender.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="Pure-FTPd" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794057002" endtime="1794057097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.2" addrtype="ipv4"/>
+<address addr="02:00:00:00:00:02" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="995">
+<extrareasons reason="reset" count="995" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="jetdirect" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794057300" timestr="Sat Nov  7 13:15:00 2026" summary="Nmap done at Sat Nov  7 13:15:00 2026; 256 IP addresses (4 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="4" down="252" total="256"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 11:30:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T15_apache_versions.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: Apache httpd 2.2.x or older is outdated, 2.4 is not -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T15_apache_versions.xml 192.168.1.0/24" start="1794051000" startstr="Sat Nov  7 11:30:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794051002" endtime="1794051097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.30" addrtype="ipv4"/>
+<address addr="00:0C:29:00:00:1E" addrtype="mac" vendor="VMware"/>
+<hostnames>
+<hostname name="intranet.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Apache httpd" version="2.2.22" extrainfo="(Ubuntu)" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.2.22</cpe></service><script id="http-title" output="Router Setup"><elem key="title">Router Setup</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794051002" endtime="1794051097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.31" addrtype="ipv4"/>
+<address addr="00:14:22:00:00:1F" addrtype="mac" vendor="Dell"/>
+<hostnames>
+<hostname name="web.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Apache httpd" version="2.4.7" extrainfo="(Ubuntu)" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.4.7</cpe></service><script id="http-title" output="Admin Login"><elem key="title">Admin Login</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794051002" endtime="1794051097"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.32" addrtype="ipv4"/>
+<address addr="3C:D9:2B:00:00:20" addrtype="mac" vendor="Hewlett Packard"/>
+<hostnames>
+<hostname name="legacy-web.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="Apache httpd" version="2.0.52" extrainfo="(CentOS)" method="probed" conf="10"><cpe>cpe:/a:apache:http_server:2.0.52</cpe></service><script id="http-title" output="Configuration"><elem key="title">Configuration</elem></script></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794051300" timestr="Sat Nov  7 11:35:00 2026" summary="Nmap done at Sat Nov  7 11:35:00 2026; 256 IP addresses (3 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="3" down="253" total="256"/>
+</runstats>
+</nmaprun>

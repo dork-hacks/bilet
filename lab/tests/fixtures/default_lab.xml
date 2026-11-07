@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Hand-written for lab/tests: what lab/verify should see for the default lab (score 25). -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV --script http-title --max-rate 100 -p T:21,22,80,139,445,554,1883,2323,6379,9100,U:161,1900 -oX /home/user/bilet/lab/captures/scan_20261107-101500.xml 10.42.0.11 10.42.0.12 10.42.0.13" start="1794046500" startstr="Sat Nov  7 10:15:00 2026" version="7.94" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="10" services="21-22,80,139,445,554,1883,2323,6379,9100"/>
+<scaninfo type="udp" protocol="udp" numservices="2" services="161,1900"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.42.0.11" addrtype="ipv4"/>
+<address addr="DC:A6:32:11:22:33" addrtype="mac" vendor="Raspberry Pi Trading"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<host starttime="1794046501" endtime="1794046560"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.42.0.11" addrtype="ipv4"/>
+<address addr="DC:A6:32:11:22:33" addrtype="mac" vendor="Raspberry Pi Trading"/>
+<hostnames>
+<hostname name="cam-pi.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="6">
+<extrareasons reason="reset" count="6" proto="tcp" ports="21,139,445,1883,6379,9100"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.2p1 Debian 2+deb12u3" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.2p1</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" version="1.4.59" method="probed" conf="10"><cpe>cpe:/a:lighttpd:lighttpd:1.4.59</cpe></service><script id="http-title" output="Camera Login"><elem key="title">Camera Login</elem></script></port>
+<port protocol="tcp" portid="554"><state state="closed" reason="reset" reason_ttl="64"/><service name="rtsp" method="table" conf="3"/></port>
+<port protocol="tcp" portid="2323"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" method="probed" conf="10"/></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="upnp" method="table" conf="3"/></port>
+</ports>
+<times srtt="4120" rttvar="2010" to="100000"/>
+</host>
+<host starttime="1794046501" endtime="1794046560"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.42.0.12" addrtype="ipv4"/>
+<address addr="E4:5F:01:44:55:66" addrtype="mac" vendor="Raspberry Pi Trading"/>
+<hostnames>
+<hostname name="office-pi.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="7">
+<extrareasons reason="reset" count="7" proto="tcp" ports="80,139,445,554,1883,2323,9100"/>
+</extraports>
+<port protocol="tcp" portid="21"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ftp" product="vsftpd" version="2.3.4" ostype="Unix" method="probed" conf="10"><cpe>cpe:/a:vsftpd:vsftpd:2.3.4</cpe></service></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.2p1 Debian 2+deb12u3" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.2p1</cpe></service></port>
+<port protocol="tcp" portid="6379"><state state="closed" reason="reset" reason_ttl="64"/><service name="redis" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="upnp" method="table" conf="3"/></port>
+</ports>
+<times srtt="3870" rttvar="1950" to="100000"/>
+</host>
+<host starttime="1794046501" endtime="1794046560"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.42.0.13" addrtype="ipv4"/>
+<address addr="3A:5F:9C:12:34:56" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="8">
+<extrareasons reason="reset" count="8" proto="tcp" ports="21,80,139,445,554,2323,6379,9100"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.2p1 Debian 2+deb12u3" extrainfo="protocol 2.0" ostype="Linux" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.2p1</cpe></service></port>
+<port protocol="tcp" portid="1883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mqtt" method="probed" conf="10"/></port>
+<port protocol="udp" portid="161"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="1900"><state state="closed" reason="port-unreach" reason_ttl="64"/><service name="upnp" method="table" conf="3"/></port>
+</ports>
+<times srtt="4410" rttvar="2230" to="100000"/>
+</host>
+<runstats><finished time="1794046562" timestr="Sat Nov  7 10:16:02 2026" summary="Nmap done at Sat Nov  7 10:16:02 2026; 3 IP addresses (3 hosts up) scanned in 62.10 seconds" elapsed="62.10" exit="success"/><hosts up="3" down="0" total="3"/>
+</runstats>
+</nmaprun>

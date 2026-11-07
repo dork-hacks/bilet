@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written trap file for issue #23. Trap: well-formed XML that is not an nmap file (root is not nmaprun). Must give ERROR. -->
+<inventory generator="home-asset-list" version="2">
+  <device ip="192.168.1.1" name="router" vendor="Tp-link Technologies">
+    <service port="23" protocol="tcp" name="telnet" state="open"/>
+    <service port="80" protocol="tcp" name="http" state="open" title="Router Login"/>
+  </device>
+  <device ip="192.168.1.40" name="camera">
+    <service port="554" protocol="tcp" name="rtsp" state="open"/>
+  </device>
+</inventory>

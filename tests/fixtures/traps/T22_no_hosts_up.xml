@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 12:40:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T22_no_hosts_up.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: a valid scan with no hosts up scores 100 -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T22_no_hosts_up.xml 192.168.1.0/24" start="1794055200" startstr="Sat Nov  7 12:40:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<runstats><finished time="1794055500" timestr="Sat Nov  7 12:45:00 2026" summary="Nmap done at Sat Nov  7 12:45:00 2026; 256 IP addresses (0 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="0" down="256" total="256"/>
+</runstats>
+</nmaprun>

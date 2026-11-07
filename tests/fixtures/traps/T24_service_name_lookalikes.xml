@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Sat Nov  7 13:00:00 2026 as: nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 -&#45;script http-title -&#45;max-rate 100 -oX T24_service_name_lookalikes.xml 192.168.1.0/24 -->
+<!-- Hand-written trap file for issue #23, not a real scan. MACs are made up. Trap: decide by exact service name: look-alike names are not findings, catalog names on odd ports are -->
+<nmaprun scanner="nmap" args="nmap -sS -sU -sV -p T:1-1000,U:53,123,161,1900,5353 --script http-title --max-rate 100 -oX T24_service_name_lookalikes.xml 192.168.1.0/24" start="1794056400" startstr="Sat Nov  7 13:00:00 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<scaninfo type="udp" protocol="udp" numservices="5" services="53,123,161,1900,5353"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1794056402" endtime="1794056497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.50" addrtype="ipv4"/>
+<address addr="00:14:22:00:00:32" addrtype="mac" vendor="Dell"/>
+<hostnames>
+<hostname name="dev-box.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="tcpwrapped" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="515"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="printer" method="table" conf="3"/></port>
+<port protocol="tcp" portid="631"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ipp" product="CUPS" version="2.4" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="1433"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ms-sql-s" product="Microsoft SQL Server 2019" version="15.00.2000.00" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="1521"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="oracle-tns" product="Oracle TNS listener" version="11.2.0.2.0" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="5800"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="vnc-http" product="TightVNC" extrainfo="user: dev; VNC TCP port: 5900" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="8883"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="secure-mqtt" method="table" conf="3"/></port>
+<port protocol="tcp" portid="11211"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="memcache" product="Memcached" version="1.6.14" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<host starttime="1794056402" endtime="1794056497"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.51" addrtype="ipv4"/>
+<address addr="B8:27:EB:00:00:33" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames>
+<hostname name="lab.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="990">
+<extrareasons reason="reset" count="990" proto="tcp" ports="1-1000"/>
+</extraports>
+<port protocol="tcp" portid="2323"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="5433"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="postgresql" product="PostgreSQL DB" version="9.6.0 or later" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="8554"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="rtsp" product="GStreamer rtspd" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="27017"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="mongodb" product="MongoDB" version="4.4.6" method="probed" conf="10"/></port>
+</ports>
+<times srtt="2814" rttvar="1622" to="100000"/>
+</host>
+<runstats><finished time="1794056700" timestr="Sat Nov  7 13:05:00 2026" summary="Nmap done at Sat Nov  7 13:05:00 2026; 256 IP addresses (2 hosts up) scanned in 298.41 seconds" elapsed="298.41" exit="success"/><hosts up="2" down="254" total="256"/>
+</runstats>
+</nmaprun>
