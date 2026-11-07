@@ -41,7 +41,7 @@ data = result.to_dict()       # exactly the JSON shape below
 | `EMPTY_FILE` | 0 bytes |
 | `TOO_LARGE` | Over the size limit (default 20 MB) |
 | `NOT_XML` | Malformed or truncated XML (like V7) |
-| `UNSAFE_XML` | A DTD or entity declaration is present (XXE defence) |
+| `UNSAFE_XML` | An entity declaration or external reference is present (XXE and billion-laughs defence). A bare `<!DOCTYPE nmaprun>` is fine: every real nmap file has one. |
 | `NOT_NMAP` | Valid XML, but the root element isn't `nmaprun` |
 
 `scores.csv` shows `ERROR` for all of them. The UI can map each code to a friendlier message.
@@ -51,7 +51,7 @@ data = result.to_dict()       # exactly the JSON shape below
 | Field | Type | Notes |
 |---|---|---|
 | `device_key` | string | `d_` + the first 12 hex characters of HMAC-SHA256(salt, MAC in upper case), or of the IP when there's no MAC. |
-| `ip` | string | IPv4, validated by the engine. |
+| `ip` | string | Validated by the engine. IPv4; IPv6 only for a host that has no IPv4 address. |
 | `mac_masked` | string \| null | Vendor half only: `B8:27:EB:xx:xx:xx`. The raw MAC never leaves the engine. |
 | `vendor` | string \| null | **RAW** |
 | `hostname` | string \| null | **RAW**. The first hostname nmap reports. |
