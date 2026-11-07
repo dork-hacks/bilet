@@ -390,3 +390,25 @@ def test_a_history_problem_keeps_the_saved_scan(lab, monkeypatch):
 def test_module_entry_points_share_one_runner():
     assert sr.state() == sr._default.state()
     assert isinstance(sr.state(), sr.RunState) and not sr.state().running
+
+
+def test_serve_wires_the_runner_to_the_same_history(tmp_path, monkeypatch):
+    import uvicorn
+
+    import tool.web.app as web
+
+    monkeypatch.setenv("TOOL_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setattr("tool.cli.os.geteuid", lambda: 1000, raising=False)
+    seen = {}
+    real = web.create_app
+
+    def capture(load_result, explainer=None, history=None, scan_runner=None):
+        seen.update(history=history, runner=scan_runner)
+        return real(load_result, explainer=explainer, history=history, scan_runner=scan_runner)
+
+    monkeypatch.setattr(web, "create_app", capture)
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kw: seen.update(app=app, **kw))
+    assert main(["serve"]) == 0
+    assert isinstance(seen["runner"], sr.ScanRunner) and seen["host"] == "127.0.0.1"
+    assert seen["runner"]._history() is seen["history"]  # new scans show up in /history
+    assert not seen["runner"].state().running  # nothing starts until the button is pressed
