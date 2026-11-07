@@ -130,6 +130,11 @@ UI = {
             "The list below shows everything the scan found."
         ),
     },
+    # Change alerts on the home screen (#78). The alert sentences are in texts.ALERTS.
+    "alerts_heading": {
+        "ro": "Ce este nou de la verificarea anterioară",
+        "en": "What's new since the previous check",
+    },
     # History screen (#65): score trend, compare two checks, delete my history.
     "history_link": {"ro": "Vezi istoricul verificărilor", "en": "See your check history"},
     "history_title": {"ro": "Istoricul verificărilor", "en": "Check history"},

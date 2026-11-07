@@ -1,7 +1,8 @@
 """FastAPI app for `tool serve` (FR-11). Runs unprivileged and never calls nmap.
 
 Where the scan comes from is injected (`load_result`, from `serve --result`). Without one,
-the home screen shows the newest readable scan in the local history (#87).
+the home screen shows the newest readable scan in the local history (#87), with its change
+alerts (#78).
 """
 
 import json
@@ -19,7 +20,7 @@ from tool.ai.explain import Explainer
 from tool.config import DISPLAY_NAME
 from tool.content import LANGS
 from tool.content.ui import LANG_NAMES, UI
-from tool.history import History, HistoryError
+from tool.history import Alert, History, HistoryError
 from tool.web.history_view import HistoryView, history_view
 from tool.web.risks_view import risks_view
 from tool.web.view import HomeView, home_view, pick_lang
@@ -48,14 +49,31 @@ def latest_from_history(history: History | None) -> dict | None:
     Read on every request, so a scan saved while the server runs shows up on the next page
     load. A corrupt or missing database shows the empty state, never a 500.
     """
+    return latest_with_alerts(history)[0]
+
+
+def latest_with_alerts(history: History | None) -> tuple[dict | None, list[Alert]]:
+    """The newest readable scan in the history and its change alerts (#87, #78).
+
+    A history error leaves the alerts out (and the scan too, if it can't be read): the home
+    screen never breaks because of the history.
+    """
     if history is None:
-        return None
+        return None, []
     try:
         readable = [s for s in history.scans() if s.status == "ok"]
-        data = history.result(readable[-1].id) if readable else None
+        if not readable:
+            return None, []
+        data = history.result(readable[-1].id)
     except (HistoryError, sqlite3.Error, OSError, ValueError):
-        return None
-    return data if isinstance(data, dict) else None
+        return None, []
+    if not isinstance(data, dict):
+        return None, []
+    try:
+        alerts = history.alerts_for(readable[-1].id)
+    except (HistoryError, sqlite3.Error, OSError, ValueError, KeyError, TypeError):
+        alerts = []
+    return data, alerts
 
 
 async def read_form(request: Request) -> dict[str, str] | None:
@@ -97,9 +115,10 @@ def create_app(
     """
     app = FastAPI(title=DISPLAY_NAME, docs_url=None, redoc_url=None, openapi_url=None)
 
-    def current_result() -> dict | None:
+    def current_result() -> tuple[dict | None, list[Alert]]:
+        # Alerts belong to a scan in the history, so a `--result` file shows none.
         result = load_result()
-        return result if result is not None else latest_from_history(history)
+        return (result, []) if result is not None else latest_with_alerts(history)
 
     # Jinja2Templates turns autoescape on for .html files: RAW scan fields and AI text
     # are escaped.
@@ -162,7 +181,8 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request, lang: str | None = None, ai: str | None = None) -> HTMLResponse:
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
-        view = home_view(current_result(), lang, explainer, ai_on=ai == "1")
+        result, alerts = current_result()
+        view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
         return render(request, view)
 
     @app.post("/ask", response_class=HTMLResponse)
@@ -172,13 +192,15 @@ def create_app(
         if form is None:
             return PlainTextResponse("Request too large", status_code=413)
         # The AI call blocks for up to the timeout, so it runs off the event loop.
+        result, alerts = current_result()
         view = await run_in_threadpool(
             home_view,
-            current_result(),
+            result,
             form.get("lang"),
             explainer,
             ai_on=form.get("ai") == "1",
             question=form.get("q", ""),
+            alerts=alerts,
         )
         return render(request, view)
 
