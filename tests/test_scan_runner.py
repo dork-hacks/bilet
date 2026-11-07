@@ -74,6 +74,19 @@ def test_the_script_streams_progress_and_returns_the_xml(tmp_path):
     assert args[2].endswith("/out.xml") and not args[2].startswith(str(tmp_path))
 
 
+def test_nmap_runs_as_root_with_an_empty_environment(tmp_path, monkeypatch):
+    # agent-E's review: $NMAPDIR or ~/.nmap from the user's account would let a file the
+    # user can write (an .nse script) run as root.
+    script = sr.elevated_script("/usr/bin/nmap", ["-sn", "-oX", "-", "10.0.0.0/24"], Path("/c"))
+    assert "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/ /usr/bin/nmap -sn" in script
+    monkeypatch.setenv("NMAPDIR", str(tmp_path / "planted"))
+    body = 'env > "$(dirname "$0")/../env.log"\n' + PROGRESSING
+    runner = runner_for(tmp_path, fake_nmap(tmp_path, body))
+    runner(["-sn", "-oX", "-", "10.0.0.0/24"])
+    env = dict(line.split("=", 1) for line in (tmp_path / "env.log").read_text().splitlines())
+    assert "NMAPDIR" not in env and env["HOME"] == "/"
+
+
 def test_root_output_never_lands_in_a_folder_this_user_owns(tmp_path):
     script = sr.elevated_script("/usr/bin/nmap", ["-sn", "-oX", "-", "10.0.0.0/24"], Path("/c"))
     assert "d=$(mktemp -d)" in script and '-oX "$d/out.xml"' in script

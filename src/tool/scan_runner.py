@@ -16,7 +16,9 @@ Only `<script>` runs as root, and it is fixed text with every argument `shlex.qu
 - it streams nmap's <taskprogress> lines as `P …` (Linux shows them live; macOS hands
   the output over only at the end, so the page shows no percentage there);
 - after a line `X`, it prints the XML and removes its folder.
-Root never writes into a folder this user owns, so a planted symlink can't redirect it.
+Root never writes into a folder this user owns, so a planted symlink can't redirect it,
+and nmap runs with an empty environment (`env -i`), so a user-writable $NMAPDIR or
+~/.nmap can't load scripts into the root process (agent-E's review).
 Analysis, saving and the history stay unprivileged, as in the CLI.
 """
 
@@ -60,14 +62,19 @@ _MARKER = b"X\n"
 _SCRIPT = """set -u
 d=$(mktemp -d) || exit 70
 trap 'rm -rf "$d"' EXIT
-{nmap} {args} >/dev/null 2>&1 &
+env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/ {nmap} {args} >/dev/null 2>&1 &
 p=$!
 t=0
 stop=-1
+late=0
 seen=0
 while kill -0 "$p" 2>/dev/null; do
-  if [ "$stop" -lt 0 ] && {{ [ -e {cancel} ] || [ "$t" -ge {limit} ]; }}; then
+  if [ "$stop" -lt 0 ] && [ -e {cancel} ]; then
     stop=$t
+    kill "$p" 2>/dev/null
+  elif [ "$stop" -lt 0 ] && [ "$t" -ge {limit} ]; then
+    stop=$t
+    late=1
     kill "$p" 2>/dev/null
   fi
   if [ "$stop" -ge 0 ] && [ "$t" -ge $((stop + {grace})) ]; then
@@ -85,7 +92,7 @@ while kill -0 "$p" 2>/dev/null; do
 done
 wait "$p"
 rc=$?
-if [ "$t" -ge {limit} ]; then rc={timeout_exit}; fi
+if [ "$late" -eq 1 ]; then rc={timeout_exit}; fi
 echo X
 if [ -f "$d/out.xml" ]; then cat "$d/out.xml"; fi
 exit "$rc"
