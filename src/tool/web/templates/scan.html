@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="{{ view.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>{{ ui.scan_title }} · {{ display_name }}</title>
+{% include "_style.html" %}
+  <script src="/static/scan-progress.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">{{ ui.scan_title }}</a>
+  <header>
+    <h1>{{ ui.scan_title }}</h1>
+    <nav aria-label="{{ ui.language }}"><ul>
+    {% for code, name in langs %}
+      <li><a href="/scan?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+        {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
+    {% endfor %}
+    </ul></nav>
+  </header>
+  <main id="main" data-scan-status="/scan/status?lang={{ view.lang }}" data-running="{{ 'true' if status.running else 'false' }}">
+    <p id="scan-message" role="status" aria-live="polite" aria-atomic="true">{{ status.message }}</p>
+    <p id="scan-auth-hint"{% if not status.running %} hidden{% endif %}>{{ ui.scan_auth_hint }}</p>
+    <form id="scan-cancel" method="post" action="/scan/cancel"{% if not status.running %} hidden{% endif %}>
+      <input type="hidden" name="lang" value="{{ view.lang }}">
+      <button class="button" type="submit">{{ ui.scan_cancel }}</button>
+    </form>
+    <p id="scan-result"{% if not status.done %} hidden{% endif %}><a class="button" href="{{ status.result_url }}">{{ ui.scan_see_score }}</a></p>
+    <div id="scan-retry"{% if status.running %} hidden{% endif %}>{% include "_scan_button.html" %}</div>
+    <p><a href="/scan?lang={{ view.lang }}">{{ ui.scan_refresh }}</a></p>
+    <p id="scan-refresh-error" role="status" hidden>{{ ui.scan_refresh_error }}</p>
+    <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+  </main>
+</body>
+</html>
