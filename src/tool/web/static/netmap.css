@@ -89,6 +89,7 @@ body:has(#network-map) > header, body:has(#network-map) > footer { max-width: 46
 .nm-status-dot { color: var(--node-accent); font-weight: 700; font-size: 1rem; }
 .nm-label[aria-pressed="true"] { outline: 2px solid #0f5c57; outline-offset: 2px; }
 .netmap-stage.compact .nm-label .nm-type { display: block; }
+.netmap-stage.compact .nm-label .lvl-word { display: inline; }
 .netmap-stage.compact .nm-label .nm-address { display: none; }
 .netmap-legend { display: flex; justify-content: space-between; align-items: baseline;
   gap: .75rem; margin-top: .8rem; flex-wrap: wrap; font-size: .9rem; }

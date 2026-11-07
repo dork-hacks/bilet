@@ -55,3 +55,15 @@ restoration defect: 3D is now disabled during context loss and re-enabled with
 a render request on restoration. Both the reviewer and a browser loss/restore
 probe verified the fix. Dense worst-label visibility and keyboard-focus selection
 also passed browser checks.
+
+Final independent review caught an inherited compact-stage rule hiding risk words.
+The explicit override now keeps those words visible at phone widths. Reproduce the
+rendered-style regression with Playwright/Chromium installed and a local UI showing
+an example scan:
+
+```sh
+python scripts/check_map_browser.py --url 'http://127.0.0.1:8000/?lang=en'
+```
+
+This checks actual computed text visibility and panel clipping at 375, 1280 and
+1366 pixels; it never starts a live scan.
