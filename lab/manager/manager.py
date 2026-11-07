@@ -53,6 +53,8 @@ SESSION_TTL = 30 * 60.0  # seconds
 MAX_SESSIONS = 8  # the oldest one is dropped when a ninth signs in
 SIGNIN_FAIL_DELAY = 1.0  # seconds; slows down guessing
 COOKIE = "lab-session"
+POLL_INTERVAL = 10.0  # seconds between background status refreshes
+POLL_IDLE = 300.0  # stop polling the Pis when nobody has opened the page for this long
 
 Runner = Callable[[list[str], float], tuple[int, str]]
 
@@ -180,6 +182,12 @@ class Manager:
         self.client = client  # "openssh", or "dropbear" on the OpenWrt router
         self.locks = {p.name: threading.Lock() for p in pis}  # one request per Pi at a time
         self.csrf = secrets.token_urlsafe(32)
+        # The last status of every Pi, so a page renders at once instead of waiting for
+        # one SSH round trip per Pi (about a second each). poll() keeps it fresh.
+        self.clock = time.monotonic
+        self.cache: dict[str, tuple[PiState, float]] = {}
+        self.cache_lock = threading.Lock()
+        self.last_view = 0.0
 
     def valid_request(self, request: str) -> bool:
         words = request.split(" ")
@@ -222,14 +230,39 @@ class Manager:
         return out
 
     def status(self, pi: Pi) -> PiState:
-        return parse_status(pi, self.ask(pi, "status"), self.names, self.presets)
+        """Ask the Pi now, and remember the answer."""
+        state = parse_status(pi, self.ask(pi, "status"), self.names, self.presets)
+        with self.cache_lock:
+            self.cache[pi.name] = (state, self.clock())
+        return state
 
     def all_status(self) -> list[PiState]:
+        """Ask every Pi now, in parallel."""
         pis = list(self.pis.values())
         if not pis:
             return []
         with ThreadPoolExecutor(max_workers=len(pis)) as pool:
             return list(pool.map(self.status, pis))
+
+    def snapshot(self) -> tuple[list[PiState], float]:
+        """The remembered status of every Pi (asking only those never asked yet), and the
+        age in seconds of the oldest answer."""
+        self.last_view = self.clock()
+        with self.cache_lock:
+            missing = [p for p in self.pis.values() if p.name not in self.cache]
+        if missing:
+            with ThreadPoolExecutor(max_workers=len(missing)) as pool:
+                list(pool.map(self.status, missing))
+        with self.cache_lock:
+            entries = [self.cache[name] for name in self.pis]
+        age = max((self.clock() - at for _, at in entries), default=0.0)
+        return [state for state, _ in entries], age
+
+    def poll(self, stop: threading.Event, interval: float = POLL_INTERVAL) -> None:
+        """Refresh every Pi's status in the background while someone uses the page."""
+        while not stop.wait(interval):
+            if self.clock() - self.last_view < POLL_IDLE:
+                self.all_status()
 
     def act(self, pi_name: str, op: str, arg: str) -> bool:
         """One button: fix, break, preset NAME, fixall (every service off) or reset (back
@@ -238,15 +271,35 @@ class Manager:
         if pi is None:
             return False
         if op in ("fix", "break", "preset"):
-            return self.ask(pi, f"{op} {arg}").splitlines()[-1:] == ["ok"]
+            if not self.valid_request(f"{op} {arg}"):
+                return False
+            ok = self.ask(pi, f"{op} {arg}").splitlines()[-1:] == ["ok"]
+            if op == "preset":
+                self.status(pi)  # many services change: show the Pi's real state
+            else:
+                # One switch: show it at once, and confirm with the Pi in the background
+                # (a status round trip is about a second).
+                if ok:
+                    self._mark(pi, arg, op == "break")
+                threading.Thread(target=self.status, args=(pi,), daemon=True).start()
+            return ok
         if op in ("fixall", "reset"):
-            state = self.status(pi)
+            with self.cache_lock:
+                cached = self.cache.get(pi.name)
+            state = cached[0] if cached and cached[0].reachable else self.status(pi)
             if not state.reachable:
                 return False
             if op == "reset":
                 return self.act(pi_name, "preset", state.preset)
-            return all(self.act(pi_name, "fix", s) for s, on in state.on.items() if on)
+            replies = [self.ask(pi, f"fix {s}") for s, on in state.on.items() if on]
+            self.status(pi)
+            return all(r.splitlines()[-1:] == ["ok"] for r in replies)
         return False
+
+    def _mark(self, pi: Pi, service: str, on: bool) -> None:
+        with self.cache_lock:
+            if pi.name in self.cache:
+                self.cache[pi.name][0].on[service] = on
 
     def expected_score(self, states: list[PiState]) -> tuple[int, int]:
         """(score, points) from services.tsv for the services that are on, on the Pis that
@@ -258,123 +311,218 @@ class Manager:
 
 # --- the page -------------------------------------------------------------------------
 
-PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab manager</title>
-<style>
-body{{font:17px/1.5 system-ui,sans-serif;margin:0 auto;max-width:72em;padding:0 16px;color:#111;background:#fff}}
-h1{{margin:.6em 0 .2em}} .score{{font-size:1.25em;margin:.2em 0 1em}}
-.pis{{display:grid;grid-template-columns:repeat(auto-fit,minmax(21em,1fr));gap:1em}}
-section{{border:2px solid #555;border-radius:8px;padding:.2em 1em 1em}}
-table{{border-collapse:collapse;width:100%}} td,th{{text-align:left;padding:.25em .3em;border-top:1px solid #ccc}}
-button,select{{font:inherit;padding:.25em .7em}} .on{{font-weight:700}} .err{{color:#a00;font-weight:700}}
-form{{display:inline}} .row{{margin:.5em 0}}
-@media (prefers-color-scheme: dark){{body{{background:#111;color:#eee}} .err{{color:#f88}} section{{border-color:#999}}}}
-</style></head>
-<body><h1>Lab manager</h1>
-<p class="score">What the lab should score: <strong>{score}</strong> ({points} points switched on{partial}).
-The tool's own scan is the real answer; this only adds up <code>services.tsv</code>.</p>
-<p>{message}</p>
-<p><a href="/">Refresh</a> {signout}</p>
-<div class="pis">{cards}</div>
-</body></html>
+# What each service is, in words, for the cards.
+LABELS = {
+    "telnet": "Telnet",
+    "http": "Admin web page",
+    "rtsp": "Camera stream (RTSP)",
+    "ftp": "FTP server (vsFTPd 2.3.4)",
+    "redis": "Redis database",
+    "smb": "Windows file sharing (SMB)",
+    "mqtt": "MQTT broker",
+    "ssdp": "UPnP discovery (SSDP)",
+    "snmp": "SNMP",
+    "jetdirect": "Printer port (JetDirect)",
+    "unknown": "Hidden identity (no vendor, no hostname)",
+}
+
+CSS = """
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d1b18;--muted:#5d5850;--line:#e2ddd3;--accent:#2f5d8a;
+--bad:#a3261b;--bad-bg:#fbe9e6;--mid:#8a5a00;--mid-bg:#fdf1d8;--good:#1f6b3a;--good-bg:#e3f3e8;
+--off:#d8d3ca;--knob:#fff}
+@media (prefers-color-scheme: dark){:root{--bg:#161513;--card:#211f1c;--ink:#efebe4;--muted:#b3ab9f;
+--line:#3a3631;--accent:#8db8e0;--bad:#ff9d90;--bad-bg:#3d1c18;--mid:#f2c46b;--mid-bg:#3a2d12;
+--good:#8fd6a6;--good-bg:#173323;--off:#4a453e;--knob:#efebe4}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:76rem;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin:4px 0 18px}
+h1{font-size:1.5rem;margin:0}
+.score{display:flex;align-items:center;gap:12px;padding:8px 16px;border-radius:14px;font-weight:600}
+.score b{font-size:2rem;line-height:1}
+.score.bad{background:var(--bad-bg);color:var(--bad)} .score.mid{background:var(--mid-bg);color:var(--mid)}
+.score.good{background:var(--good-bg);color:var(--good)}
+.meta{color:var(--muted);font-size:.9rem}
+.tools{margin-left:auto;display:flex;gap:8px;align-items:center}
+.msg{padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--line);margin:0 0 16px}
+.msg.bad{border-color:var(--bad);color:var(--bad)}
+.pis{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:1.25rem}
+.top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pill{margin-left:auto;font-size:.85rem;font-weight:600;padding:3px 10px;border-radius:99px}
+.pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.good{background:var(--good-bg);color:var(--good)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,button{font:inherit;font-size:.95rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover,select:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--card)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+li .what{flex:1;min-width:0}
+li .name{font-weight:600}
+li.on .name::after{content:" · weak";color:var(--bad);font-weight:600}
+.switch{display:flex;align-items:center;gap:8px;border:0;background:none;padding:4px;border-radius:99px;min-width:5.2rem;justify-content:flex-end}
+.switch .track{width:2.6rem;height:1.5rem;border-radius:99px;background:var(--off);position:relative;flex:none}
+.switch .track::after{content:"";position:absolute;top:.2rem;left:.2rem;width:1.1rem;height:1.1rem;border-radius:50%;background:var(--knob)}
+.switch[aria-pressed=true] .track{background:var(--bad)}
+.switch[aria-pressed=true] .track::after{left:1.3rem}
+.switch .label{font-size:.85rem;font-weight:600;width:1.8rem;text-align:left}
+details summary{cursor:pointer;color:var(--muted);padding:6px 0}
+form{display:inline;margin:0}
+.err{color:var(--bad);font-weight:600}
+a{color:var(--accent)}
+.signin{max-width:26rem;margin:12vh auto 0}
+.signin input{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);letter-spacing:.05em}
+.signin label{display:block;margin:12px 0 6px;font-weight:600}
 """
 
 
-def _button(csrf: str, pi: str, op: str, arg: str, label: str) -> str:
+def _page(body: str) -> bytes:
+    # The title stays "Lab manager" on every page: no admin word for http-title (§4.2).
+    return (
+        '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        f"<title>Lab manager</title><style>{CSS}</style></head>"
+        f'<body><div class="wrap">{body}</div></body></html>\n'
+    ).encode()
+
+
+def _form(csrf: str, pi: str, op: str, arg: str, inner: str, cls: str = "", extra: str = "") -> str:
     return (
         '<form method="post" action="/do">'
         f'<input type="hidden" name="csrf" value="{csrf}">'
         f'<input type="hidden" name="pi" value="{html.escape(pi)}">'
         f'<input type="hidden" name="op" value="{op}">'
         f'<input type="hidden" name="arg" value="{html.escape(arg)}">'
-        f"<button>{html.escape(label)}</button></form>"
+        f'<button class="{cls}"{extra}>{inner}</button></form>'
+    )
+
+
+def _service(csrf: str, st: PiState, svc: Service) -> str:
+    on = st.on.get(svc.name, False)
+    op = "fix" if on else "break"
+    action = f"Turn {svc.name} {'off' if on else 'on'} on {st.pi.name}"
+    switch = _form(
+        csrf,
+        st.pi.name,
+        op,
+        svc.name,
+        f'<span class="track"></span><span class="label">{"On" if on else "Off"}</span>',
+        "switch",
+        f' aria-pressed="{"true" if on else "false"}" aria-label="{html.escape(action)}"',
+    )
+    port = "" if svc.port == "-" else f"{html.escape(svc.port)} · "
+    return (
+        f'<li class="{"on" if on else "off"}"><div class="what">'
+        f'<div class="name">{html.escape(LABELS.get(svc.name, svc.name))}</div>'
+        f'<div class="meta">{port}{html.escape(svc.codes.replace("+", " + "))} · '
+        f"{svc.points} points</div></div>{switch}</li>"
+    )
+
+
+def _card(manager: Manager, st: PiState) -> str:
+    csrf = manager.csrf
+    name = html.escape(st.pi.name)
+    top = f'<div class="top"><h2>{name}</h2><span class="meta">{html.escape(st.pi.address)}</span>'
+    if not st.reachable:
+        return (
+            f'<section class="card" id="pi-{name}">{top}</div>'
+            f'<p class="err">Not reachable: {html.escape(st.error)}.</p></section>'
+        )
+    points_of = {s.name: s.points for s in manager.services}
+    weak = [s for s, on in st.on.items() if on]
+    points = sum(points_of[s] for s in weak)
+    pill = (
+        f'<span class="pill bad">{len(weak)} weak · {points} points</span>'
+        if weak
+        else '<span class="pill good">All fixed</span>'
+    )
+    options = "".join(
+        f'<option value="{p}"{" selected" if p == st.preset else ""}>{p}</option>'
+        for p in manager.presets
+    )
+    preset_form = (
+        '<form method="post" action="/do">'
+        f'<input type="hidden" name="csrf" value="{csrf}">'
+        f'<input type="hidden" name="pi" value="{name}"><input type="hidden" name="op" value="preset">'
+        f'<label class="meta" for="preset-{name}">Plays</label> '
+        f'<select id="preset-{name}" name="arg">{options}</select> '
+        "<button>Switch device</button></form>"
+    )
+    shown = [s for s in manager.services if st.on.get(s.name) or s.name in st.default]
+    hidden = [s for s in manager.services if s not in shown]
+    items = "".join(_service(csrf, st, s) for s in shown) or (
+        '<li class="meta">Nothing in this preset. Turn services on below.</li>'
+    )
+    more = ""
+    if hidden:
+        more = (
+            f"<details><summary>Other services ({len(hidden)})</summary>"
+            f"<ul>{''.join(_service(csrf, st, s) for s in hidden)}</ul></details>"
+        )
+    actions = (
+        f'<div class="row">{_form(csrf, st.pi.name, "fixall", "-", "Fix everything", "primary")}'
+        f"{_form(csrf, st.pi.name, 'reset', '-', 'Back to the preset')}</div>"
+    )
+    return (
+        f'<section class="card" id="pi-{name}">{top}{pill}</div>'
+        f'<div class="row">{preset_form}</div><ul>{items}</ul>{more}{actions}</section>'
     )
 
 
 def render(
-    manager: Manager, states: list[PiState], message: str = "", sign_out: bool = False
+    manager: Manager,
+    states: list[PiState],
+    message: str = "",
+    sign_out: bool = False,
+    age: float = 0.0,
+    error: bool = False,
 ) -> bytes:
     csrf = manager.csrf
-    cards = []
-    for st in states:
-        name = html.escape(st.pi.name)
-        head = (
-            f'<section id="pi-{name}"><h2>{name} <small>{html.escape(st.pi.address)}</small></h2>'
-        )
-        if not st.reachable:
-            cards.append(
-                f'{head}<p class="err">Not reachable: {html.escape(st.error)}.</p></section>'
-            )
-            continue
-        options = "".join(
-            f'<option value="{p}"{" selected" if p == st.preset else ""}>{p}</option>'
-            for p in manager.presets
-        )
-        preset_form = (
-            '<form method="post" action="/do">'
-            f'<input type="hidden" name="csrf" value="{csrf}">'
-            f'<input type="hidden" name="pi" value="{name}"><input type="hidden" name="op" value="preset">'
-            f'<label>Plays <select name="arg">{options}</select></label> '
-            "<button>Switch device</button></form>"
-        )
-        rows = []
-        for svc in manager.services:
-            on = st.on.get(svc.name, False)
-            state = '<span class="on">ON (weak)</span>' if on else "off (fixed)"
-            mark = " · in preset" if svc.name in st.default else ""
-            op, label = ("fix", "Turn off") if on else ("break", "Turn on")
-            rows.append(
-                f"<tr><td>{svc.name}</td><td>{html.escape(svc.port)}</td>"
-                f"<td>{html.escape(svc.codes.replace('+', ' + '))}</td><td>{svc.points}</td>"
-                f"<td>{state}{mark}</td><td>{_button(csrf, st.pi.name, op, svc.name, label)}</td></tr>"
-            )
-        cards.append(
-            f"{head}<div class='row'>{preset_form}</div>"
-            f"<div class='row'>{_button(csrf, st.pi.name, 'fixall', '-', 'Fix everything')} "
-            f"{_button(csrf, st.pi.name, 'reset', '-', 'Back to the preset')}</div>"
-            "<table><tr><th>Service</th><th>Port</th><th>Finding</th><th>Points</th>"
-            f"<th>State</th><th></th></tr>{''.join(rows)}</table></section>"
-        )
     score, points = manager.expected_score(states)
+    level, word = (
+        ("good", "Good") if score >= 80 else ("mid", "Fair") if score >= 50 else ("bad", "At risk")
+    )
     partial = "" if all(s.reachable for s in states) else ", unreachable Pis not counted"
-    if not states:
-        cards.append("<p>No Pis configured. Add them to /etc/lab-manager/pis.conf.</p>")
     signout = (
         '<form method="post" action="/signout">'
         f'<input type="hidden" name="csrf" value="{csrf}"><button>Sign out</button></form>'
         if sign_out
         else ""
     )
-    return PAGE.format(
-        signout=signout,
-        score=score,
-        points=points,
-        partial=partial,
-        message=html.escape(message),
-        cards="".join(cards),
-    ).encode()
+    updated = "just now" if age < 2 else f"{int(age)} s ago"
+    header = (
+        "<header><h1>Lab manager</h1>"
+        f'<div class="score {level}"><b>{score}</b><span>{word}<br>'
+        f'<span class="meta">What the lab should score</span></span></div>'
+        f'<div class="meta">{points} points switched on{partial}.<br>'
+        f"Status {updated}. The tool's own scan is the real answer.</div>"
+        f'<div class="tools"><a href="/?refresh=1">Refresh</a>{signout}</div></header>'
+    )
+    note = (
+        f'<p class="msg{" bad" if error else ""}" role="status">{html.escape(message)}</p>'
+        if message
+        else ""
+    )
+    cards = "".join(_card(manager, st) for st in states)
+    if not states:
+        cards = "<p>No Pis configured. Add them to /etc/lab-manager/pis.conf.</p>"
+    return _page(f'{header}{note}<main class="pis">{cards}</main>')
 
 
-SIGNIN_PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab manager</title>
-<style>
-body{{font:17px/1.5 system-ui,sans-serif;margin:0 auto;max-width:30em;padding:0 16px;color:#111;background:#fff}}
-input,button{{font:inherit;padding:.3em .7em}} .err{{color:#a00;font-weight:700}}
-@media (prefers-color-scheme: dark){{body{{background:#111;color:#eee}} .err{{color:#f88}}}}
-</style></head>
-<body><h1>Lab manager</h1>
-<p>Type the access code that the router's setup printed (LAB-XXXX-XXXX).</p>
-<p class="err">{message}</p>
-<form method="post" action="/signin">
-<input type="hidden" name="csrf" value="{csrf}">
-<label>Access code <input name="code" autocomplete="off" autofocus></label>
-<button>Open</button></form>
-</body></html>
-"""
+def signin_page(csrf: str, message: str = "") -> bytes:
+    err = f'<p class="err" role="alert">{html.escape(message)}</p>' if message else ""
+    return _page(
+        '<div class="signin card"><h1>Lab manager</h1>'
+        '<p class="meta">Type the access code that the router\'s setup printed (LAB-XXXX-XXXX).</p>'
+        f'{err}<form method="post" action="/signin">'
+        f'<input type="hidden" name="csrf" value="{csrf}">'
+        '<label for="code">Access code</label>'
+        '<input id="code" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus>'
+        '<div class="row" style="margin-top:14px"><button class="primary">Open</button></div>'
+        "</form></div>"
+    )
 
 
 def check_bind(address: str) -> str:
@@ -514,9 +662,12 @@ def make_handler(manager: Manager, port: int, bind: str = LOOPBACK, access: Acce
             query = urllib.parse.parse_qs(url.query)
             message = MESSAGES.get(query.get("m", [""])[0], "")
             if not self._signed_in():
-                page = SIGNIN_PAGE.format(csrf=manager.csrf, message=html.escape(message))
-                return self._send(200, page.encode())
-            self._send(200, render(manager, manager.all_status(), message, access.required))
+                return self._send(200, signin_page(manager.csrf, message))
+            if "refresh" in query:
+                manager.all_status()
+            states, age = manager.snapshot()
+            error = query.get("m", [""])[0] in ("refused", "badcode")
+            self._send(200, render(manager, states, message, access.required, age, error))
 
         def do_POST(self):  # noqa: N802
             if not self._host_ok():
@@ -622,11 +773,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     handler = make_handler(manager, args.port, args.bind, Access(code))
     server = ThreadingHTTPServer((args.bind, args.port), handler)
+    stop = threading.Event()
+    threading.Thread(target=manager.poll, args=(stop,), daemon=True).start()
     print(f"lab-manager: http://{args.bind}:{args.port}/ ({len(pis)} Pis)", file=sys.stderr)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+    stop.set()
     return 0
 
 

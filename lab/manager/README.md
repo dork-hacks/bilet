@@ -9,6 +9,9 @@ One page on the Pi 5 (the hotspot router) that controls what every lab Pi plays:
   are refused.
 - **Fix / break buttons** for every service on every Pi, plus "Fix everything" and "Back to
   the preset" per Pi.
+- **Fast page:** it remembers each Pi's last status and refreshes it every 10 s while
+  someone has the page open (in the last 5 minutes), so the page loads at once. A switch
+  shows its new state right away; the Pi confirms it in the background.
 - **What the lab should score:** 100 minus the points of everything that's switched on,
   from `services.tsv`. The tool's own scan is still the real answer.
 

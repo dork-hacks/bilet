@@ -202,13 +202,28 @@ cmd_status() {
 }
 
 cmd_state() {
-  local p svc kind unit on
+  # The lab manager asks for this every few seconds, so it uses one systemctl call for all
+  # units and reads the preset once, instead of one call per service.
+  local p defaults svc kind unit on i
+  local svcs=() kinds=() units=() real=() active=()
+  local -A unit_state=()
   p=$(preset)
+  defaults=$(preset_services "$p")
   echo "preset $p"
   while IFS=$'\t' read -r svc _ kind unit _; do
-    if is_on "$kind" "$unit" "$svc"; then on=on; else on=off; fi
-    if in_preset "$svc" "$p"; then echo "$svc $on default"; else echo "$svc $on"; fi
+    svcs+=("$svc"); kinds+=("$kind"); units+=("$unit")
+    [[ $kind == identity ]] || real+=("$unit")
   done < <(rows)
+  if ((${#real[@]})); then
+    mapfile -t active < <(systemctl is-active "${real[@]}" 2>/dev/null || true)
+    for i in "${!real[@]}"; do unit_state[${real[i]}]=${active[i]:-unknown}; done
+  fi
+  for i in "${!svcs[@]}"; do
+    if [[ ${kinds[i]} == identity ]]; then
+      if identity_active; then on=on; else on=off; fi
+    elif [[ ${unit_state[${units[i]}]} == active ]]; then on=on; else on=off; fi
+    if grep -qx -- "${svcs[i]}" <<<"$defaults"; then echo "${svcs[i]} $on default"; else echo "${svcs[i]} $on"; fi
+  done
 }
 
 cmd_presets() {
