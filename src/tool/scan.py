@@ -18,17 +18,21 @@ explicit `-p` built here (#20, agent-C's port-list comment).
 
 import ipaddress
 import os
+import re
 import shutil
 import subprocess  # noqa: S404 - fixed argument lists only, never a shell
+import threading
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tool.engine.parser import ParseError, parse_bytes
+from tool.engine.parser import MAX_FILE_BYTES, ParseError, parse_bytes
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
-# nmap arguments (without the binary) -> nmap's stdout, the XML
-Runner = Callable[[list[str]], bytes]
+# (step code, percent done of that step, seconds left or None), see `step_for_task`
+Progress = Callable[[str, float, int | None], None]
+# nmap arguments (without the binary), optional progress callback -> nmap's stdout, the XML
+Runner = Callable[[list[str], Progress | None], bytes]
 
 TOP_TCP_PORTS = 1000
 # Catalog services whose usual port isn't in nmap's top 1,000 TCP ports: MQTT, MQTT over
@@ -37,6 +41,21 @@ EXTRA_TCP_PORTS = (1883, 6379, 6380, 8883, 27017)
 UDP_PORTS = (53, 123, 161, 1900, 5353)
 MAX_RATE = 100  # packets per second, the brief's polite rate
 NMAP_TIMEOUT_S = 15 * 60  # a stuck nmap must not hang the demo forever
+# nmap writes a <taskprogress> element into its XML this often (#107). The parser ignores
+# the element, so the saved file reads the same as one without it.
+STATS_EVERY = "5s"
+_READ_CHUNK = 64 * 1024
+
+# Progress steps (#107). Their RO/EN names are in tool.content (SCAN_STEPS).
+STEP_DEVICES = "DEVICES"  # looking for devices
+STEP_TCP = "TCP"  # checking TCP ports
+STEP_UDP = "UDP"  # checking UDP ports
+STEP_SERVICES = "SERVICES"  # identifying services
+STEP_TITLES = "TITLES"  # reading web page titles
+STEP_OTHER = "OTHER"  # anything else nmap reports
+
+_TASK_PROGRESS = re.compile(rb"<taskprogress\b([^>]{0,512})>")
+_ATTR = re.compile(rb'\b(task|percent|remaining)="([^"]{0,64})"')
 
 SERVICES_ENV = "TOOL_NMAP_SERVICES"  # explicit path to nmap-services, if not found
 _SERVICES_DIRS = (
@@ -60,11 +79,13 @@ class ScanError(Exception):
         self.detail = detail
 
 
-def run_nmap(args: list[str]) -> bytes:
+def run_nmap(args: list[str], on_progress: Progress | None = None) -> bytes:
     """Run nmap with admin rights (sudo asks for the password) and return its stdout.
 
     stdin and stderr stay on the terminal, so the password prompt and nmap's warnings
-    reach the user. Only stdout, the XML, is captured.
+    reach the user. Only stdout, the XML, is captured. It is read as it arrives, so each
+    <taskprogress> element reaches `on_progress` while nmap is still working (#107).
+    nmap is killed after NMAP_TIMEOUT_S, or once its output passes MAX_FILE_BYTES.
     """
     nmap = shutil.which("nmap")
     if nmap is None:
@@ -72,12 +93,99 @@ def run_nmap(args: list[str]) -> bytes:
     is_root = hasattr(os, "geteuid") and os.geteuid() == 0
     argv = ([nmap] if is_root else ["sudo", "--", nmap]) + args
     try:
-        done = subprocess.run(argv, stdout=subprocess.PIPE, timeout=NMAP_TIMEOUT_S, check=False)  # noqa: S603
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        proc = subprocess.Popen(argv, stdout=subprocess.PIPE)  # noqa: S603
+    except OSError as exc:
         raise ScanError(NMAP_FAILED, f"{type(exc).__name__}: {exc}") from exc
-    if done.returncode != 0:
-        raise ScanError(NMAP_FAILED, f"exit code {done.returncode}")
-    return done.stdout
+    timed_out = threading.Event()
+
+    def on_timeout() -> None:
+        timed_out.set()
+        _stop(proc)
+
+    timer = threading.Timer(NMAP_TIMEOUT_S, on_timeout)
+    timer.daemon = True
+    timer.start()
+    try:
+        out = _read_output(proc, on_progress)
+        returncode = proc.wait()
+    finally:
+        timer.cancel()
+        if proc.poll() is None:  # an error or Ctrl+C: never leave nmap running
+            _stop(proc)
+    if timed_out.is_set():
+        raise ScanError(NMAP_FAILED, f"timed out after {NMAP_TIMEOUT_S} s")
+    if returncode != 0:
+        raise ScanError(NMAP_FAILED, f"exit code {returncode}")
+    return out
+
+
+def _stop(proc: subprocess.Popen) -> None:
+    """SIGTERM first, because sudo passes it on to nmap (a SIGKILL would leave nmap
+    running as root without sudo). SIGKILL only if it hasn't stopped after 5 s."""
+    try:
+        proc.terminate()
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    except OSError:
+        pass  # already gone
+
+
+def _read_output(proc: subprocess.Popen, on_progress: Progress | None) -> bytes:
+    """nmap's stdout, read line by line as it arrives, capped at MAX_FILE_BYTES."""
+    if proc.stdout is None:
+        raise ScanError(NMAP_FAILED, "no output pipe")
+    chunks: list[bytes] = []
+    size = 0
+    while line := proc.stdout.readline(_READ_CHUNK):
+        size += len(line)
+        if size > MAX_FILE_BYTES:
+            raise ScanError(NMAP_FAILED, f"output larger than {MAX_FILE_BYTES} bytes")
+        chunks.append(line)
+        if on_progress is not None and b"<taskprogress" in line:
+            for update in progress_updates(line):
+                on_progress(*update)
+    return b"".join(chunks)
+
+
+def progress_updates(xml_line: bytes) -> list[tuple[str, float, int | None]]:
+    """(step, percent, seconds left) for each <taskprogress> element in a line of nmap's
+    XML. Only three attributes are read, and the task name becomes a fixed STEP_* code,
+    so nothing nmap writes is printed as is. An element without a valid percent is
+    skipped."""
+    updates: list[tuple[str, float, int | None]] = []
+    for match in _TASK_PROGRESS.finditer(xml_line):
+        attrs = {k.decode(): v.decode("ascii", "replace") for k, v in _ATTR.findall(match[1])}
+        try:
+            percent = float(attrs["percent"])
+        except (KeyError, ValueError):
+            continue
+        if not 0.0 <= percent <= 100.0:  # also drops NaN
+            continue
+        try:
+            left: int | None = max(0, int(attrs["remaining"]))
+        except (KeyError, ValueError):
+            left = None
+        updates.append((step_for_task(attrs.get("task", "")), percent, left))
+    return updates
+
+
+def step_for_task(task: str) -> str:
+    """nmap's task name (ARP Ping Scan, SYN Stealth Scan, UDP Scan, Service scan, NSE,
+    ...) -> one of the STEP_* codes."""
+    name = task.lower()
+    if "udp" in name:
+        return STEP_UDP
+    if "syn" in name or "connect" in name:
+        return STEP_TCP
+    if "service" in name:
+        return STEP_SERVICES
+    if "nse" in name or "script" in name:
+        return STEP_TITLES
+    if "ping" in name or "arp" in name or "dns" in name:
+        return STEP_DEVICES
+    return STEP_OTHER
 
 
 def services_file(env: dict[str, str] | None = None) -> Path:
@@ -127,7 +235,16 @@ def port_spec(top_tcp: Iterable[int]) -> str:
 
 def discovery_args(networks: list[Network]) -> list[str]:
     """Host discovery only (ARP on the local network when run as root), no port scan."""
-    return ["-sn", "-n", "--max-rate", str(MAX_RATE), "-oX", "-"] + [str(n) for n in networks]
+    return [
+        "-sn",
+        "-n",
+        "--max-rate",
+        str(MAX_RATE),
+        "--stats-every",
+        STATS_EVERY,
+        "-oX",
+        "-",
+    ] + [str(n) for n in networks]
 
 
 def port_scan_args(hosts: list[str], spec: str) -> list[str]:
@@ -141,6 +258,8 @@ def port_scan_args(hosts: list[str], spec: str) -> list[str]:
         "--max-rate",
         str(MAX_RATE),
         "-Pn",  # discovery already found these hosts up
+        "--stats-every",
+        STATS_EVERY,
         "-p",
         spec,
         "-oX",
@@ -177,9 +296,14 @@ def run_scan(
     services_text: str | None = None,
     now: datetime | None = None,
     exclude: Iterable[str] = (),
+    on_hosts: Callable[[list[str]], None] | None = None,
+    on_progress: Progress | None = None,
 ) -> Path:
     """Steps 2-4 for networks the guardrail has already authorized. Returns the saved XML.
-    Addresses in `exclude` (this computer's own) are never port-scanned."""
+    Addresses in `exclude` (this computer's own) are never port-scanned.
+
+    `on_hosts` gets the live hosts before the port scan starts, and `on_progress` gets
+    nmap's progress in both steps, so the user can see that the scan isn't stuck (#107)."""
     if not networks:
         raise ScanError(NO_LIVE_HOSTS)
     if any(n.version != 4 for n in networks):
@@ -188,10 +312,12 @@ def run_scan(
         services_text = services_file().read_text(encoding="utf-8", errors="replace")
     spec = port_spec(top_tcp_ports(services_text))
 
-    hosts = live_hosts(runner(discovery_args(networks)), networks, exclude)
+    hosts = live_hosts(runner(discovery_args(networks), on_progress), networks, exclude)
     if not hosts:
         raise ScanError(NO_LIVE_HOSTS, ", ".join(str(n) for n in networks))
-    xml = runner(port_scan_args(hosts, spec))
+    if on_hosts is not None:
+        on_hosts(hosts)
+    xml = runner(port_scan_args(hosts, spec), on_progress)
     return save_xml(xml, scans_dir, now or datetime.now(UTC))
 
 

@@ -4,6 +4,8 @@ import argparse
 import json
 import os
 import sys
+import time
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
@@ -71,12 +73,42 @@ _DETECT_LABELS = {
 }
 
 
+PROGRESS_EVERY_S = 15.0  # at most one progress line this often, unless the step changes
+
+
+class ProgressPrinter:
+    """Prints nmap's progress as plain RO/EN lines (#107): when the step changes, and
+    otherwise at most once every PROGRESS_EVERY_S seconds, so the user sees the scan
+    isn't stuck without the screen filling up."""
+
+    def __init__(
+        self,
+        lang: str,
+        clock: Callable[[], float] = time.monotonic,
+        out: Callable[[str], None] | None = None,
+    ):
+        self.lang, self.clock = lang, clock
+        self.out = out or (lambda line: print(line, flush=True))
+        self.step: str | None = None
+        self.last = 0.0
+
+    def __call__(self, step: str, percent: float, seconds_left: int | None) -> None:
+        from tool.content import scan_progress_message
+
+        now = self.clock()
+        if step == self.step and now - self.last < PROGRESS_EVERY_S:
+            return
+        self.step, self.last = step, now
+        self.out(scan_progress_message(step, percent, seconds_left, self.lang))
+
+
 def scan_command(args: argparse.Namespace) -> int:
     """Guardrail first (FR-02): nothing is scanned unless every check passes."""
     from tool import scan as live
     from tool.content import (
         detect_error_message,
         file_error_message,
+        hosts_found_message,
         refusal_message,
         scan_message,
     )
@@ -105,7 +137,12 @@ def scan_command(args: argparse.Namespace) -> int:
     print(scan_message("SELF_SKIPPED", args.lang, address=net.address), flush=True)
     try:
         path = live.run_scan(
-            networks, runner=live.run_nmap, scans_dir=args.scans_dir, exclude=[net.address]
+            networks,
+            runner=live.run_nmap,
+            scans_dir=args.scans_dir,
+            exclude=[net.address],
+            on_hosts=lambda hosts: print(hosts_found_message(hosts, args.lang), flush=True),
+            on_progress=ProgressPrinter(args.lang),
         )
     except live.ScanError as exc:
         print(scan_message(exc.code, args.lang, targets=targets), file=sys.stderr)

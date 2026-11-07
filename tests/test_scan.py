@@ -3,6 +3,7 @@
 import ipaddress
 import os
 import subprocess
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -49,14 +50,68 @@ def discovery(*ips, down=()):
 
 
 class FakeNmap:
-    """Returns the discovery XML for -sn and the port-scan XML otherwise."""
+    """Returns the discovery XML for -sn and the port-scan XML otherwise. Each call
+    first reports the `progress` updates, as run_nmap does while nmap works."""
 
-    def __init__(self, found=b"", scan=V1):
-        self.found, self.scan, self.calls = found, scan, []
+    def __init__(self, found=b"", scan=V1, progress=()):
+        self.found, self.scan, self.progress, self.calls = found, scan, progress, []
 
-    def __call__(self, args):
+    def __call__(self, args, on_progress=None):
         self.calls.append(args)
+        if on_progress is not None:
+            for update in self.progress:
+                on_progress(*update)
         return self.found if args[0] == "-sn" else self.scan
+
+
+def taskprogress(task, percent, remaining=None):
+    left = f' remaining="{remaining}"' if remaining is not None else ""
+    return (
+        f'<taskprogress task="{task}" time="1762525805" percent="{percent}"{left}'
+        f' etc="1762525900"/>\n'
+    ).encode()
+
+
+class FakeStdout:
+    """nmap's stdout pipe: hands out the lines one by one, then EOF. `block` makes it
+    wait (like a stuck nmap) until the process is stopped."""
+
+    def __init__(self, lines, block=None):
+        self.lines, self.block = list(lines), block
+
+    def readline(self, limit=-1):
+        if self.lines:
+            return self.lines.pop(0)
+        if self.block is not None:
+            self.block.wait(5)
+        return b""
+
+
+class FakePopen:
+    """A Popen stand-in: nothing is started. Records the argv and the stop signals."""
+
+    def __init__(self, lines, returncode=0, block=False):
+        self.stopped = threading.Event()
+        self.stdout = FakeStdout(lines, self.stopped if block else None)
+        self.code, self.argv, self.kwargs, self.signals = returncode, None, None, []
+
+    def __call__(self, argv, **kwargs):
+        self.argv, self.kwargs = argv, kwargs
+        return self
+
+    def terminate(self):
+        self.signals.append("TERM")
+        self.stopped.set()
+
+    def kill(self):
+        self.signals.append("KILL")
+        self.stopped.set()
+
+    def poll(self):
+        return self.code if (self.stopped.is_set() or not self.stdout.lines) else None
+
+    def wait(self, timeout=None):
+        return -15 if self.signals else self.code
 
 
 # --- the port list --------------------------------------------------------------------
@@ -157,34 +212,162 @@ def test_services_file_missing_is_a_clear_error(tmp_path, monkeypatch):
     assert exc.value.code == live.NMAP_DATA_NOT_FOUND
 
 
-def test_run_nmap_puts_only_nmap_under_sudo(monkeypatch):
-    seen = {}
-
-    def fake_run(argv, **kwargs):
-        seen["argv"], seen["kwargs"] = argv, kwargs
-        return subprocess.CompletedProcess(argv, 0, stdout=b"<nmaprun/>")
-
+@pytest.fixture
+def popen(monkeypatch):
+    """Install a FakePopen: `popen(lines, ...)` returns it. Nothing is ever started."""
     monkeypatch.setattr(live.shutil, "which", lambda _name: "/usr/bin/nmap")
     monkeypatch.setattr(live.os, "geteuid", lambda: 1000, raising=False)
-    monkeypatch.setattr(live.subprocess, "run", fake_run)
-    assert live.run_nmap(["-sn", "192.168.1.0/24"]) == b"<nmaprun/>"
-    assert seen["argv"] == ["sudo", "--", "/usr/bin/nmap", "-sn", "192.168.1.0/24"]
-    assert seen["kwargs"]["stdout"] == subprocess.PIPE and "shell" not in seen["kwargs"]
+
+    def install(lines, **kwargs):
+        fake = FakePopen(lines, **kwargs)
+        monkeypatch.setattr(live.subprocess, "Popen", fake)
+        return fake
+
+    return install
 
 
-def test_run_nmap_errors(monkeypatch):
+def test_run_nmap_puts_only_nmap_under_sudo(popen):
+    fake = popen([b"<nmaprun>\n", b"</nmaprun>\n"])
+    assert live.run_nmap(["-sn", "192.168.1.0/24"]) == b"<nmaprun>\n</nmaprun>\n"
+    assert fake.argv == ["sudo", "--", "/usr/bin/nmap", "-sn", "192.168.1.0/24"]
+    assert fake.kwargs == {"stdout": subprocess.PIPE}  # no shell, stdin/stderr on the tty
+    assert fake.signals == []
+
+
+def test_run_nmap_reports_progress_while_reading(popen):
+    lines = [
+        b"<nmaprun>\n",
+        taskprogress("SYN Stealth Scan", "39.90", 11),
+        taskprogress("UDP Scan", "5.00"),  # no remaining yet
+        b"</nmaprun>\n",
+    ]
+    popen(lines)
+    seen = []
+    out = live.run_nmap(["-sS"], lambda *update: seen.append(update))
+    assert seen == [(live.STEP_TCP, 39.9, 11), (live.STEP_UDP, 5.0, None)]
+    assert out == b"".join(lines)  # the XML is kept exactly as nmap wrote it
+
+
+def test_run_nmap_errors(monkeypatch, popen):
     monkeypatch.setattr(live.shutil, "which", lambda _name: None)
     with pytest.raises(live.ScanError) as exc:
         live.run_nmap(["-sn"])
     assert exc.value.code == live.NMAP_NOT_FOUND
 
     monkeypatch.setattr(live.shutil, "which", lambda _name: "/usr/bin/nmap")
-    monkeypatch.setattr(
-        live.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 1, b"")
-    )
+    popen([b""], returncode=1)
     with pytest.raises(live.ScanError) as exc:
         live.run_nmap(["-sn"])
-    assert exc.value.code == live.NMAP_FAILED
+    assert exc.value.code == live.NMAP_FAILED and "exit code 1" in exc.value.detail
+
+
+def test_run_nmap_stops_nmap_when_the_output_is_too_large(monkeypatch, popen):
+    monkeypatch.setattr(live, "MAX_FILE_BYTES", 10)
+    fake = popen([b"<nmaprun>\n", b"x" * 20 + b"\n", b"</nmaprun>\n"])
+    with pytest.raises(live.ScanError) as exc:
+        live.run_nmap(["-sS"])
+    assert exc.value.code == live.NMAP_FAILED and "larger than" in exc.value.detail
+    assert fake.signals[0] == "TERM"  # sudo passes SIGTERM on to nmap
+
+
+def test_run_nmap_times_out_and_stops_nmap(monkeypatch, popen):
+    monkeypatch.setattr(live, "NMAP_TIMEOUT_S", 0.05)
+    fake = popen([b"<nmaprun>\n"], block=True)  # then hangs, like a stuck nmap
+    with pytest.raises(live.ScanError) as exc:
+        live.run_nmap(["-sS"])
+    assert exc.value.code == live.NMAP_FAILED and "timed out" in exc.value.detail
+    assert fake.signals[0] == "TERM"
+
+
+def test_run_nmap_stops_nmap_when_a_callback_fails(popen):
+    fake = popen([taskprogress("UDP Scan", "1"), b"</nmaprun>\n"])
+
+    def broken(*_update):
+        raise KeyboardInterrupt  # what Ctrl+C looks like
+
+    with pytest.raises(KeyboardInterrupt):
+        live.run_nmap(["-sS"], broken)
+    assert fake.signals == ["TERM"]
+
+
+# --- progress (#107) ---------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("task", "step"),
+    [
+        ("ARP Ping Scan", live.STEP_DEVICES),
+        ("Ping Scan", live.STEP_DEVICES),
+        ("Parallel DNS resolution of 5 hosts.", live.STEP_DEVICES),
+        ("SYN Stealth Scan", live.STEP_TCP),
+        ("Connect Scan", live.STEP_TCP),
+        ("UDP Scan", live.STEP_UDP),
+        ("Service scan", live.STEP_SERVICES),
+        ("NSE", live.STEP_TITLES),
+        ("Something new", live.STEP_OTHER),
+        ("", live.STEP_OTHER),
+    ],
+)
+def test_step_for_task(task, step):
+    assert live.step_for_task(task) == step
+
+
+def test_progress_updates_reads_only_valid_numbers():
+    line = (
+        taskprogress("Service scan", "80.00", 30)
+        + taskprogress("UDP Scan", "abc", 30)  # bad percent: skipped
+        + taskprogress("UDP Scan", "250", 30)  # out of range: skipped
+        + taskprogress("UDP Scan", "nan", 30)
+        + taskprogress("NSE", "10", "soon")  # bad remaining: unknown
+        + b'<taskprogress task="UDP Scan"/>'  # no percent
+    )
+    assert live.progress_updates(line) == [
+        (live.STEP_SERVICES, 80.0, 30),
+        (live.STEP_TITLES, 10.0, None),
+    ]
+    assert live.progress_updates(b"<host><status state='up'/></host>") == []
+
+
+def test_both_nmap_steps_ask_for_progress():
+    for args in (
+        live.discovery_args([net(V1_NET)]),
+        live.port_scan_args(["192.168.1.1"], "T:80"),
+    ):
+        assert args[args.index("--stats-every") + 1] == live.STATS_EVERY
+
+
+def test_taskprogress_elements_do_not_change_the_results(tmp_path):
+    from tool.engine import analyze_file
+
+    noisy = V1.replace(b"<host", taskprogress("SYN Stealth Scan", "50", 20) + b"<host", 1)
+    assert noisy != V1
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    (tmp_path / "a" / "V1.xml").write_bytes(V1)
+    (tmp_path / "b" / "V1.xml").write_bytes(noisy)
+    plain = analyze_file(tmp_path / "a" / "V1.xml")
+    with_progress = analyze_file(tmp_path / "b" / "V1.xml")
+    assert with_progress.status == plain.status == "ok"
+    assert with_progress.score == plain.score == 90
+    assert with_progress.findings == plain.findings
+
+
+def test_run_scan_reports_hosts_before_the_port_scan_and_passes_progress(tmp_path):
+    fake = FakeNmap(found=discovery("192.168.1.1"), progress=[(live.STEP_TCP, 50.0, 60)])
+    events = []
+    live.run_scan(
+        [net(V1_NET)],
+        fake,
+        tmp_path,
+        SERVICES,
+        on_hosts=lambda hosts: events.append(("hosts", hosts, len(fake.calls))),
+        on_progress=lambda *u: events.append(("progress", *u)),
+    )
+    assert events == [
+        ("progress", live.STEP_TCP, 50.0, 60),  # during discovery
+        ("hosts", ["192.168.1.1"], 1),  # after discovery, before the port scan
+        ("progress", live.STEP_TCP, 50.0, 60),  # during the port scan
+    ]
 
 
 # --- the command --------------------------------------------------------------------------
@@ -274,3 +457,38 @@ def test_scan_texts_exist_in_both_languages():
     assert codes <= SCAN_MESSAGES.keys()
     for texts in SCAN_MESSAGES.values():
         assert texts["ro"] and texts["en"] and texts["ro"] != texts["en"]
+
+
+# --- progress on the command line (#107) --------------------------------------------------
+
+
+def test_progress_printer_prints_on_step_change_and_at_most_every_15_s():
+    from tool.cli import ProgressPrinter
+
+    now = [0.0]
+    lines = []
+    printer = ProgressPrinter("en", clock=lambda: now[0], out=lines.append)
+    for t, step, pct in [
+        (100.0, live.STEP_TCP, 10),  # first update: printed
+        (105.0, live.STEP_TCP, 20),  # same step, 5 s later: skipped
+        (110.0, live.STEP_UDP, 1),  # new step: printed at once
+        (120.0, live.STEP_UDP, 30),  # 10 s: skipped
+        (125.0, live.STEP_UDP, 40),  # 15 s: printed
+    ]:
+        now[0] = t
+        printer(step, pct, 120)
+    assert lines == [
+        "Checking ports (TCP): 10% done, about 2 minutes left.",
+        "Checking ports (UDP): 1% done, about 2 minutes left.",
+        "Checking ports (UDP): 40% done, about 2 minutes left.",
+    ]
+
+
+def test_scan_prints_the_devices_found_and_the_progress(lab, tmp_path, capsys):
+    lab.progress = [(live.STEP_TCP, 40.0, 90)]
+    assert scan(tmp_path, "--confirm", "--lang", "en") == 0
+    out = capsys.readouterr().out
+    # 192.168.1.30 is this computer, so only the router is listed.
+    assert "Devices found: 1 (192.168.1.1). Now checking their ports" in out
+    assert "Checking ports (TCP): 40% done, about 2 minutes left." in out
+    assert out.index("Devices found") < out.index("Score: 90/100")

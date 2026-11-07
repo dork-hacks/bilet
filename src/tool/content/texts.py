@@ -570,10 +570,11 @@ GENERIC_REFUSAL: dict[str, str] = {
     "en": "The tool refused to check {target}. It only checks your own network.",
 }
 
-# Live scan messages (`tool scan`, #20 and #94). RUN_AS_ROOT, START, SELF_SKIPPED and
-# DONE are printed by the CLI; the other codes come from tool.scan.ScanError. An unknown
-# code is shown as NMAP_FAILED. {targets}, {address}, {path}, {score} and {findings}
-# are filled in as plain text.
+# Live scan messages (`tool scan`, #20, #94 and #107). RUN_AS_ROOT, START, HOSTS_FOUND,
+# PROGRESS, SELF_SKIPPED and DONE are printed by the CLI; the other codes come from
+# tool.scan.ScanError. An unknown code is shown as NMAP_FAILED. {targets}, {address},
+# {path}, {score}, {findings}, {count}, {hosts}, {step}, {percent} and {left} are
+# filled in as plain text.
 SCAN_MESSAGES: dict[str, dict[str, str]] = {
     "RUN_AS_ROOT": {
         "ro": "Nu porniți scanarea ca administrator (root). Porniți-o ca utilizator obișnuit: programul cere parola doar pentru nmap.",
@@ -582,6 +583,14 @@ SCAN_MESSAGES: dict[str, dict[str, str]] = {
     "START": {
         "ro": "Se verifică {targets}. nmap are nevoie de drepturi de administrator, așa că este posibil să vi se ceară parola.",
         "en": "Checking {targets}. nmap needs admin rights, so you may be asked for your password.",
+    },
+    "HOSTS_FOUND": {
+        "ro": "Dispozitive găsite: {count} ({hosts}). Acum se verifică porturile lor, ceea ce durează de obicei câteva minute.",
+        "en": "Devices found: {count} ({hosts}). Now checking their ports, which usually takes a few minutes.",
+    },
+    "PROGRESS": {
+        "ro": "{step}: {percent}% gata, {left}.",
+        "en": "{step}: {percent}% done, {left}.",
     },
     "SELF_SKIPPED": {
         "ro": "Acest calculator ({address}) nu este verificat: o scanare a lui însuși nu vede ce vede restul rețelei.",
@@ -610,5 +619,29 @@ SCAN_MESSAGES: dict[str, dict[str, str]] = {
     "IPV6_NOT_SUPPORTED": {
         "ro": "Deocamdată scanarea funcționează doar pentru rețele IPv4.",
         "en": "For now the scan only works on IPv4 networks.",
+    },
+}
+
+# Progress steps of `tool scan` (#107), keyed by the STEP_* codes in tool.scan. They fill
+# {step} in SCAN_MESSAGES["PROGRESS"].
+SCAN_STEPS: dict[str, dict[str, str]] = {
+    "DEVICES": {"ro": "Se caută dispozitive", "en": "Looking for devices"},
+    "TCP": {"ro": "Se verifică porturile (TCP)", "en": "Checking ports (TCP)"},
+    "UDP": {"ro": "Se verifică porturile (UDP)", "en": "Checking ports (UDP)"},
+    "SERVICES": {"ro": "Se identifică serviciile", "en": "Identifying services"},
+    "TITLES": {"ro": "Se citesc titlurile paginilor web", "en": "Reading web page titles"},
+    "OTHER": {"ro": "Scanarea continuă", "en": "The scan is still running"},
+}
+
+# Time left in a progress line (#107). {minutes} is a whole number of 2 or more, and
+# Romanian says "20 de minute" from 20 on.
+SCAN_TIME_LEFT: dict[str, dict[str, str]] = {
+    "UNKNOWN": {"ro": "timpul rămas nu se știe încă", "en": "time left not known yet"},
+    "UNDER_A_MINUTE": {"ro": "mai puțin de un minut rămas", "en": "less than a minute left"},
+    "ONE_MINUTE": {"ro": "aproximativ un minut rămas", "en": "about 1 minute left"},
+    "MINUTES": {"ro": "aproximativ {minutes} minute rămase", "en": "about {minutes} minutes left"},
+    "MANY_MINUTES": {
+        "ro": "aproximativ {minutes} de minute rămase",
+        "en": "about {minutes} minutes left",
     },
 }

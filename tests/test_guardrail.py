@@ -168,7 +168,7 @@ def test_scan_refuses_public_ip_and_venue_network(on_hotspot, capsys, target, co
 def test_scan_allowed_target_reaches_nmap_with_only_that_range(on_hotspot, monkeypatch):
     calls = []
 
-    def runner(args):  # stands in for nmap: records the call, scans nothing
+    def runner(args, on_progress=None):  # stands in for nmap: records the call, scans nothing
         calls.append(args)
         raise SystemExit(0)
 
