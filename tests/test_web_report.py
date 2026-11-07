@@ -38,7 +38,7 @@ def test_report_priorities_counts_language_and_no_ai(lang):
     assert (
         str(
             escape(
-                UI["report_omissions"][lang].replace("{devices}", "2").replace("{findings}", "3")
+                UI["report_omissions"][lang].replace("{devices}", "1").replace("{findings}", "3")
             )
         )
         in html
@@ -116,7 +116,7 @@ def test_large_report_is_bounded_and_ties_keep_contract_order():
     view = report_view(scan, "en")
     assert len(view["devices"]) == MAX_DEVICES
     assert len(view["findings"]) == MAX_FINDINGS
-    assert view["omitted_devices"] == 500 - MAX_DEVICES
+    assert view["omitted_devices"] == 400 - MAX_DEVICES
     assert view["omitted_findings"] == 600 - MAX_FINDINGS
     assert view["findings"] == report_view(scan, "en")["findings"]
     ties = copy.deepcopy(SCAN)
@@ -163,3 +163,29 @@ def test_opened_scan_report_stays_selected_and_tokens_expire():
         open_report_link()
     assert "There is no check yet" in client.get(link).text
     assert "There is no check yet" in client.get("/report?lang=en&scan=unknown").text
+
+
+@pytest.mark.parametrize(
+    "lang,counts", [("en", "1 device · 1 finding"), ("ro", "1 dispozitiv · 1 constatare")]
+)
+def test_one_finding_report_uses_singular_and_has_no_omissions(lang, counts):
+    scan = analyze_file(FIXTURES / "validation/V1_home_basic.xml", salt=b"test").to_dict()
+    # One actionable device/finding, with all matching IDs retained.
+    finding = scan["findings"][0]
+    device = next(d for d in scan["devices"] if finding["id"] in d["finding_ids"])
+    scan["devices"] = [device]
+    html = TestClient(create_app(lambda: scan)).get(f"/report?lang={lang}").text
+    assert counts in html
+    assert UI["report_omissions"][lang].split(":")[0] + ":" not in html
+    assert f'{finding["port"]}/{finding["protocol"]}' in html
+    assert finding["code"] in html
+    assert UI["report_action"][lang].replace("{n}", "1") in html
+
+
+def test_zero_point_device_is_not_a_report_priority():
+    scan = analyze_file(FIXTURES / "validation/V6b_after.xml", salt=b"test").to_dict()
+    view = report_view(scan, "en")
+    assert view["devices"] == []
+    assert view["findings"] == []
+    assert view["omitted_devices"] == 0
+    assert view["omitted_findings"] == 0

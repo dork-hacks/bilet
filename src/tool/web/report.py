@@ -33,12 +33,20 @@ def report_view(result: dict | None, lang: str | None = None) -> dict:
         devices = ranked_devices(result)
         findings = sorted(result.get("findings", []), key=lambda f: -int(f.get("points", 0)))
         score = int(result.get("score") or 0)
+        priority_devices = [d for d in devices if int(d.get("risk_points", 0)) > 0]
         shown = []
-        for finding in findings[:MAX_FINDINGS]:
+        actionable = [f for f in findings if int(f.get("points", 0)) > 0]
+        for finding in actionable[:MAX_FINDINGS]:
             text = finding_text(finding.get("code", ""), lang)
             shown.append(
                 {
                     "title": text.title,
+                    "code": _short(finding.get("code", "")),
+                    "port": (
+                        _short(f"{finding['port']}/{finding.get('protocol', '?')}")
+                        if finding.get("port") is not None
+                        else None
+                    ),
                     "ip": _short(finding.get("ip", "?")),
                     "severity": severity_label(finding.get("severity", "info"), lang),
                     "points": int(finding.get("points", 0)),
@@ -59,11 +67,11 @@ def report_view(result: dict | None, lang: str | None = None) -> dict:
                     "mac": safe_mac(d.get("mac_masked")),
                     "points": int(d.get("risk_points", 0)),
                 }
-                for d in devices[:MAX_DEVICES]
+                for d in priority_devices[:MAX_DEVICES]
             ],
             "findings": shown,
-            "omitted_devices": max(0, len(devices) - MAX_DEVICES),
-            "omitted_findings": max(0, len(findings) - MAX_FINDINGS),
+            "omitted_devices": max(0, len(priority_devices) - MAX_DEVICES),
+            "omitted_findings": max(0, len(actionable) - MAX_FINDINGS),
         }
     except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
         return {**view, "kind": "error", "error_message": file_error_message("", lang)}

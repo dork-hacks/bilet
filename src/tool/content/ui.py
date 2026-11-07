@@ -35,6 +35,22 @@ MAP_LEVELS = {
 }
 
 UI = {
+    "report_total": {"ro": "În total", "en": "Total"},
+    "report_device_one": {"ro": "dispozitiv", "en": "device"},
+    "report_device_many": {"ro": "dispozitive", "en": "devices"},
+    "report_finding_one": {"ro": "constatare", "en": "finding"},
+    "report_finding_many": {"ro": "constatări", "en": "findings"},
+    "report_action": {"ro": "Pasul {n}:", "en": "Step {n}:"},
+    "port_hint": {
+        "ro": (
+            "Un port este un punct de acces la un serviciu de pe dispozitiv. "
+            "Numărul și TCP/UDP identifică acel punct de acces."
+        ),
+        "en": (
+            "A port is an entry point to a service on a device. "
+            "The number and TCP/UDP identify that entry point."
+        ),
+    },
     "observed_service": {"ro": "Ce a observat verificarea", "en": "What the scan saw"},
     "scan_no_live_hosts": {
         "ro": (

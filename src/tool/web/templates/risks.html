@@ -23,9 +23,11 @@
 
   <main id="main">
     <p>{{ ui.risks_intro }}</p>
+    <p>{{ ui.port_hint }}</p>
     {% for risk in view.risks %}
     <section class="finding sev-{{ risk.severity }}" id="{{ risk.code }}" aria-labelledby="{{ risk.code }}-h">
       <h2 id="{{ risk.code }}-h">{{ risk.title }}</h2>
+      <p><code>{{ risk.code }}</code></p>
       <p><span class="tag">{{ risk.severity_label }}</span>
         <span class="muted"> · {{ ui.points.replace("{n}", risk.points|string) }}</span></p>
       <p><strong>{{ ui.why }}</strong> {{ risk.explanation }}</p>
