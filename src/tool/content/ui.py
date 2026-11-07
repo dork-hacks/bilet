@@ -97,13 +97,15 @@ UI = {
     },
     "scan_auth_hint": {
         "ro": (
-            "Verificarea poate dura câteva minute. Dacă sistemul cere autorizare, caută "
-            "fereastra de parolă în bara de activități sau în Dock. Parola se introduce "
+            "Verificarea poate dura câteva minute. Calculatorul îți poate cere parola "
+            "de două ori pentru ca bilet să verifice rețeaua. Caută fereastra de parolă "
+            "în bara de activități sau în Dock. Parola se introduce "
             "numai în fereastra sistemului, niciodată în această pagină."
         ),
         "en": (
-            "Checking can take a few minutes. If your system asks for permission, look for "
-            "its password window in the taskbar or Dock. Enter your password only in the "
+            "Checking can take a few minutes. Your computer may ask for your password "
+            "twice so bilet can check the network. Look for its password window in the "
+            "taskbar or Dock. Enter your password only in the "
             "system window, never on this page."
         ),
     },
