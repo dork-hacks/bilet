@@ -2,7 +2,7 @@
 
 from tool.content import device_type_label, file_error_message, finding_text, severity_label
 from tool.web.map_view import safe_mac
-from tool.web.view import pick_lang, score_band
+from tool.web.view import pick_lang, ranked_devices, score_band
 
 MAX_FINDINGS = 3
 MAX_DEVICES = 3
@@ -30,7 +30,7 @@ def report_view(result: dict | None, lang: str | None = None) -> dict:
             "error_message": file_error_message((result.get("error") or {}).get("code", ""), lang),
         }
     try:
-        devices = sorted(result.get("devices", []), key=lambda d: -int(d.get("risk_points", 0)))
+        devices = ranked_devices(result)
         findings = sorted(result.get("findings", []), key=lambda f: -int(f.get("points", 0)))
         score = int(result.get("score") or 0)
         shown = []
