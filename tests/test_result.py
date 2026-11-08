@@ -177,3 +177,28 @@ def test_output_caps_long_titles_at_256_but_the_rule_still_fires():
     (finding,) = [f for f in result["findings"] if f["code"] == "HTTP_ADMIN_CLEARTEXT"]
     assert len(finding["evidence"]["http_title"]) == 256
     assert len(result["devices"][0]["open_ports"][0]["http_title"]) == 256
+
+
+def test_embedded_mac_is_absent_from_result_and_identity_stays_stable():
+    extra = '<address addr="AA:BB:CC:12:34:56" addrtype="mac" vendor="Example"/>'
+    plain = build_result(parse_bytes(nmap(host("192.168.1.10", "", extra)), "x.xml"), SALT)
+    extra += '<hostnames><hostname name="device-aabbcc123456"/></hostnames>'
+    ports = (
+        '<port protocol="tcp" portid="80"><state state="open"/>'
+        '<service name="http" product="AA-BB-CC-12-34-56"/>'
+    )
+    ports += '<script id="http-title" output="Admin aabb.cc12.3456"/></port>'
+    result = build_result(parse_bytes(nmap(host("192.168.1.10", ports, extra)), "x.xml"), SALT)
+    assert result.devices[0]["device_key"] == plain.devices[0]["device_key"]
+    assert result.devices[0]["mac_masked"] == "AA:BB:CC:xx:xx:xx"
+    for mac in ("AA:BB:CC:12:34:56", "AA-BB-CC-12-34-56", "aabb.cc12.3456", "aabbcc123456"):
+        assert mac.lower() not in result.to_json().lower()
+    assert result.score == 90
+
+
+def test_embedded_mac_trap_has_only_masked_result_text():
+    result = analyze_file(FIXTURES / "traps" / "T34_embedded_mac_text.xml", salt=SALT)
+    text = result.to_json().lower()
+    for mac in ("aa:bb:cc:12:34:56", "aa-bb-cc-12-34-56", "aabb.cc12.3456", "aabbcc123456"):
+        assert mac not in text
+    assert result.score == 90
