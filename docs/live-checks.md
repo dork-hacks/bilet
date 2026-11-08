@@ -26,7 +26,7 @@ INPUT="/path/to/Test Set/selected-file.xml"   # the exact file chosen by the jur
 UPLOAD="/path/to/upload"                    # contains the uploaded CSVs
 RERUN=$(mktemp -d)
 bilet analyze "$INPUT" --out "$RERUN" --lang en
-.venv/bin/python - "$INPUT" "$UPLOAD" "$RERUN" <<'PYCSV'
+.venv/bin/python - "$INPUT" "$UPLOAD" "$RERUN" <<'PYCSV' && cat "$RERUN/scores.csv"
 import csv
 import sys
 from pathlib import Path
@@ -45,7 +45,6 @@ for name in ("findings.csv", "scores.csv"):
         raise SystemExit(f"DIFF {name}: {source.name!r}")
     print(f"SAME {name}: {source.name!r}")
 PYCSV
-cat "$RERUN/scores.csv"
 ```
 
 An explicit file path works regardless of extension; keep the supplied name unchanged, including for an extensionless broken file. No staging folder or `--all-files` flag is needed for one selected file. The comparison reads CSV fields rather than matching filenames with `grep`, so spaces, commas and brackets work too. **Pass:** both files print `SAME`; a missing/duplicate uploaded score row or either mismatch stops with a nonzero exit.
