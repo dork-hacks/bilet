@@ -22,11 +22,32 @@ bilet serve &                                  # http://127.0.0.1:8000, open it 
 The jury picks a file. Re-run it alone and compare with the upload. **If this differs, Test Set accuracy (30%) scores 0.**
 
 ```bash
-mkdir -p /tmp/one && cp <TestSet>/<FILE>.xml /tmp/one/
-bilet analyze /tmp/one --out /tmp/rerun --lang en
-grep '^<FILE>.xml,' <upload>/findings.csv | cmp - <(grep '^<FILE>.xml,' /tmp/rerun/findings.csv) && echo SAME
-grep '^<FILE>.xml,' <upload>/scores.csv /tmp/rerun/scores.csv
+INPUT="/path/to/Test Set/selected-file.xml"   # the exact file chosen by the jury
+UPLOAD="/path/to/upload"                    # contains the uploaded CSVs
+RERUN=$(mktemp -d)
+bilet analyze "$INPUT" --out "$RERUN" --lang en
+.venv/bin/python - "$INPUT" "$UPLOAD" "$RERUN" <<'PYCSV'
+import csv
+import sys
+from pathlib import Path
+
+source, upload, rerun = map(Path, sys.argv[1:])
+def rows(path):
+    with path.open(newline="", encoding="utf-8") as stream:
+        return list(csv.reader(stream))
+
+for name in ("findings.csv", "scores.csv"):
+    uploaded = rows(upload / name)
+    wanted = [uploaded[0]] + [row for row in uploaded[1:] if row[0] == source.name]
+    if name == "scores.csv" and len(wanted) != 2:
+        raise SystemExit(f"Upload has no unique score row for {source.name!r}")
+    if rows(rerun / name) != wanted:
+        raise SystemExit(f"DIFF {name}: {source.name!r}")
+    print(f"SAME {name}: {source.name!r}")
+PYCSV
 ```
+
+An explicit file path works regardless of extension; keep the supplied name unchanged, including for an extensionless broken file. No staging folder or `--all-files` flag is needed for one selected file. The comparison reads CSV fields rather than matching filenames with `grep`, so spaces, commas and brackets work too. **Pass:** both files print `SAME`; a missing/duplicate uploaded score row or either mismatch stops with a nonzero exit.
 
 Real run (V4 from the Validation Set): `1 files, 6 findings, 0 unreadable`, the rows are identical, and the score is `V4_legacy.xml,25` in both.
 
@@ -71,8 +92,8 @@ Also good to show:
 ## 5. Open an unreadable file: a clear error, no crash
 
 ```bash
-mkdir -p /tmp/broken && cp tests/fixtures/validation/V7_broken.xml /tmp/broken/
-bilet analyze /tmp/broken --out /tmp/bo --lang en ; cat /tmp/bo/scores.csv
+bilet analyze tests/fixtures/validation/V7_broken.xml --out /tmp/bo --lang en
+cat /tmp/bo/scores.csv
 ```
 
 Real run:
