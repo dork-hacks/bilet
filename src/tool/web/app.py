@@ -237,6 +237,13 @@ def create_app(
     # are escaped.
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+    def opened_token(scan: str | None) -> str | None:
+        # The site nav (#273) carries an opened file's token only while it is still valid.
+        if scan is None:
+            return None
+        with report_lock:
+            return scan if scan in opened_reports else None
+
     def context(lang: str) -> dict:
         return {
             "ui": {key: value[lang] for key, value in UI.items()},
@@ -251,7 +258,10 @@ def create_app(
         opened: bool = False,
         status: int = 200,
         report_token: str | None = None,
+        page: str = "home",
     ) -> HTMLResponse:
+        # `page` (#273): "home" (score, first step, map), "devices" (every device and its
+        # fix steps) or "assistant" (the chat). All three share one view and one template.
         # `opened`: the page shows a file the user just opened (#92), not the latest scan.
         # `result` is the scan behind `view`; the network map (#170) is drawn from it.
         if opened and result is not None and report_token is None:
@@ -276,26 +286,30 @@ def create_app(
                 "scan_time_label": scan_time_label(scan_start, view.lang),
                 "report_token": report_token,
                 "can_scan": scan_runner is not None and local_scan_client(request),
+                "page": page,
                 **context(view.lang),
             },
             status_code=status,
             headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
         )
 
-    def render_history(request: Request, view: HistoryView, status: int = 200) -> HTMLResponse:
+    def render_history(
+        request: Request, view: HistoryView, status: int = 200, scan: str | None = None
+    ) -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "history.html",
             {
                 "view": view,
                 "can_scan": scan_runner is not None and local_scan_client(request),
+                "report_token": opened_token(scan),
                 **context(view.lang),
             },
             status_code=status,
         )
 
     @app.get("/scan", response_class=HTMLResponse)
-    def scan_page(request: Request, lang: str | None = None) -> Response:
+    def scan_page(request: Request, lang: str | None = None, scan: str | None = None) -> Response:
         if not local_scan_client(request):
             return PlainTextResponse("Forbidden", status_code=403)
         lang = pick_lang(lang)
@@ -306,6 +320,7 @@ def create_app(
                 "view": {"lang": lang},
                 "status": scan_status(scan_runner, lang),
                 "can_scan": scan_runner is not None,
+                "report_token": opened_token(scan),
                 **context(lang),
             },
             headers={"Cache-Control": "no-store"},
@@ -348,11 +363,20 @@ def create_app(
         return await scan_action(request, cancel=True)
 
     @app.get("/risks", response_class=HTMLResponse)
-    def risks_page(request: Request, lang: str | None = None) -> HTMLResponse:
+    def risks_page(
+        request: Request, lang: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
         # Reads only the catalog texts, never a scan, so it works with no history (#83).
         view = risks_view(lang)
         return templates.TemplateResponse(
-            request, "risks.html", {"view": view, **context(view.lang)}
+            request,
+            "risks.html",
+            {
+                "view": view,
+                "report_token": opened_token(scan),
+                "can_scan": scan_runner is not None and local_scan_client(request),
+                **context(view.lang),
+            },
         )
 
     @app.get("/history", response_class=HTMLResponse)
@@ -362,9 +386,11 @@ def create_app(
         old: str | None = None,
         new: str | None = None,
         done: str | None = None,
+        scan: str | None = None,
     ) -> HTMLResponse:
         message = "deleted_done" if done == "1" else None
-        return render_history(request, history_view(history, lang, old, new, message))
+        view = history_view(history, lang, old, new, message)
+        return render_history(request, view, scan=scan)
 
     @app.post("/history/delete", response_class=HTMLResponse)
     async def delete_history(request: Request) -> Response:
@@ -392,9 +418,8 @@ def create_app(
             )
         return RedirectResponse(f"/history?lang={lang}&done=1", status_code=303)
 
-    @app.get("/", response_class=HTMLResponse)
-    def home(
-        request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
+    def result_page(
+        request: Request, lang: str | None, ai: str | None, scan: str | None, page: str
     ) -> HTMLResponse:
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
         if scan is not None:
@@ -404,7 +429,28 @@ def create_app(
         else:
             result, alerts = current_result()
         view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
-        return render(request, view, result, opened=scan is not None, report_token=scan)
+        return render(request, view, result, opened=scan is not None, report_token=scan, page=page)
+
+    @app.get("/", response_class=HTMLResponse)
+    def home(
+        request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
+        return result_page(request, lang, ai, scan, "home")
+
+    @app.get("/devices", response_class=HTMLResponse)
+    def devices_page(
+        request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
+        # #273: every device and its fix steps, for the same scan as the home page.
+        return result_page(request, lang, ai, scan, "devices")
+
+    @app.get("/assistant", response_class=HTMLResponse)
+    def assistant_page(
+        request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
+    ) -> HTMLResponse:
+        # #273: the chat. /ask answers about the latest stored scan only, so an opened file
+        # shows no chat here either (#245), the same as before the split.
+        return result_page(request, lang, ai, scan, "assistant")
 
     @app.get("/report", response_class=HTMLResponse)
     def report_page(
@@ -478,6 +524,6 @@ def create_app(
             question=form.get("q", ""),
             alerts=alerts,
         )
-        return render(request, view, result)
+        return render(request, view, result, page="assistant")
 
     return app

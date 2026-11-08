@@ -29,6 +29,8 @@ def test_codes_port_hint_and_action_before_check_again(lang):
     html = client.get("/", params={"lang": lang}).text
     assert html.index(UI["do_first"][lang]) < html.index('action="/scan"')
     assert UI["port_hint"][lang] in html
+    # The catalog codes sit with each device's fix steps, on /devices since #273.
+    html = client.get("/devices", params={"lang": lang}).text
     for finding in scan["findings"]:
         assert f'<code>{finding["code"]}</code>' in html
     risks = client.get("/risks", params={"lang": lang}).text

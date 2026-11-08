@@ -18,6 +18,7 @@
         {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
     {% endfor %}
     </ul></nav>
+    {% set nav_current = "scan" %}{% include "_nav.html" %}
   </header>
   <main id="main" data-scan-status="/scan/status?lang={{ view.lang }}" data-running="{{ 'true' if status.running else 'false' }}">
     <p id="scan-message" role="status" aria-live="polite" aria-atomic="true">{{ status.message }}</p>

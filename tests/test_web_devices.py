@@ -19,7 +19,7 @@ SCAN = json.loads((FIXTURES / "example_scan.json").read_text(encoding="utf-8"))
 def page(result, lang="en"):
     return (
         TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
-        .get("/", params={"lang": lang})
+        .get("/devices", params={"lang": lang})
         .text
     )
 

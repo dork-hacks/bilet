@@ -60,7 +60,7 @@ def test_page_shows_the_references_in_both_languages():
     for lang in ("ro", "en"):
         html = (
             TestClient(create_app(lambda: SCAN), base_url="http://127.0.0.1")
-            .get("/", params={"lang": lang})
+            .get("/devices", params={"lang": lang})
             .text
         )
         assert UI["standards"][lang] in html

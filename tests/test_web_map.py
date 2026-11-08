@@ -157,11 +157,13 @@ def test_home_page_embeds_the_map_and_its_plain_list(lang):
     assert data == network_map(SCAN, lang)
     assert UI["map_heading"][lang] in page
     assert '<script type="module" src="/static/netmap.js"></script>' in page
-    # The list works without JS: one link per device, to an anchor that is on the page.
+    # The list works without JS: one link per device, to its anchor on /devices (#273).
+    devices = client_for(SCAN).get("/devices", params={"lang": lang}).text
+    assert f'data-devices-url="/devices?lang={lang}&amp;ai=0"' in page
     for device in SCAN["devices"]:
         anchor = "device-" + device["ip"].replace(".", "-")
-        assert f'href="#{anchor}"' in page
-        assert f'id="{anchor}"' in page
+        assert f'href="/devices?lang={lang}&amp;ai=0#{anchor}"' in page
+        assert f'id="{anchor}"' in devices
     # Every level in the legend is written out next to its sign.
     for key, level in MAP_LEVELS.items():
         assert f'class="lvl lvl-{key}"' in page
@@ -246,7 +248,7 @@ def test_device_explorer_has_translated_controls_and_progressive_fallback(lang):
     # Without enhancement, the real device links remain available, not empty placeholders.
     assert '<div class="netmap-3d" hidden>' in page
     assert '<div class="netmap-list">' in page
-    assert f'href="#{data["nodes"][0]["id"]}"' in page
+    assert f'href="/devices?lang={lang}&amp;ai=0#{data["nodes"][0]["id"]}"' in page
 
 
 @pytest.mark.parametrize("lang", LANGS)
@@ -256,3 +258,13 @@ def test_map_panel_shortcuts_have_focusable_destinations(lang):
         assert f'aria-controls="{target}"' in page
         assert f'id="{target}" tabindex="-1"' in page
     assert 'class="netmap-panel-links" hidden' in page
+
+
+def test_hero_uses_wide_page_and_map_panels_follow_container_width():
+    css = (STATIC / "netmap.css").read_text(encoding="utf-8")
+    assert ":not(#network-map):not(.hero)" in css
+    assert "body:has(#network-map) > main > .hero.has-map,\n" in css
+    assert "> main > .scan-context { max-width: 72rem" in css
+    assert "body:has(#network-map) > header { max-width: 72rem" in css  # aligned with the hero
+    assert ".netmap { container-type: inline-size" in css
+    assert "@container (max-width: 40rem)" in css

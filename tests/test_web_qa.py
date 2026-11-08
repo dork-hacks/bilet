@@ -93,8 +93,8 @@ def test_page_shows_the_plan_with_its_label():
 
 def test_question_form_also_works_with_ai_off():
     app = client(Explainer(TaskProvider()))
-    assert 'action="/ask"' in app.get("/", params={"ai": "0"}).text
-    assert 'action="/ask"' in app.get("/", params={"ai": "1"}).text
+    assert 'action="/ask"' in app.get("/assistant", params={"ai": "0"}).text
+    assert 'action="/ask"' in app.get("/assistant", params={"ai": "1"}).text
 
 
 def test_ask_shows_the_grounded_answer_and_the_question_escaped():
@@ -138,9 +138,10 @@ def test_oversized_form_is_refused_without_calling_the_provider():
     assert provider.prompts == []
 
 
-def test_language_links_on_the_answer_page_go_back_home():
+def test_language_links_on_the_answer_page_go_back_to_the_assistant():
+    # The answer is shown on the assistant page (#273), so switching language stays there.
     page = ask(TaskProvider(), lang="ro", ai="1", q="E sigur?").text
-    assert 'href="/?lang=en&amp;ai=1"' in page
+    assert 'href="/assistant?lang=en&amp;ai=1"' in page
 
 
 def test_get_on_ask_is_not_allowed():

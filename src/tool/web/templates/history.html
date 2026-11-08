@@ -19,9 +19,8 @@
         {% endfor %}
       </ul>
     </nav>
+    {% set nav_current = "history" %}{% include "_nav.html" %}
   </header>
-  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a> ·
-     <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
 
   <main id="main">
   {% include "_scan_button.html" %}
