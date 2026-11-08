@@ -3,6 +3,16 @@
 import re
 
 TEXT = {
+    "JSON_WRITE_FAILED": (
+        "Copia JSON nu a putut fi salvată. Rezultatele CSV nu sunt afectate.",
+        "The JSON copy could not be saved. The CSV results are unaffected.",
+    ),
+    "LOCAL_SALT_UNAVAILABLE": (
+        "Cheia locală nu a putut fi salvată. Copiile JSON folosesc identificatori "
+        "temporari, iar istoricul nu va fi actualizat.",
+        "The local key could not be saved. JSON copies use temporary identifiers "
+        "and history will not be updated.",
+    ),
     "description": (
         "un instrument pentru securitatea rețelei de acasă",
         "a home network security checker",
@@ -41,6 +51,10 @@ TEXT = {
         "addresses or ranges (default: the connected subnet)",
     ),
     "confirm": ("confirmă că aceasta este propria rețea", "confirm this is your own network"),
+    "export_failed": (
+        "Fișierele cu rezultate nu au putut fi scrise. Alegeți un dosar în care puteți salva.",
+        "The results files could not be written. Choose a folder you can save files in.",
+    ),
     "scans_dir": (
         "unde se salvează XML nmap (implicit: scans în dosarul de date, șters cu istoricul)",
         "where to save nmap XML (default: app data/scans, deleted with history)",
