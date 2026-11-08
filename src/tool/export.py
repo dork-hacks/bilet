@@ -35,16 +35,20 @@ class Report:
     warnings: list[tuple[str, str]] = field(default_factory=list)  # optional-output problems
 
 
-# Never scans, even with --all-files: our own results, answer keys and notes.
+# Folder exclusions, even with --all-files: our own results, answer keys and notes.
 NOT_SCANS = frozenset({".csv", ".md"})
 
 
 def scan_files(folder: Path, all_files: bool = False) -> list[Path]:
-    """The nmap XML files directly in `folder`, in name order. Hidden files are skipped.
+    """An explicit file, or selected scans directly in a folder, in name order.
+
+    Explicit files are read regardless of suffix; folder selection skips hidden files.
 
     `all_files` (#203) reads every other visible file too, except CSVs (our results and
     answer keys) and *.md notes, so a Test Set file without the .xml ending still gets
     its ERROR row."""
+    if folder.is_file():  # An explicit file path is an intentional selection.
+        return [folder]
     return sorted(
         (p for p in _visible_files(folder) if _is_scan(p, all_files)),
         key=lambda p: p.name,
@@ -53,7 +57,9 @@ def scan_files(folder: Path, all_files: bool = False) -> list[Path]:
 
 def skipped_files(folder: Path, all_files: bool = False) -> list[str]:
     """Visible files in `folder` that look like they could be scans but aren't read, in
-    name order. CSVs and *.md notes are never scans, so they aren't listed."""
+    name order. CSV/Markdown folder entries are excluded; explicit files are selected."""
+    if folder.is_file():
+        return []
     return sorted(
         p.name
         for p in _visible_files(folder)

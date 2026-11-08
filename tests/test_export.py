@@ -1,3 +1,4 @@
+import csv
 import json
 import shutil
 from pathlib import Path
@@ -118,7 +119,7 @@ def test_analyze_command_explains_broken_files_in_both_languages(tmp_path, capsy
 
 def test_analyze_command_missing_folder(tmp_path, capsys):
     assert main(["analyze", str(tmp_path / "nope"), "--out", str(tmp_path), "--lang", "en"]) == 2
-    assert "not a folder" in capsys.readouterr().err
+    assert "not a file or folder" in capsys.readouterr().err
 
 
 def test_one_unexpected_analysis_failure_does_not_abort_standard_outputs(tmp_path, monkeypatch):
@@ -284,3 +285,38 @@ def test_the_cli_names_skipped_files_and_reads_them_with_the_flag(tmp_path, caps
     assert main(args) == 0
     captured = capsys.readouterr()
     assert "Skipped" not in captured.err and "3 files" in captured.out
+
+
+@pytest.mark.parametrize(
+    "name", ["a.xml", "a [1], name.xml", "extensionless", ".explicit", "explicit.csv"]
+)
+def test_explicit_file_analysis_matches_one_file_folder(tmp_path, name):
+    folder = tmp_path / "input"
+    folder.mkdir()
+    path = folder / name
+    shutil.copy(VALIDATION / "V1_home_basic.xml", path)
+    assert scan_files(path) == [path]
+    assert skipped_files(path) == []
+    direct = tmp_path / "direct"
+    report = analyze_folder(path, direct, json_dir=direct / "json", salt=b"test")
+    assert report.files == 1 and not report.errors
+    with (direct / "scores.csv").open(newline="") as stream:
+        assert list(csv.reader(stream)) == [["file", "network_score"], [name, "90"]]
+    assert len(list((direct / "json").glob("*.json"))) == 1
+    if path.suffix == ".xml":
+        batch = tmp_path / "batch"
+        analyze_folder(folder, batch)
+        for output in ("findings.csv", "scores.csv"):
+            assert (direct / output).read_bytes() == (batch / output).read_bytes()
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+def test_cli_explicit_broken_extensionless_file_gets_one_error_row(tmp_path, capsys, lang):
+    path = tmp_path / "broken input"
+    path.write_bytes(b"<nmaprun><host")
+    out = tmp_path / "out"
+    assert main(["analyze", str(path), "--out", str(out), "--lang", lang]) == 0
+    captured = capsys.readouterr()
+    assert "NOT_XML" in captured.err and "--all-files" not in captured.err
+    with (out / "scores.csv").open(newline="") as stream:
+        assert list(csv.reader(stream)) == [["file", "network_score"], [path.name, "ERROR"]]

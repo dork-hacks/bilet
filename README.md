@@ -18,7 +18,10 @@ This creates `.venv/` and installs the pinned dependencies. Then either activate
 
 ```bash
 tool analyze path/to/folder --out out/
+tool analyze path/to/one-file.xml --out out/
 ```
+
+An explicit file path selects exactly that file, even without an XML extension. For a folder, add `--all-files` to include visible non-XML scan inputs (CSV/Markdown notes and hidden files stay excluded).
 
 Writes `out/findings.csv` and `out/scores.csv` for every nmap XML file in the folder, in the organizers' exact format (on the Validation Set the output is byte-identical to their answer key). Unreadable files get `ERROR`, are named on the screen, and the run continues. Add `--json` for one full result per file in `out/json/`. All commands and help use Romanian by default. Select English with `--lang en` before or after the subcommand: `bilet --lang en --help`, `bilet analyze --lang en --help`, or `bilet --lang en detect`. If repeated, the last `--lang` value wins. Flags, paths, catalog/error codes and CSV/JSON output stay the same in both languages.
 
