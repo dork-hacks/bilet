@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/netmap.css">
 {% from "_icons.html" import device_icon %}
 </head>
-<body>
+<body class="home">
   <a class="skip" href="#main">{{ ui.score_heading }}</a>
   <header>
     <h1>{{ ui.page_title }}</h1>
@@ -41,6 +41,10 @@
     </section>
 
   {% else %}
+    <div class="scan-context">
+      <p><strong>{{ ui.scan_snapshot }}</strong> · {{ view.file or ui.scan_unknown_file }}</p>
+      <p class="muted">{{ ui.scan_recorded }} {% if scan_start %}<time datetime="{{ scan_start }}">{{ scan_time_label }}</time>{% else %}{{ ui.history_no_time }}{% endif %}</p>
+    </div>
     <section class="score {{ view.band.key }}" aria-labelledby="score-heading">
       <span class="icon" aria-hidden="true">{{ view.band.icon }}</span>
       <div>
@@ -55,16 +59,21 @@
       <p><strong>{{ ui.most_dangerous }}</strong> {{ view.first.device }}{% if view.first.hostname %}
         (<span class="muted">{{ view.first.hostname }}</span>){% endif %}.
         <span class="muted">{{ ui.points.replace("{n}", view.first.risk_points|string) }}</span></p>
-      <p><strong>{{ ui.do_first }}</strong> {{ view.first.finding_title }}: {{ view.first.step }}</p>
-      <p><strong>{{ ui.why }}</strong> {{ view.first.explanation }}
-        <span class="source-tag">{% if view.first.explanation_source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p>
+      <p><strong>{{ ui.do_first }}</strong> {{ view.first.step }}</p>
+      <div class="action-row"><a class="button secondary" href="#fixing-steps">{{ ui.see_steps }}</a>{% include "_scan_button.html" %}</div>
+      <details class="why"><summary>{{ ui.why }}</summary><p>{{ view.first.explanation }}
+        <span class="source-tag">{% if view.first.explanation_source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p></details>
       {% else %}
       <p>{{ ui.nothing_to_fix }}</p>
+      {% include "_scan_button.html" %}
       {% endif %}
     </section>
-    {% if view.file %}<p class="muted">{{ ui.scan_file }} {{ view.file }}</p>{% endif %}
-    <p><a class="button" href="/report?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.report_link }}</a></p>
-    {% include "_scan_button.html" %}
+    <nav class="support-links" aria-label="{{ ui.scan_tools }}">
+      <a href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a>
+      <a href="/report?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.report_link }}</a>
+      <a href="#open-heading">{{ ui.open_heading }}</a>
+      <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a>
+    </nav>
 
     {% if view.alerts %}
     <section class="alerts" aria-labelledby="alerts-heading">
@@ -76,7 +85,82 @@
     </section>
     {% endif %}
 
-    {% if netmap %}
+    {% if view.devices or view.safe_devices %}
+    <section id="fixing-steps" tabindex="-1" aria-labelledby="devices-heading">
+      <h2 id="devices-heading">{{ ui.devices_heading }}</h2>
+      {% if view.devices %}<p>{{ ui.devices_intro }}</p>{% endif %}
+      {% for device in view.devices %}
+      {% set priority_device = loop.first %}
+      <article class="device" id="{{ device.anchor }}" aria-labelledby="{{ device.anchor }}-h">
+        <h3 id="{{ device.anchor }}-h">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
+          <span class="muted">· {{ ui.points.replace("{n}", device.risk_points|string) }}</span></h3>
+        {% if device.hostname or device.mac_masked %}
+        <p class="muted">
+          {% if device.hostname %}{{ ui.device_name }} {{ device.hostname }}{% endif %}
+          {% if device.hostname and device.mac_masked %} · {% endif %}
+          {% if device.mac_masked %}{{ ui.hardware_address }} {{ device.mac_masked }}{% endif %}
+        </p>
+        {% endif %}
+        {% for finding in device.findings %}
+        <div class="finding sev-{{ finding.severity }}">
+          <details{% if priority_device and loop.first %} open{% endif %}>
+          <summary><h4>{{ finding.title }}</h4></summary>
+          <p><code>{{ finding.code }}</code></p>
+          <p><span class="tag">{{ finding.severity_label }}</span>
+            {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
+            <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
+          <p>{{ finding.explanation }}</p>
+          {% if finding.observed_service %}<p>{{ ui.observed_service }}: {{ finding.observed_service }}</p>{% endif %}
+          {% if finding.steps %}
+          <p><strong>{{ ui.how_to_fix }}</strong></p>
+          <ol>
+            {% for step in finding.steps %}<li>{{ step }}</li>{% endfor %}
+          </ol>
+          {% if can_scan %}
+          <div class="fix-verification">
+            <p>{{ ui.fix_verify }}</p>
+            {% include "_scan_button.html" %}
+            <p><a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a></p>
+          </div>
+          {% endif %}
+          {% endif %}
+          {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
+          <p><a href="/risks?lang={{ view.lang }}#{{ finding.code }}">{{ ui.risk_more }}</a></p>
+          </details>
+        </div>
+        {% endfor %}
+      </article>
+      {% endfor %}
+
+      {% if view.safe_devices %}
+      <details class="safe">
+        <summary>{{ ui.safe_devices.replace("{n}", view.safe_devices|length|string) }}</summary>
+        <ul>
+          {% for device in view.safe_devices %}
+          <li id="{{ device.anchor }}">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}{% if device.hostname %}
+            (<span class="muted">{{ device.hostname }}</span>){% endif %}: {{ ui.no_problems }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </section>
+    {% endif %}
+
+{% if view.plan %}<details class="disclosure"><summary>{{ ui.plan_heading }}</summary>
+    <section class="plan" aria-labelledby="plan-heading">
+      <h2 id="plan-heading">{{ ui.plan_heading }}
+        <span class="source-tag">{% if view.plan.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></h2>
+      {% if view.plan.text %}
+      <p>{{ view.plan.text }}</p>
+      {% else %}
+      <p>{{ ui.ai_summary_intro }}</p>
+      <ol>
+        {% for step in view.plan.steps %}<li>{{ step }}</li>{% endfor %}
+      </ol>
+      {% endif %}
+    </section>
+</details>{% endif %}
+{% if netmap %}<details class="disclosure"><summary>{{ ui.map_heading }}</summary>
     {#- The network map (#170). The plain list below is the map without JS or WebGL; the
         script draws the 3D view on top of it and lets the user switch between the two.
         Every level is written as text with its sign, so colour is never the only signal. -#}
@@ -85,8 +169,7 @@
     {%- endmacro %}
     <section class="netmap" id="network-map" aria-labelledby="map-heading">
       <div class="netmap-heading">
-        <div><p class="nm-eyebrow">{{ display_name }} / {{ ui.devices_heading }}</p>
-          <h2 id="map-heading">{{ ui.map_heading }}</h2></div>
+        <div><h2 id="map-heading">{{ ui.map_heading }}</h2></div>
         <button type="button" class="netmap-fullscreen" aria-pressed="false" hidden>{{ ui.map_fullscreen }}</button>
       </div>
       <p class="netmap-intro">{{ ui.map_intro }}</p>
@@ -156,89 +239,15 @@
       <script type="application/json" id="netmap-data">{{ netmap|tojson }}</script>
       <script type="module" src="/static/netmap.js"></script>
     </section>
-    {% endif %}
-
-    {% if view.plan %}
-    <section class="plan" aria-labelledby="plan-heading">
-      <h2 id="plan-heading">{{ ui.plan_heading }}
-        <span class="source-tag">{% if view.plan.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></h2>
-      {% if view.plan.text %}
-      <p>{{ view.plan.text }}</p>
-      {% else %}
-      <p>{{ ui.ai_summary_intro }}</p>
-      <ol>
-        {% for step in view.plan.steps %}<li>{{ step }}</li>{% endfor %}
-      </ol>
-      {% endif %}
-    </section>
-    {% endif %}
-
-    {# Questions are about the latest scan, so the form is left out for an opened file. #}
-    {% if not opened %}
+</details>{% endif %}
+{% if not opened %}<details class="disclosure"{% if view.reply %} open{% endif %}><summary>{{ ui.ask_heading }}</summary>
     {% include "_chat.html" %}
-    {% endif %}
-
-    {% if view.devices or view.safe_devices %}
-    <section aria-labelledby="devices-heading">
-      <h2 id="devices-heading">{{ ui.devices_heading }}</h2>
-      {% if view.devices %}<p>{{ ui.devices_intro }}</p>{% endif %}
-      {% for device in view.devices %}
-      <article class="device" id="{{ device.anchor }}" aria-labelledby="{{ device.anchor }}-h">
-        <h3 id="{{ device.anchor }}-h">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
-          <span class="muted">· {{ ui.points.replace("{n}", device.risk_points|string) }}</span></h3>
-        {% if device.hostname or device.mac_masked %}
-        <p class="muted">
-          {% if device.hostname %}{{ ui.device_name }} {{ device.hostname }}{% endif %}
-          {% if device.hostname and device.mac_masked %} · {% endif %}
-          {% if device.mac_masked %}{{ ui.hardware_address }} {{ device.mac_masked }}{% endif %}
-        </p>
-        {% endif %}
-        {% for finding in device.findings %}
-        <div class="finding sev-{{ finding.severity }}">
-          <h4>{{ finding.title }}</h4>
-          <p><code>{{ finding.code }}</code></p>
-          <p><span class="tag">{{ finding.severity_label }}</span>
-            {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
-            <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
-          <p>{{ finding.explanation }}</p>
-          {% if finding.observed_service %}<p>{{ ui.observed_service }}: {{ finding.observed_service }}</p>{% endif %}
-          {% if finding.steps %}
-          <p><strong>{{ ui.how_to_fix }}</strong></p>
-          <ol>
-            {% for step in finding.steps %}<li>{{ step }}</li>{% endfor %}
-          </ol>
-          {% if can_scan %}
-          <div class="fix-verification">
-            <p>{{ ui.fix_verify }}</p>
-            {% include "_scan_button.html" %}
-            <p><a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a></p>
-          </div>
-          {% endif %}
-          {% endif %}
-          {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
-          <p><a href="/risks?lang={{ view.lang }}#{{ finding.code }}">{{ ui.risk_more }}</a></p>
-        </div>
-        {% endfor %}
-      </article>
-      {% endfor %}
-
-      {% if view.safe_devices %}
-      <details class="safe">
-        <summary>{{ ui.safe_devices.replace("{n}", view.safe_devices|length|string) }}</summary>
-        <ul>
-          {% for device in view.safe_devices %}
-          <li id="{{ device.anchor }}">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}{% if device.hostname %}
-            (<span class="muted">{{ device.hostname }}</span>){% endif %}: {{ ui.no_problems }}</li>
-          {% endfor %}
-        </ul>
-      </details>
-      {% endif %}
-    </section>
-    {% endif %}
+</details>{% endif %}
   {% endif %}
 
     {% if view.kind != "ok" %}{% include "_scan_button.html" %}{% endif %}
     <p class="muted">{{ ui.port_hint }}</p>
+    <details class="disclosure"{% if view.kind != "ok" %} open{% endif %}><summary>{{ ui.open_heading }}</summary>
     <section class="ask open" aria-labelledby="open-heading">
       <h2 id="open-heading">{{ ui.open_heading }}</h2>
       <form method="post" action="/open?lang={{ view.lang }}" enctype="multipart/form-data">
@@ -252,21 +261,23 @@
       </form>
     </section>
 
-    <p><a class="button" href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></p>
-    <p><a class="button" href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a></p>
+    </details>
 
+    <details class="disclosure"><summary>{{ ui.ai_heading }}</summary>
     <section class="ai" aria-labelledby="ai-heading">
       <h2 id="ai-heading">{{ ui.ai_heading }}</h2>
       {% if view.ai_available %}
       <p>{% if view.ai_on %}{{ ui.ai_on_state }}{% else %}{{ ui.ai_off_state }}{% endif %}</p>
       <p>{{ ui.ai_data_note }}</p>
       {% if view.ai_blocked is not none %}<p class="muted">{{ ui.ai_blocked.replace("{n}", view.ai_blocked|string) }}</p>{% endif %}
-      <p><a class="button" href="/?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">
+      <p><a class="button secondary" href="/?lang={{ view.lang }}&amp;ai={% if view.ai_on %}0{% else %}1{% endif %}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">
         {% if view.ai_on %}{{ ui.ai_turn_off }}{% else %}{{ ui.ai_turn_on }}{% endif %}</a></p>
       {% else %}
       <p>{{ ui.ai_not_set_up }}</p>
       {% endif %}
     </section>
+    </details>
+    <footer>{{ display_name }} · <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a> · <a href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></footer>
   </main>
 </body>
 </html>

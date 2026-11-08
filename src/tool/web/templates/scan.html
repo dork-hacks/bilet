@@ -24,7 +24,7 @@
     <p id="scan-auth-hint"{% if not status.running %} hidden{% endif %}>{{ ui.scan_auth_hint }}</p>
     <form id="scan-cancel" method="post" action="/scan/cancel"{% if not status.running %} hidden{% endif %}>
       <input type="hidden" name="lang" value="{{ view.lang }}">
-      <button class="button" type="submit">{{ ui.scan_cancel }}</button>
+      <button class="button secondary" type="submit">{{ ui.scan_cancel }}</button>
     </form>
     <p id="scan-result"{% if not status.done %} hidden{% endif %}>
       <a class="button" href="{{ status.result_url }}">{{ ui.scan_see_score }}</a>
