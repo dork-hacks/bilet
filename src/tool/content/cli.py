@@ -42,8 +42,8 @@ TEXT = {
     ),
     "confirm": ("confirmă că aceasta este propria rețea", "confirm this is your own network"),
     "scans_dir": (
-        "unde se salvează XML nmap (implicit: scans/, ignorat de git)",
-        "where to save the nmap XML (default: scans/, git-ignored)",
+        "unde se salvează XML nmap (implicit: scans în dosarul de date, șters cu istoricul)",
+        "where to save nmap XML (default: app data/scans, deleted with history)",
     ),
     "folder": ("dosar cu fișiere XML nmap", "folder with nmap XML files"),
     "out": ("unde se scriu fișierele CSV", "where to write the CSVs"),

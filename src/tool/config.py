@@ -15,3 +15,8 @@ def data_dir() -> Path:
     # `or`, not a get() default: an empty TOOL_DATA_DIR= (as in .env.example) means "unset",
     # not "the current directory", which isn't git-ignored.
     return Path(os.environ.get("TOOL_DATA_DIR") or "data").expanduser()
+
+
+def default_scans_dir() -> Path:
+    """Managed raw captures: deleted with the history in the selected data folder."""
+    return data_dir() / "scans"

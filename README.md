@@ -34,7 +34,7 @@ tool scan --confirm
 
 `detect` shows the network you're connected to. `scan` only scans that subnet, refuses public and out-of-scope ranges, and needs `--confirm`. Only its nmap step runs with admin rights (it asks for your password); the analysis and the UI never do. Run `tool scan` without `--confirm` to see what it would scan. Extra ranges (for example a second lab network) can only be added explicitly with `TOOL_SCAN_ALLOWLIST=192.168.50.0/24`, and they must be home ranges of at most 256 addresses.
 
-The scan first finds the devices that are up, then checks only those: the top 1,000 TCP ports from your nmap's own `nmap-services` list, plus the catalog ports outside it (1883, 6379, 6380, 8883, 27017), plus UDP 53, 123, 161, 1900 and 5353, at most 100 packets a second. The XML is saved under `scans/` (git-ignored, readable only by you), analysed and added to the local history, so `tool serve` shows it. The computer running the scan isn't checked itself: a scan of your own address goes past your own firewall, so it wouldn't show what the rest of the network sees. If nmap's data file isn't found, set `TOOL_NMAP_SERVICES` to the path of `nmap-services`. Start `tool scan` as a normal user, not with sudo.
+The scan first finds the devices that are up, then checks only those: the top 1,000 TCP ports from your nmap's own `nmap-services` list, plus the catalog ports outside it (1883, 6379, 6380, 8883, 27017), plus UDP 53, 123, 161, 1900 and 5353, at most 100 packets a second. The XML is saved under `data/scans/` by default (`TOOL_DATA_DIR/scans` when configured, readable only by you), analysed and added to the local history, so `tool serve` shows it. The computer running the scan isn't checked itself: a scan of your own address goes past your own firewall, so it wouldn't show what the rest of the network sees. If nmap's data file isn't found, set `TOOL_NMAP_SERVICES` to the path of `nmap-services`. Start `tool scan` as a normal user, not with sudo.
 
 ## Web interface
 
@@ -48,7 +48,7 @@ Then open <http://127.0.0.1:8000>. By default it listens on this computer only. 
 - **Every risk explained (`/risks`):** the explanation and fix steps for all 15 problem types, with their CIS Controls and OWASP IoT references.
 - **History (`/history`):** the score over time, a comparison of any two scans (new and removed devices, opened and closed ports, fixed problems), and "Delete my history".
 
-History, the device-key salt and the AI cache live in `data/` (git-ignored; set `TOOL_DATA_DIR` to move it). "Delete my history" removes all three. The raw scan files under `scans/` are kept; delete that folder yourself if you want them gone too.
+History, the device-key salt, the AI cache and default raw scan XML live in `data/` (git-ignored; set `TOOL_DATA_DIR` to move it). "Delete my history" removes these managed files, including `data/scans/`. XML contains full device identifiers, so remove unwanted copies too. Explicit `--scans-dir` locations outside this managed folder and captures created by older versions in the separate `scans/` folder are **not** deleted or moved automatically; remove those yourself. A deletion failure is reported instead of claiming everything was removed.
 
 ### AI explanations (optional)
 

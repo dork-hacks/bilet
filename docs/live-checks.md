@@ -149,7 +149,7 @@ Real run on `main` `c31c035`, 8 Nov:
 
 **On screen:** each device card on the home screen shows the same masked form next to the hostname. The history tells devices apart by a salted HMAC of the MAC (`device_key`), never the MAC itself. A fresh history saved from the Validation Set has no full MAC in `history.sqlite3`.
 
-**What stays raw, and where:** the nmap XML that `bilet scan --confirm` saves in `scans/` is the raw scan, with full MACs. It stays on this laptop, the folder is `0700`, and `scans/` is git-ignored. The lab captures in the repo went through `lab/sanitize` (Test Set runbook step 1b checks this).
+**What stays raw, and where:** the nmap XML that `bilet scan --confirm` saves in `data/scans/` by default (`TOOL_DATA_DIR/scans` when configured) is the raw scan, with full MACs. It stays on this laptop, the folder is `0700`, and the default data folder is git-ignored. "Delete my history" removes these managed captures too. Explicit custom output folders and captures from older versions in the separate `scans/` folder remain until removed by their owner. The lab captures in the repo went through `lab/sanitize` (Test Set runbook step 1b checks this).
 
 ## Still to do on the day (needs a human on the hotspot)
 

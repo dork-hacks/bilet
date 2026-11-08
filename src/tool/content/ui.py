@@ -514,12 +514,12 @@ UI = {
     "delete_heading": {"ro": "Șterge istoricul meu", "en": "Delete my history"},
     "delete_note": {
         "ro": (
-            "Șterge toate verificările salvate pe acest calculator, plus explicațiile AI "
-            "păstrate. Nu se poate anula."
+            "Șterge istoricul, explicațiile AI și fișierele XML din dosarul de date al aplicației. "
+            "Fișierele din alte dosare, inclusiv vechiul scans/, rămân acolo. Nu se poate anula."
         ),
         "en": (
-            "This deletes every check saved on this computer, and the saved AI "
-            "explanations. It can't be undone."
+            "This deletes history, saved AI explanations and raw XML in the app's data folder. "
+            "Files in other folders, including the old scans/ folder, are kept. It can't be undone."
         ),
     },
     "delete_button": {"ro": "Șterge istoricul", "en": "Delete my history"},
