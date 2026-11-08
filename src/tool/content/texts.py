@@ -274,13 +274,13 @@ FINDINGS: dict[str, dict] = {
             "ro": [
                 "Deschideți setările hub-ului sau ale aplicației de casă inteligentă și găsiți opțiunea MQTT.",
                 "Acesta este pasul care rezolvă problema: dacă nimic din casă nu folosește MQTT, dezactivați-l.",
-                "Dacă aveți nevoie de MQTT, cereți nume de utilizator și o parolă puternică. Parola protejează accesul, dar avertismentul rămâne cât timp serviciul este accesibil din rețea.",
+                "Dacă aveți nevoie de MQTT, activați opțiunea care cere nume de utilizator și parolă, și alegeți o parolă puternică. Parola protejează accesul, dar avertismentul rămâne cât timp serviciul este accesibil din rețea.",
                 "Instalați orice actualizare de software oferită pentru hub.",
             ],
             "en": [
                 "Open the settings of your smart-home hub or app and find the MQTT option.",
                 "This is the step that fixes it: if nothing in your home uses MQTT, turn it off.",
-                "If you need MQTT, require a username and a strong password. The password protects access, but the warning stays while the service is reachable on the network.",
+                "If you need MQTT, turn on the option that asks for a username and password, and choose a strong password. The password protects access, but the warning stays while the service is reachable on the network.",
                 "Install any software update offered for the hub.",
             ],
         },
