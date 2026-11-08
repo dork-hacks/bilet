@@ -33,7 +33,7 @@ from starlette.concurrency import run_in_threadpool
 from tool.ai.explain import Explainer
 from tool.config import DISPLAY_NAME
 from tool.content import LANGS
-from tool.content.ui import LANG_NAMES, UI
+from tool.content.ui import LANG_NAMES, UI, points_text
 from tool.engine.parser import EMPTY_FILE, MAX_FILE_BYTES, NOT_XML, TOO_LARGE
 from tool.engine.result import analyze_file, error_result
 from tool.history import Alert, History, HistoryError
@@ -249,6 +249,7 @@ def create_app(
             "ui": {key: value[lang] for key, value in UI.items()},
             "langs": [(code, LANG_NAMES[code]) for code in LANGS],
             "display_name": DISPLAY_NAME,
+            "points_text": lambda n: points_text(int(n), lang),
         }
 
     def render(

@@ -67,7 +67,7 @@
       {% if view.first %}
       <p><strong>{{ ui.most_dangerous }}</strong> {{ view.first.device }}{% if view.first.hostname %}
         (<span class="muted">{{ view.first.hostname }}</span>){% endif %}.
-        <span class="muted">{{ ui.points.replace("{n}", view.first.risk_points|string) }}</span></p>
+        <span class="muted">{{ points_text(view.first.risk_points) }}</span></p>
       <p><strong>{{ ui.do_first }}</strong> {{ view.first.step }}</p>
       <div class="action-row"><a class="button secondary" href="{{ devices_url }}#fixing-steps">{{ ui.see_steps }}</a>{% include "_scan_button.html" %}</div>
       <details class="why"><summary>{{ ui.why }}</summary><p>{{ view.first.explanation }}
@@ -188,7 +188,7 @@
       {% set priority_device = loop.first %}
       <article class="device" id="{{ device.anchor }}" aria-labelledby="{{ device.anchor }}-h">
         <h3 id="{{ device.anchor }}-h">{{ device_icon(device.device_type) }}{{ ui.device_at.replace("{device}", device.label).replace("{ip}", device.ip) }}
-          <span class="muted">· {{ ui.points.replace("{n}", device.risk_points|string) }}</span></h3>
+          <span class="muted">· {{ points_text(device.risk_points) }}</span></h3>
         {% if device.hostname or device.mac_masked %}
         <p class="muted">
           {% if device.hostname %}{{ ui.device_name }} {{ device.hostname }}{% endif %}
@@ -203,7 +203,7 @@
           <p><code>{{ finding.code }}</code></p>
           <p><span class="tag">{{ finding.severity_label }}</span>
             {% if finding.port_label %}<span class="muted"> · {{ ui.port.replace("{port}", finding.port_label) }}</span>{% endif %}
-            <span class="muted"> · {{ ui.points.replace("{n}", finding.points|string) }}</span></p>
+            <span class="muted"> · {{ points_text(finding.points) }}</span></p>
           <p>{{ finding.explanation }}</p>
           {% if finding.observed_service %}<p>{{ ui.observed_service }}: {{ finding.observed_service }}</p>{% endif %}
           {% if finding.steps %}

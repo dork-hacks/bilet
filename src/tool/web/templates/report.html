@@ -52,14 +52,14 @@
     </section>
     <section aria-labelledby="report-devices">
       <h2 id="report-devices">{{ ui.report_devices }}</h2>
-      {% if view.devices %}<ul>{% for device in view.devices %}<li>{{ device.label }} · {{ device.ip }} · {{ ui.points.replace("{n}", device.points|string) }}{% if device.mac %} · {{ device.mac }}{% endif %}</li>{% endfor %}</ul>{% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
+      {% if view.devices %}<ul>{% for device in view.devices %}<li>{{ device.label }} · {{ device.ip }} · {{ points_text(device.points) }}{% if device.mac %} · {{ device.mac }}{% endif %}</li>{% endfor %}</ul>{% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
     </section>
     <section aria-labelledby="report-fixes">
       <h2 id="report-fixes">{{ ui.report_fixes }}</h2>
       {% if view.findings %}
       <ol>{% for finding in view.findings %}<li><article>
         <h3>{{ finding.title }} · {{ finding.ip }}</h3>
-        <p>{{ finding.severity }} · {{ ui.points.replace("{n}", finding.points|string) }}{% if finding.port %} · {{ ui.port.replace("{port}", finding.port) }}{% endif %} · <code>{{ finding.code }}</code></p>
+        <p>{{ finding.severity }} · {{ points_text(finding.points) }}{% if finding.port %} · {{ ui.port.replace("{port}", finding.port) }}{% endif %} · <code>{{ finding.code }}</code></p>
         <p><strong>{{ ui.report_action.replace("{n}", loop.index|string) }}</strong> {{ finding.step }}</p>
       </article></li>{% endfor %}</ol>
       {% else %}<p>{{ ui.nothing_to_fix }}</p>{% endif %}
