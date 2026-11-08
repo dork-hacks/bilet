@@ -10,14 +10,20 @@ Lines end in CRLF and there is no BOM, exactly like the organizers' answer key.
 
 import csv
 import os
+import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from tool.engine import ScanResult, analyze_file
+from tool.engine.device import load_salt
+from tool.engine.result import error_result
 
 FINDINGS_HEADER = ("file", "ip", "port", "finding_code", "severity")
 SCORES_HEADER = ("file", "network_score")
 ERROR = "ERROR"
+ANALYSIS_FAILED = "ANALYSIS_FAILED"
+JSON_WRITE_FAILED = "JSON_WRITE_FAILED"
+LOCAL_SALT_UNAVAILABLE = "LOCAL_SALT_UNAVAILABLE"
 
 
 @dataclass
@@ -26,6 +32,7 @@ class Report:
     findings: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)  # (file, error code)
     results: list[ScanResult] = field(default_factory=list)  # in file order
+    warnings: list[tuple[str, str]] = field(default_factory=list)  # optional-output problems
 
 
 def scan_files(folder: Path) -> list[Path]:
@@ -68,20 +75,36 @@ def analyze_folder(
     report = Report()
     findings: list[tuple[str, ...]] = []
     scores: list[tuple[str, ...]] = []
-    # The CSVs never contain device keys, so a salt is only needed for the JSON files.
-    salt = salt if salt is not None else (None if json_dir else b"")
+    # Resolve one salt for the whole batch. CSV-only runs do not touch local data.
+    if salt is None:
+        if json_dir is None:
+            salt = b""
+        else:
+            try:
+                salt = load_salt()
+            except OSError:
+                salt = secrets.token_bytes(32)
+                report.warnings.append(("", LOCAL_SALT_UNAVAILABLE))
     for path in scan_files(folder):
-        result = analyze_file(path, salt=salt)
+        try:
+            result = analyze_file(path, salt=salt)
+            rows = finding_rows(result)
+            score = score_row(result)
+        except Exception:  # isolate one internal failure; interrupts still propagate
+            result = error_result(path.name, ANALYSIS_FAILED)
+            rows, score = [], score_row(result)
         report.files += 1
         report.results.append(result)
         if result.status != "ok":
             report.errors.append((result.file, (result.error or {}).get("code", "")))
-        rows = finding_rows(result)
         report.findings += len(rows)
         findings.extend(rows)
-        scores.append(score_row(result))
+        scores.append(score)
         if json_dir is not None:
-            _write_text(json_dir / f"{Path(result.file).stem}.json", result.to_json())
+            try:
+                _write_text(json_dir / f"{Path(result.file).stem}.json", result.to_json())
+            except Exception:  # optional JSON must not suppress known standard results
+                report.warnings.append((result.file, JSON_WRITE_FAILED))
 
     _write_csv(out / "findings.csv", FINDINGS_HEADER, findings)
     _write_csv(out / "scores.csv", SCORES_HEADER, scores)
