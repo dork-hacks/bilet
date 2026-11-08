@@ -208,6 +208,10 @@ def scan_command(args: argparse.Namespace) -> int:
 
 
 def analyze_command(args: argparse.Namespace) -> int:
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        print(cli_text("analyze_root", args.lang), file=sys.stderr)
+        return 2
+
     from tool.content import file_error_message, history_error_message
     from tool.engine.device import load_salt
     from tool.export import analyze_folder

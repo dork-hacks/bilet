@@ -79,6 +79,10 @@ TEXT = {
         "S-au salvat {count} verificări în istoricul local",
         "saved {count} scans to the local history",
     ),
+    "analyze_root": (
+        "Analiza nu poate porni ca root. Pornește-o ca utilizator obișnuit.",
+        "Refusing to analyze as root. Run it as a normal user.",
+    ),
     "serve_root": (
         "Interfața web nu poate porni ca root. Pornește-o ca utilizator obișnuit.",
         "Refusing to start the web interface as root. Run it as a normal user.",
