@@ -24,20 +24,26 @@ def test_home_gives_saved_context_then_score_then_fixing_steps(lang):
             'class="scan-context"',
             'class="score ',
             'class="first"',
-            'id="fixing-steps"',
             'id="network-map"',
-            'class="ask chat"',
         )
     ]
     assert positions == sorted(positions)
+    # Since #273 the fix steps live on /devices and the chat on /assistant.
+    assert 'id="fixing-steps"' not in html
+    assert 'class="ask chat"' not in html
+    assert 'class="ask chat"' in client.get("/assistant", params={"lang": lang}).text
     assert UI["scan_snapshot"][lang] in html
     assert (
         f'<time datetime="{result["scan_start"]}">'
         f'{scan_time_label(result["scan_start"], lang)}</time>'
     ) in html
     assert " UTC</time>" in html
-    assert '<a class="button secondary" href="#fixing-steps">' in html
+    assert (
+        f'<a class="button secondary" href="/devices?lang={lang}&amp;ai=0#fixing-steps">'
+    ) in html
     # The first finding opens to its actual steps. Other findings stay discoverable.
+    html = client.get("/devices", params={"lang": lang}).text
+    assert 'id="fixing-steps" tabindex="-1"' in html
     findings = html.split('<div class="finding ')[1:]
     assert "<details open>" in findings[0]
     assert all("<details open>" not in finding for finding in findings[1:])

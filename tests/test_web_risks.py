@@ -109,6 +109,8 @@ def test_home_links_to_risks_and_each_finding_links_to_its_entry():
     client = TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
     html = client.get("/?lang=en").text
     assert 'href="/risks?lang=en"' in html
+    # Each finding sits with its device's fix steps, on /devices since #273.
+    html = client.get("/devices?lang=en").text
     codes = {finding["code"] for finding in result["findings"]}
     assert codes
     for code in codes:

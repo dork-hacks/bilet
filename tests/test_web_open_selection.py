@@ -92,5 +92,24 @@ def test_site_nav_keeps_the_opened_file_on_every_page(tmp_path):
         assert f"scan={token}" in nav and 'aria-current="page"' in nav
         home = client.get(home_link).text
         assert "opened.xml" in home and "V6a_before.xml" not in home
+    # /devices shows the opened file. /ask only answers about the latest stored scan, so
+    # with an opened file there is no assistant link and no chat (#245, #273).
+    devices = client.get("/devices", params={"lang": "en", "scan": token}).text
+    assert "opened.xml" in devices and "V6a_before.xml" not in devices
+    assert 'href="/assistant' not in devices
+    assistant = client.get("/assistant", params={"lang": "en", "scan": token}).text
+    assert 'action="/ask"' not in assistant and "V6a_before.xml" not in assistant
     # An unknown or expired token is never echoed into the nav.
     assert "scan=unknown" not in client.get("/risks", params={"lang": "en", "scan": "unknown"}).text
+
+
+def test_site_nav_keeps_an_explicit_ai_opt_in():
+    current = analyze_file(FIXTURES / "V6a_before.xml", salt=b"test").to_dict()
+    client = TestClient(create_app(lambda: current), base_url="http://127.0.0.1")
+    for page in ("/", "/devices", "/assistant"):
+        on = client.get(page, params={"lang": "en", "ai": "1"}).text
+        nav = on.split('<nav class="site-nav"', 1)[1].split("</nav>", 1)[0]
+        assert 'href="/devices?lang=en&amp;ai=1"' in nav
+        off = client.get(page, params={"lang": "en"}).text
+        nav = off.split('<nav class="site-nav"', 1)[1].split("</nav>", 1)[0]
+        assert "ai=1" not in nav

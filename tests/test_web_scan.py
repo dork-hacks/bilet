@@ -239,7 +239,7 @@ def test_each_finding_offers_verification_after_its_fix_steps(tmp_path, lang):
     fixture = Path(__file__).parent / "fixtures/validation/V6a_before.xml"
     history.add(analyze_file(fixture, salt=b"test-salt").to_dict())
     runner = FakeRunner()
-    html = client(runner, history=history).get("/", params={"lang": lang}).text
+    html = client(runner, history=history).get("/devices", params={"lang": lang}).text
     findings = html.split('<div class="finding ')[1:]
     assert len(findings) == 3
     for finding in findings:
@@ -252,7 +252,7 @@ def test_each_finding_offers_verification_after_its_fix_steps(tmp_path, lang):
     assert runner.starts == []
 
     for browser in (client(history=history), client(runner, history=history, peer="192.0.2.8")):
-        assert 'class="fix-verification"' not in browser.get("/").text
+        assert 'class="fix-verification"' not in browser.get("/devices").text
 
 
 @pytest.mark.parametrize("lang", ["ro", "en"])

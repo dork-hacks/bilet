@@ -21,7 +21,7 @@ def test_outdated_finding_shows_escaped_product_version_or_service(lang, label, 
     finding["evidence"].update(product=product, service_name="ftp", version="2.3.4")
     html = (
         TestClient(create_app(lambda: scan), base_url="http://127.0.0.1")
-        .get("/", params={"lang": lang})
+        .get("/devices", params={"lang": lang})
         .text
     )
     assert label in html

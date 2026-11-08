@@ -2,7 +2,8 @@
    when the user opened a file, its opened-scan token (#209), so moving between pages
    never silently switches to the latest stored scan. Without JavaScript the links are
    always visible; static/nav.js turns them into a menu button on narrow screens. #}
-{% set q = "lang=" ~ view.lang ~ ("&scan=" ~ report_token if report_token else "") %}
+{#- An explicit AI opt-in (ai=1) is kept too; without it every page starts with AI off. -#}
+{% set q = "lang=" ~ view.lang ~ ("&ai=1" if ai_param is defined and ai_param == "1" else "") ~ ("&scan=" ~ report_token if report_token else "") %}
 <nav class="site-nav" aria-label="{{ ui.nav_label }}">
   <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav-list" hidden>
     <span aria-hidden="true">&#9776;</span> {{ ui.nav_menu }}</button>

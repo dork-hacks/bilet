@@ -418,7 +418,7 @@ def create_app(
             )
         return RedirectResponse(f"/history?lang={lang}&done=1", status_code=303)
 
-    def scan_page(
+    def result_page(
         request: Request, lang: str | None, ai: str | None, scan: str | None, page: str
     ) -> HTMLResponse:
         # Opt-in: only an explicit ai=1 turns it on (MASTERPLAN §5.4).
@@ -429,22 +429,20 @@ def create_app(
         else:
             result, alerts = current_result()
         view = home_view(result, lang, explainer, ai_on=ai == "1", alerts=alerts)
-        return render(
-            request, view, result, opened=scan is not None, report_token=scan, page=page
-        )
+        return render(request, view, result, opened=scan is not None, report_token=scan, page=page)
 
     @app.get("/", response_class=HTMLResponse)
     def home(
         request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
     ) -> HTMLResponse:
-        return scan_page(request, lang, ai, scan, "home")
+        return result_page(request, lang, ai, scan, "home")
 
     @app.get("/devices", response_class=HTMLResponse)
     def devices_page(
         request: Request, lang: str | None = None, ai: str | None = None, scan: str | None = None
     ) -> HTMLResponse:
         # #273: every device and its fix steps, for the same scan as the home page.
-        return scan_page(request, lang, ai, scan, "devices")
+        return result_page(request, lang, ai, scan, "devices")
 
     @app.get("/assistant", response_class=HTMLResponse)
     def assistant_page(
@@ -452,7 +450,7 @@ def create_app(
     ) -> HTMLResponse:
         # #273: the chat. /ask answers about the latest stored scan only, so an opened file
         # shows no chat here either (#245), the same as before the split.
-        return scan_page(request, lang, ai, scan, "assistant")
+        return result_page(request, lang, ai, scan, "assistant")
 
     @app.get("/report", response_class=HTMLResponse)
     def report_page(
