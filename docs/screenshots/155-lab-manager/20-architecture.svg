@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="Noto Sans, Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f5d8a"/>
+    </marker>
+    <style>
+      .card { fill: #ffffff; stroke: #d8d3ca; stroke-width: 2; }
+      .inner { fill: #f6f4ef; stroke: #d8d3ca; stroke-width: 1.5; }
+      .h { font-size: 22px; font-weight: 700; fill: #1d1b18; }
+      .h2 { font-size: 18px; font-weight: 700; fill: #1d1b18; }
+      .t { font-size: 16px; fill: #1d1b18; }
+      .m { font-size: 15px; fill: #5d5850; }
+      .lbl { font-size: 15px; font-weight: 700; fill: #2f5d8a; }
+      .flow { stroke: #2f5d8a; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .step { stroke: #5d5850; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="#f6f4ef"/>
+  <text x="40" y="62" font-size="34" font-weight="700" fill="#1d1b18">Lab manager: one page that controls the whole lab</text>
+  <text x="40" y="98" class="m" font-size="18">Every lab Pi can play any device. Every weak service can be switched on or off from the router, without a shell.</text>
+
+  <!-- client -->
+  <rect class="card" x="40" y="300" width="320" height="220" rx="16"/>
+  <text x="64" y="342" class="h">Phone or laptop</text>
+  <text x="64" y="368" class="m">on RSH-dork_unit</text>
+  <text x="64" y="408" class="t">Opens the page in a browser</text>
+  <text x="64" y="436" class="t">Signs in with the access code</text>
+  <text x="64" y="464" class="t">30-minute session cookie</text>
+  <text x="64" y="492" class="m">(HttpOnly, SameSite=Strict)</text>
+
+  <path class="flow" d="M360,410 L476,410"/>
+  <text x="372" y="396" class="lbl">HTTP :8090</text>
+  <text x="372" y="436" class="m">hotspot</text>
+  <text x="372" y="456" class="m">address only,</text>
+  <text x="372" y="476" class="m">never the</text>
+  <text x="372" y="496" class="m">uplink</text>
+
+  <!-- scanner -->
+  <rect class="card" x="40" y="580" width="320" height="150" rx="16" stroke-dasharray="6 5"/>
+  <text x="64" y="618" class="h2">Scanner laptop: bilet scan</text>
+  <text x="64" y="648" class="t">sees the router as SSH +</text>
+  <text x="64" y="672" class="t">http titled "Lab manager"</text>
+  <text x="64" y="702" class="m">No admin word: the router adds 0 points</text>
+
+  <!-- router -->
+  <rect class="card" x="480" y="180" width="400" height="460" rx="16"/>
+  <text x="504" y="222" class="h">Pi 5 router · OpenWrt</text>
+  <text x="504" y="248" class="m">192.168.50.1 · serves the hotspot</text>
+  <rect class="inner" x="504" y="270" width="352" height="344" rx="12"/>
+  <text x="526" y="306" class="h2">lab-manager</text>
+  <text x="526" y="330" class="m">user labmanager, not root · stdlib Python</text>
+  <text x="526" y="370" class="t">• Refuses foreign Host headers</text>
+  <text x="526" y="398" class="t">• CSRF token on every form</text>
+  <text x="526" y="426" class="t">• 1 s wait after a wrong code</text>
+  <text x="526" y="454" class="t">• Checks the request grammar</text>
+  <text x="526" y="482" class="t">• Finds each Pi by MAC in the</text>
+  <text x="540" y="506" class="t">DHCP leases (MACs never shown)</text>
+  <text x="526" y="534" class="t">• Status every 10 s while open</text>
+  <text x="526" y="562" class="t">• Expected score = 100 − points</text>
+  <text x="540" y="586" class="t">switched on</text>
+
+  <!-- ssh arrows -->
+  <path class="flow" d="M880,330 L996,330"/>
+  <path class="flow" d="M880,500 C940,500 940,595 996,595"/>
+  <path class="flow" d="M880,560 C930,560 930,695 996,695"/>
+  <text x="890" y="300" class="lbl">SSH as</text>
+  <text x="890" y="318" class="lbl">labmgr</text>
+
+  <!-- pi2 expanded -->
+  <rect class="card" x="1000" y="130" width="560" height="400" rx="16"/>
+  <text x="1024" y="170" class="h">pi2 · plays the camera</text>
+  <rect class="inner" x="1024" y="188" width="512" height="62" rx="10"/>
+  <text x="1042" y="214" class="t">sshd: the key only runs remote.py</text>
+  <text x="1042" y="238" class="m">no shell, no PTY, no port forwarding</text>
+  <path class="step" d="M1280,250 L1280,266"/>
+  <rect class="inner" x="1024" y="268" width="512" height="62" rx="10"/>
+  <text x="1042" y="294" class="t">lab-switch helper · /run/lab-switch.sock</text>
+  <text x="1042" y="318" class="m">accepts one line, only the four requests below</text>
+  <path class="step" d="M1280,330 L1280,346"/>
+  <rect class="inner" x="1024" y="348" width="512" height="44" rx="10"/>
+  <text x="1042" y="376" class="t">labctl with a fixed argv</text>
+  <path class="step" d="M1280,392 L1280,408"/>
+  <rect class="inner" x="1024" y="410" width="512" height="100" rx="10"/>
+  <text x="1042" y="436" class="t">Fake services (banners only, no real data)</text>
+  <text x="1042" y="460" class="m">telnet 2323 · admin page 80 · vsFTPd 2.3.4 · RTSP 554</text>
+  <circle cx="1050" cy="487" r="8" fill="#a3261b"/>
+  <text x="1066" y="492" class="m">blinking = weak</text>
+  <circle cx="1210" cy="487" r="8" fill="#1f6b3a"/>
+  <text x="1226" y="492" class="m">steady green = fixed</text>
+
+  <!-- pi3, pi4 -->
+  <rect class="card" x="1000" y="560" width="560" height="70" rx="16"/>
+  <text x="1024" y="596" class="h2">pi3 · plays the hub</text>
+  <text x="1024" y="618" class="m">same chain · MQTT 1883, no vendor or name</text>
+  <rect class="card" x="1000" y="660" width="560" height="70" rx="16"/>
+  <text x="1024" y="696" class="h2">pi4 · plays the server</text>
+  <text x="1024" y="718" class="m">same chain · nothing on by default (Redis, Samba as toggles)</text>
+
+  <!-- grammar -->
+  <rect x="40" y="770" width="1520" height="96" rx="16" fill="#e8eef5" stroke="#2f5d8a" stroke-width="2"/>
+  <text x="64" y="808" class="h2">The only requests that ever reach a Pi</text>
+  <text x="64" y="842" font-size="20" font-family="Noto Sans Mono, Consolas, monospace" fill="#1d1b18">status   ·   fix SERVICE   ·   break SERVICE   ·   preset NAME</text>
+  <text x="710" y="842" class="m">— checked on the router and again on the Pi</text>
+</svg>
