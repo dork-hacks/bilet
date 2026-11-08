@@ -1,9 +1,9 @@
 /* Map-only refinement of agent-B's warm palette. All device data stays text. */
 body:has(#network-map) { max-width: 68rem; }
-body:has(#network-map) > main > :not(#network-map),
+body:has(#network-map) > main > :not(#network-map):not(.hero),
 body:has(#network-map) > header, body:has(#network-map) > footer { max-width: 46rem; margin-inline: auto; }
 [hidden] { display: none !important; }
-.netmap { padding: 1.5rem; border: 1px solid var(--c-line); border-radius: 1.5rem;
+.netmap { container-type: inline-size; padding: 1.5rem; border: 1px solid var(--c-line); border-radius: 1.5rem;
   background: var(--c-surface); box-shadow: var(--shadow-2); }
 .netmap-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .netmap h2 { margin: .2rem 0 0; font-size: 1.65rem; letter-spacing: -.035em; }
@@ -99,7 +99,7 @@ body:has(#network-map) > header, body:has(#network-map) > footer { max-width: 46
   max-width: none; padding: 1.2rem; margin: 0; border-radius: 0; overflow: auto; background: var(--c-page); }
 .netmap.is-expanded { position: fixed; inset: 0; z-index: 9999; height: 100dvh; }
 .netmap:fullscreen .netmap-stage, .netmap.is-expanded .netmap-stage { height: clamp(20rem, 60dvh, 42rem); }
-@media (max-width: 60rem) { .netmap-panels { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 40rem) { .netmap-panels { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 48rem) {
   body:has(#network-map) { padding: .85rem; }
   .netmap { padding: 1rem; }
@@ -128,6 +128,7 @@ body.netmap-expanded { overflow: hidden; }
    the grid is one column, so the answer (first in the page) stays above the map. */
 .hero { display: grid; gap: 1.25rem; }
 .hero-answer { display: grid; gap: 1rem; align-content: start; min-width: 0; }
+body:has(#network-map) > main > .hero.has-map { max-width: 72rem; margin-inline: auto; }
 @media (min-width: 60rem) {
   .hero.has-map { grid-template-columns: minmax(18rem, 1fr) minmax(0, 1.5fr); align-items: start; }
 }
