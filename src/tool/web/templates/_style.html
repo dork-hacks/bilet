@@ -48,6 +48,18 @@
             text-decoration: none; font-weight: 600; }
     nav a:hover { background: var(--c-tint); }
     nav [aria-current="true"] { font-weight: 700; color: var(--c-text); background: var(--c-tint); }
+    /* Site navigation (#273): one row of page links; a menu button on phones (nav.js). */
+    .site-nav { flex-basis: 100%; }
+    .site-nav [aria-current="page"] { font-weight: 700; color: var(--c-surface);
+                                      background: var(--c-accent); }
+    .nav-toggle { font: inherit; font-weight: 600; color: var(--c-accent);
+                  background: var(--c-surface); border: 2px solid var(--c-accent);
+                  border-radius: var(--radius-pill); padding: .35rem .9rem; cursor: pointer; }
+    .nav-toggle[hidden], .site-nav ul[hidden] { display: none; }
+    @media (max-width: 40rem) {
+      .site-nav ul { flex-direction: column; margin-top: var(--space-2); }
+      .site-nav a { display: block; }
+    }
     /* The score: calm traffic light. Icon + label + number, so colour is never alone. */
     .score { border: 1px solid; border-radius: .8rem; padding: 1rem 1.25rem; margin: 1rem 0;
              display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap; }

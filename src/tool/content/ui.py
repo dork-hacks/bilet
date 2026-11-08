@@ -406,6 +406,14 @@ UI = {
         "ro": "Ce este nou de la verificarea anterioară",
         "en": "What's new since the previous check",
     },
+    # Site navigation shared by every page (#273).
+    "nav_label": {"ro": "Pagini", "en": "Pages"},
+    "nav_menu": {"ro": "Meniu", "en": "Menu"},
+    "nav_home": {"ro": "Acasă", "en": "Home"},
+    "nav_history": {"ro": "Istoric", "en": "History"},
+    "nav_risks": {"ro": "Riscuri", "en": "Risks"},
+    "nav_scan": {"ro": "Verifică acum", "en": "Check now"},
+    "nav_report": {"ro": "Raport", "en": "Report"},
     # History screen (#65): score trend, compare two checks, delete my history.
     "history_link": {"ro": "Vezi istoricul verificărilor", "en": "See your check history"},
     "history_title": {"ro": "Istoricul verificărilor", "en": "Check history"},

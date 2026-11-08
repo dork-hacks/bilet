@@ -68,3 +68,29 @@ def test_missing_or_evicted_opened_selection_never_falls_back_to_current_scan():
         html = client.get(url).text
         assert "There is no check yet" in html
         assert "V6a_before.xml" not in html
+
+
+def test_site_nav_keeps_the_opened_file_on_every_page(tmp_path):
+    # #273: moving between pages never swaps the opened file for the latest stored scan.
+    history = History(tmp_path / "history")
+    history.add(analyze_file(FIXTURES / "V6a_before.xml", salt=b"test").to_dict())
+    client = TestClient(create_app(lambda: None, history=history), base_url="http://127.0.0.1")
+    html = client.post(
+        "/open",
+        data={"lang": "en"},
+        files={"file": ("opened.xml", (FIXTURES / "V6b_after.xml").read_bytes(), "text/xml")},
+    ).text
+    token = re.search(r"scan=([A-Za-z0-9_-]+)", html)[1]
+    for page in ("/history", "/risks", "/report", "/"):
+        response = client.get(page, params={"lang": "en", "scan": token})
+        assert response.status_code == 200
+        if page == "/report":
+            continue  # the printable report keeps its own print layout, without the nav
+        nav = response.text.split('<nav class="site-nav"', 1)[1].split("</nav>", 1)[0]
+        home_link = unescape(re.search(r'href="(/\?[^"]+)"', nav)[1])
+        assert home_link == f"/?lang=en&scan={token}"
+        assert f"scan={token}" in nav and 'aria-current="page"' in nav
+        home = client.get(home_link).text
+        assert "opened.xml" in home and "V6a_before.xml" not in home
+    # An unknown or expired token is never echoed into the nav.
+    assert "scan=unknown" not in client.get("/risks", params={"lang": "en", "scan": "unknown"}).text

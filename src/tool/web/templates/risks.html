@@ -18,8 +18,8 @@
         {% endfor %}
       </ul>
     </nav>
+    {% set nav_current = "risks" %}{% include "_nav.html" %}
   </header>
-  <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
 
   <main id="main">
     <p>{{ ui.risks_intro }}</p>

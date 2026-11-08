@@ -120,7 +120,10 @@ def test_page_renders_in_both_languages(before_after, lang):
     for key in ("history_title", "trend_heading", "compare_heading", "delete_heading"):
         assert UI[key][lang] in html
     assert "<svg" in html and "<table>" in html  # the chart has a table next to it
-    assert "<script" not in html  # works without JavaScript
+    # Works without JavaScript: the only script is the optional phone menu (#273), and
+    # its links are visible in the HTML.
+    assert html.count("<script") == 1 and '<script src="/static/nav.js" defer>' in html
+    assert '<ul id="site-nav-list">' in html
 
 
 def test_empty_history_shows_a_message_not_an_error(history):
