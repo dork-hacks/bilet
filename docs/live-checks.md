@@ -45,6 +45,7 @@ for name in ("findings.csv", "scores.csv"):
         raise SystemExit(f"DIFF {name}: {source.name!r}")
     print(f"SAME {name}: {source.name!r}")
 PYCSV
+cat "$RERUN/scores.csv"
 ```
 
 An explicit file path works regardless of extension; keep the supplied name unchanged, including for an extensionless broken file. No staging folder or `--all-files` flag is needed for one selected file. The comparison reads CSV fields rather than matching filenames with `grep`, so spaces, commas and brackets work too. **Pass:** both files print `SAME`; a missing/duplicate uploaded score row or either mismatch stops with a nonzero exit.
@@ -87,7 +88,7 @@ The address 192.168.1.0/24 is not part of the network this computer is connected
 
 Also good to show:
 - `bilet scan` with no `--confirm` explains what it *would* scan (`CONFIRM_REQUIRED`).
-- `100.64.0.1` (the mobile operator's range), `127.0.0.1`, `router.lan` and `10.0.0.0/16` are all refused, each with its own reason.
+- `100.64.0.1` (the mobile operator's range) is refused as `CGNAT_ADDRESS`; `127.0.0.1` as `LOOPBACK_ADDRESS`; `router.lan` as `HOSTNAME_NOT_ALLOWED`; and `10.0.0.0/16` as `OUTSIDE_ALLOWLIST` on our /24 hotspot. The allowlist check now precedes the target-size check.
 
 ## 5. Open an unreadable file: a clear error, no crash
 
