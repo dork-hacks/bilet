@@ -29,7 +29,7 @@
       <h2 id="{{ risk.code }}-h">{{ risk.title }}</h2>
       <p><code>{{ risk.code }}</code></p>
       <p><span class="tag">{{ risk.severity_label }}</span>
-        <span class="muted"> · {{ ui.points.replace("{n}", risk.points|string) }}</span></p>
+        <span class="muted"> · {{ points_text(risk.points) }}</span></p>
       <p><strong>{{ ui.why }}</strong> {{ risk.explanation }}</p>
       {% if risk.steps %}
       <p><strong>{{ ui.how_to_fix }}</strong></p>

@@ -411,3 +411,24 @@ def test_hosts_found_message_lists_only_the_addresses():
     assert "few minutes" in en
     assert hosts_found_message(hosts, "ro").startswith("Dispozitive găsite: 2 (")
     assert len(hosts_found_message([f"192.168.50.{i}" for i in range(254)], "en")) < 500
+
+
+@pytest.mark.parametrize(
+    ("n", "lang", "expected"),
+    [
+        (0, "ro", "0 puncte de risc"),
+        (10, "ro", "10 puncte de risc"),
+        (19, "ro", "19 puncte de risc"),
+        (20, "ro", "20 de puncte de risc"),
+        (60, "ro", "60 de puncte de risc"),
+        (100, "ro", "100 de puncte de risc"),
+        (105, "ro", "105 puncte de risc"),
+        (120, "ro", "120 de puncte de risc"),
+        (60, "en", "60 risk points"),
+    ],
+)
+def test_points_text_follows_romanian_grammar(n, lang, expected):
+    # Romanian puts "de" before a noun after 20-99 and round hundreds ("60 de puncte").
+    from tool.content.ui import points_text
+
+    assert points_text(n, lang) == expected
