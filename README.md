@@ -80,6 +80,15 @@ make lint
 make validate
 ```
 
-`make validate` is the golden test: it runs the CSV export on the organizers' Validation Set and checks both files are byte-identical to their answer key, and that two runs give the same bytes. Once our own trap files land (#23), it checks those too.
+`make validate` is the golden test: it runs the CSV export on the organizers' Validation Set and checks both files are byte-identical to their answer key, and that two runs give the same bytes. It also checks the committed trap fixtures, the generated oversized-input trap, and the real before/after lab captures against their answer keys.
 
 CI runs gitleaks, the tests, the lint check and `make validate` on every PR.
+
+## Deliverables and evidence
+
+- [Technical summary](docs/technical-summary.md): architecture, lab setup, assumptions and limitations.
+- [Live-check runbook](docs/live-checks.md): the jury checks and recorded outcomes.
+- [Test Set and submission runbook](docs/test-set-runbook.md): reproducible exports, comparisons and the human upload/tag steps.
+- [Real lab captures and expected CSVs](tests/fixtures/lab/): the before/after pair, L1 (25) to L2 (55).
+- [Validation fixtures](tests/fixtures/validation/) and [regression traps](tests/fixtures/traps/): deterministic scoring evidence.
+- [UI screenshots](docs/screenshots/245-home/README.md): recorded examples at desktop and phone sizes; the final Test Set screenshot is captured during submission.
