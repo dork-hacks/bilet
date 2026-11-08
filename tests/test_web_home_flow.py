@@ -24,8 +24,8 @@ def test_home_gives_saved_context_then_score_then_fixing_steps(lang):
             'class="scan-context"',
             'class="score ',
             'class="first"',
+            'id="network-map"',  # PR 3 of #273: the map shares the first screen
             'id="fixing-steps"',
-            'id="network-map"',
             'class="ask chat"',
         )
     ]
@@ -57,3 +57,18 @@ def test_scan_time_never_invents_current_time_or_interprets_input(start):
     else:
         assert UI["history_no_time"]["en"] in html
         assert "<time>" not in html
+
+
+@pytest.mark.parametrize("lang", ["en", "ro"])
+def test_the_map_is_the_hero_next_to_the_answer_not_hidden(lang):
+    # #273 PR 3: the map is open beside the answer, and the answer comes first in the page.
+    result = analyze_file(FIXTURE, salt=b"flow-test").to_dict()
+    html = (
+        TestClient(create_app(lambda: result), base_url="http://127.0.0.1")
+        .get("/", params={"lang": lang})
+        .text
+    )
+    hero = html[html.index('<div class="hero has-map">') : html.index('class="support-links"')]
+    assert hero.index('class="first"') < hero.index('id="network-map"')
+    before_map = html[: html.index('id="network-map"')]
+    assert before_map.rfind("<details") <= before_map.rfind("</details>")  # not inside one
