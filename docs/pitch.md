@@ -14,111 +14,65 @@ handoffs. The separate eight-minute jury checks follow [their runbook](live-chec
 | 5:45–6:40 | teammate5 | Next steps and close | Limits and what comes next |
 | 6:40–7:00 | All | Buffer | Hand over to the jury's live checks |
 
-The words below are the spoken script. Operator notes and the evidence ledger are
-preparation material, not additional slides to read aloud.
+Use these as speaking prompts, not a script to memorize. Expand each point in your
+own words and use the demo pauses to point at the evidence.
 
 ## 1. Problem — teammate1, 45 seconds
 
-“A home network can contain a camera, a printer and a smart hub, but its owner may
-have no idea which one needs attention. A list of ports does not answer their real
-question: which device should I fix first, and what should I do?
-
-bilet turns a network scan into a priority, a plain-language action and a way to
-check whether the fix worked. It speaks Romanian and English. Our goal is to make
-the first useful action understandable to someone who is not a network engineer.
-Here is that journey in our own small, controlled home network.”
+- Homeowners need to know **which device to fix first and what to do**.
+- Scanner output is difficult for nontechnical people to interpret.
+- bilet provides a priority device, clear fixing steps and a way to check progress.
+- Plain Romanian and English; designed for people without networking knowledge.
 
 ## 2. Demo — teammate2, 2 minutes 15 seconds; junior slot
 
-“These Raspberry Pis play the devices in our house: a camera, a smart hub and a
-server, connected through a Pi router. The weak services are simulations. There
-are no personal files or usable remote shells behind them.
+- Our safe “house in a box”: Raspberry Pis simulate a camera, hub and server.
+- Show the recorded starting score: **25/100**, with the camera as the priority.
+- Show the first recommended action and device-specific steps.
+- Turn off the simulated Telnet and unencrypted administration services.
+- The lab manager changes the setup; **bilet independently measures the result**.
+- Show the saved result: **55/100**, with **two problems resolved** in history.
+- Main journey: **scan → understand → fix → check again**.
 
-This is a recorded run from that lab. bilet starts at **25 out of 100**. The camera
-is the first device to fix. Instead of asking the owner to interpret a scanner
-dump, we explain the problem and the action to take.
-
-Our lab manager lets us change the fake house safely. Here we turn off Telnet and
-the camera's unencrypted administration page. The manager predicts the expected
-result; bilet independently scans the network to find out what actually changed.
-The manager does not feed findings or scores into bilet.
-
-After the fixes, the saved scan scores **55**. History shows the rise from 25 to
-55 and the **two resolved problems**. The score is still below 100: we fixed two
-things, not everything. This gives the owner a clear next action and evidence that
-the previous action helped.
-
-The same result has Romanian and English explanations and device-specific steps.
-If the AI service is unavailable, these explanations still work. The important
-loop is simple: find the priority, make a change, then check the result.”
-
-Operator: show these four committed images in order, with short pauses for the
-score, action and history. Do not wait for a new four-minute scan during the pitch.
+Show these recorded images in order; do not wait for a new scan during the pitch:
 
 1. [bilet before: 25](screenshots/155-lab-manager/09a-bilet-home-before-25-first-screen.png)
 2. [Manager after two changes: expected 55](screenshots/155-lab-manager/05-after-two-fixes.png)
 3. [bilet after: 55](screenshots/155-lab-manager/10a-bilet-home-after-55-first-screen.png)
 4. [History: two problems resolved](screenshots/155-lab-manager/11a-bilet-history-first-screen.png)
 
-These are earlier recorded screens, not a claim about the final UI layout. The
-Romanian screenshots predate the polite-form wording change (#287); use the
-English images above unless refreshed Romanian captures are available. If hardware
-is ready, an authorized lab operator may demonstrate the same sequence during the
-separate live checks. Do not describe recorded evidence as a new live run.
+Operator note: these are earlier recorded screens. Say “recorded lab run,” not
+“live run.” Romanian screenshots predate #287's wording change; use the English
+images above unless refreshed captures are available. An authorized lab operator
+can demonstrate the physical sequence during the separate live checks if ready.
 
 ## 3. Numbers — teammate3, 1 minute
 
-“On the organizers' Validation Set, our CSVs match the supplied answers byte for
-byte: **24 findings and eight score rows**, with no missing or extra rows. Repeated
-runs produce the same output. These are Validation Set results, not a claim about
-the unreleased Test Set.
-
-We also check **33 committed edge-case files**, plus a generated oversized file,
-and our before-and-after lab captures. Broken or hostile files must produce a
-controlled error rather than silently disappearing.
-
-On the real hotspot, our lab team recorded a full scan in **269 seconds**, under
-the 300-second limit, with score 25. Their rehearsal passed **23 out of 23 checks**.
-Those are recorded measurements on an earlier build; the final build still needs
-its own rehearsal. We keep the evidence separate from what we hope to achieve.”
+- **24 findings and eight score rows:** exact match to the official Validation Set CSVs.
+- **Repeatable output:** the same input produces the same findings and score.
+- **33 committed edge cases + one generated oversized file**, plus lab captures.
+- Recorded lab scan: **269 seconds**, below the **300-second** limit; score 25.
+- Lab team's recorded rehearsal: **23/23 checks passed** on an earlier build.
+- These are existing measurements, not final-build or morning Test Set results.
 
 ## 4. Trade-offs — teammate4, 1 minute 45 seconds
 
-“We made one central decision: the rules decide the findings and the score. The
-AI cannot change either. The score is 100 minus the catalog's risk points, with a
-floor of zero. That makes a saved scan repeatable and makes a before-and-after
-comparison meaningful.
-
-AI is optional. It can explain a result or answer a question using sanitized
-evidence under device pseudonyms. It does not receive the home's IP addresses,
-MAC addresses, hostnames or raw banners. We check its replies against the evidence;
-if a reply fails that check, times out or cannot be read, we show our built-in
-explanation. These checks reduce unsupported answers; they do not prove that an
-AI can never be wrong.
-
-History stays on the laptop, MAC addresses are masked, and the owner can delete
-the saved history. A live scan needs explicit confirmation and is restricted to
-the connected, allowed private network. Our demo uses only our own lab.
-
-The trade-off is coverage. This is a catalog-based checker, not a complete security
-audit. A perfect score means no catalog finding was detected in the scanned data;
-it is not a guarantee that the home is secure. Unscanned ports, silent UDP services
-and what the scanner cannot identify remain limitations.”
+- **Rules decide findings and scores; AI only explains.**
+- Optional AI receives sanitized evidence, without IPs, MACs, hostnames or raw banners.
+- Unsupported, unreadable or timed-out AI replies fall back to built-in explanations.
+- Local history, masked MACs and a delete-history control.
+- Live scans require confirmation and an allowed connected private network.
+- Safe lab: simulated weak services, without personal data or usable remote shells.
+- Limits: catalog-based checks, scanned ports only, dependence on service identification.
+- **100/100 means no catalog risk detected in the scanned data, not guaranteed security.**
 
 ## 5. Next steps and close — teammate5, 55 seconds
 
-“Next, we want to test the first-action screen with more people who are not
-technical, check the advice across more real home devices, and improve coverage
-without losing repeatability or privacy.
-
-The immediate event steps are to process the organizers' Test Set and rehearse
-the exact submitted build. Until those runs happen, we do not claim their results.
-
-Our contribution is a complete feedback loop: an independent scan, a repeatable
-score, a clear first action, and a comparison showing what improved. The fake
-house lets us demonstrate that loop safely, instead of just showing a screenshot
-of a scanner. bilet helps an owner move from ‘something may be wrong’ to ‘I know
-what to do first.’ We are ready for your live checks.”
+- Test the first-action screen with more nontechnical people.
+- Check the advice on more real home devices; improve coverage and service identification.
+- Process the organizers' Test Set and rehearse the exact submitted build when available.
+- Core value: **a clear first action, then evidence that the fix helped**.
+- Hand over to the jury's live checks by seven minutes.
 
 ## Evidence ledger and rehearsal notes — not spoken
 
