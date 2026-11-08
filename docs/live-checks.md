@@ -127,14 +127,15 @@ Real run on `main` `c7d2b03`, 8 Nov (the L1 + L2 captures from #227, with a fres
 gitleaks version                                                   # check before the session
 gitleaks git . --redact --verbose --log-opts=HEAD                  # gitleaks 8.19 or newer
 gitleaks detect --source . --redact --verbose --log-opts=HEAD      # older versions (newer ones accept it with a deprecation warning)
-gitleaks dir . --redact                                            # 8.19 or newer: the files as they are on disk
 ```
 
 Use the command that matches the laptop's version, so a deprecation warning doesn't look like a failure live. A pass ends with `no leaks found`.
 
 **Why `--log-opts=HEAD`:** without it, gitleaks reads `git log --all`, which covers every branch this clone has fetched (about 95 on 8 Nov), not just the `final` checkout the jury sees. It's also slower, and a hit on an old branch would look like a leak in what we submitted. With it, gitleaks scans the history behind `final`, the same scope as CI's `--log-opts="HEAD"`.
 
-Real run on the scanner laptop (`agent-D`, 8 Nov 00:00 UTC, `main` `c16b880`, gitleaks 8.30.0): `gitleaks git . --redact --log-opts=HEAD` scanned 128 commits, **no leaks found**, and `gitleaks dir . --redact` also gave **no leaks found**. CI runs the same scan on every push and PR (the `gitleaks (NFR-01)` check), so the PR page is a backup if gitleaks isn't installed. The API key is only ever in the environment (`.env` is git-ignored; `.env.example` holds empty placeholders).
+**Don't run `gitleaks dir .` live.** It reads the files on disk, git-ignored ones included, so on the jury laptop it would flag the real `LLM_API_KEY` in `.env`. That key is meant to be there and was never committed. The question is what's in the repository, and `gitleaks git` answers it.
+
+Real run on the scanner laptop (`agent-D`, 8 Nov 00:00 UTC, `main` `c16b880`, gitleaks 8.30.0): `gitleaks git . --redact --log-opts=HEAD` scanned 128 commits, **no leaks found**. CI runs the same scan on every push and PR (the `gitleaks (NFR-01)` check), so the PR page is a backup if gitleaks isn't installed. The API key is only ever in the environment (`.env` is git-ignored; `.env.example` holds empty placeholders).
 
 ## Extra: masked MACs, if the jury asks
 
