@@ -10,9 +10,11 @@ The outputs are copied from real runs on `main` (7 Nov). Checks 1, 4, 5 and 6 us
 
 ```bash
 git checkout final && make setup              # the exact build that made the upload
-bilet detect --lang en                         # one private network, a /24 or smaller
+bilet detect --lang en                         # must show "Network: 192.168.50.0/24"
 bilet serve &                                  # http://127.0.0.1:8000, open it in the browser
 ```
+
+- **Stop if `detect` shows any network other than `192.168.50.0/24`** (`RSH-dork_unit`). Every refusal in check 4 relies on it: on the venue Wi-Fi, the venue range *is* the allowed network, and `bilet scan <venue range> --confirm` would really scan it once someone types the password (MASTERPLAN §3.1). Fix the connection first.
 
 - **Have these ready:** the Test Set folder, the uploaded `findings.csv` / `scores.csv`, the lab before/after captures (`tests/fixtures/lab/`, #34), and gitleaks installed (`brew install gitleaks` / `apt install gitleaks`).
 - **Close everything that isn't the hotspot:** cable, venue Wi-Fi, VPN.
@@ -70,9 +72,12 @@ Open **`/risks`** (linked from every page). All 15 catalog codes are there, each
 ## 4. Guardrail: try a public IP and the venue network; it must refuse
 
 ```bash
+bilet detect --lang en                         # first: "Network: 192.168.50.0/24", or stop
 bilet scan 8.8.8.8 --confirm --lang en
 bilet scan <venue range, e.g. 192.168.1.0/24> --confirm --lang en
 ```
+
+**Never type a password here.** A refusal ends at once with exit 3 and asks for nothing. If you get a password prompt, the target was accepted: press Ctrl+C.
 
 **Use the real venue range, not the example.** Find it before the session: join the venue Wi-Fi briefly on any laptop and run `ip route` (Linux) or `netstat -rn` (macOS), or ask the organizers. Then switch back to `RSH-dork_unit` only. The refusal then names the exact network the jury asked about.
 
