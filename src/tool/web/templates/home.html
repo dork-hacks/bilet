@@ -160,10 +160,10 @@
 {% endif %}
     </div>
     <nav class="support-links" aria-label="{{ ui.scan_tools }}">
-      <a href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a>
+      <a href="/history?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.history_link }}</a>
       <a href="/report?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.report_link }}</a>
       <a href="#open-heading">{{ ui.open_heading }}</a>
-      <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a>
+      <a href="/risks?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.risks_link }}</a>
     </nav>
 
     {% if view.alerts %}
@@ -215,12 +215,12 @@
           <div class="fix-verification">
             <p>{{ ui.fix_verify }}</p>
             {% include "_scan_button.html" %}
-            <p><a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a></p>
+            <p><a href="/history?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.fix_compare }}</a></p>
           </div>
           {% endif %}
           {% endif %}
           {% if finding.standards %}<p class="muted standards">{{ finding.standards }}</p>{% endif %}
-          <p><a href="/risks?lang={{ view.lang }}#{{ finding.code }}">{{ ui.risk_more }}</a></p>
+          <p><a href="/risks?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}#{{ finding.code }}">{{ ui.risk_more }}</a></p>
           </details>
         </div>
         {% endfor %}
@@ -294,7 +294,7 @@
     </section>
     </details>
     {% endif %}
-    <footer>{{ display_name }} · <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a> · <a href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></footer>
+    <footer>{{ display_name }} · <a href="/risks?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.risks_link }}</a> · <a href="/history?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.history_link }}</a></footer>
   </main>
 </body>
 </html>

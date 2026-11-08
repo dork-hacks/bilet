@@ -13,7 +13,7 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="/history?lang={{ code }}{% if view.old_id is not none %}&amp;old={{ view.old_id }}&amp;new={{ view.new_id }}{% endif %}"
+        <li><a href="/history?lang={{ code }}{% if view.old_id is not none %}&amp;old={{ view.old_id }}&amp;new={{ view.new_id }}{% endif %}{% if report_token %}&amp;scan={{ report_token }}{% endif %}"
                lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
@@ -38,7 +38,7 @@
         <input type="hidden" name="confirm" value="yes">
         <button class="button danger" type="submit">{{ ui.delete_yes }}</button>
       </form>
-      <p><a class="button secondary" href="/history?lang={{ view.lang }}">{{ ui.delete_no }}</a></p>
+      <p><a class="button secondary" href="/history?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.delete_no }}</a></p>
     </section>
 
   {% else %}
@@ -92,6 +92,7 @@
       <h2 id="compare-heading">{{ ui.compare_heading }}</h2>
       <form method="get" action="/history">
         <input type="hidden" name="lang" value="{{ view.lang }}">
+        {% if report_token %}<input type="hidden" name="scan" value="{{ report_token }}">{% endif %}
         <label for="old">{{ ui.compare_before }}</label>
         <select id="old" name="old">
           {% for row in view.choices %}

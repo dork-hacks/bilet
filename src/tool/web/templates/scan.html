@@ -14,7 +14,7 @@
     <h1>{{ ui.scan_title }}</h1>
     <nav aria-label="{{ ui.language }}"><ul>
     {% for code, name in langs %}
-      <li><a href="/scan?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+      <li><a href="/scan?lang={{ code }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}"
         {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
     {% endfor %}
     </ul></nav>
@@ -29,12 +29,12 @@
     </form>
     <p id="scan-result"{% if not status.done %} hidden{% endif %}>
       <a class="button" href="{{ status.result_url }}">{{ ui.scan_see_score }}</a>
-      <a href="/history?lang={{ view.lang }}">{{ ui.fix_compare }}</a>
+      <a href="/history?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.fix_compare }}</a>
     </p>
     <div id="scan-retry"{% if status.running %} hidden{% endif %}>{% include "_scan_button.html" %}</div>
-    <p><a href="/scan?lang={{ view.lang }}">{{ ui.scan_refresh }}</a></p>
+    <p><a href="/scan?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.scan_refresh }}</a></p>
     <p id="scan-refresh-error" role="status" hidden>{{ ui.scan_refresh_error }}</p>
-    <p><a href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+    <p><a href="/?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.back_home }}</a></p>
   </main>
 </body>
 </html>

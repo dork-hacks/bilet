@@ -113,3 +113,35 @@ def test_site_nav_keeps_an_explicit_ai_opt_in():
         off = client.get(page, params={"lang": "en"}).text
         nav = off.split('<nav class="site-nav"', 1)[1].split("</nav>", 1)[0]
         assert "ai=1" not in nav
+
+
+def test_every_link_on_every_page_keeps_the_opened_file(tmp_path):
+    # #273: the language switch, "back to the home page" and in-page links on Risks,
+    # History and Scan dropped the token, so the next page showed the latest stored scan.
+    history = History(tmp_path / "history")
+    history.add(analyze_file(FIXTURES / "V6a_before.xml", salt=b"test").to_dict())
+    history.add(analyze_file(FIXTURES / "V6b_after.xml", salt=b"test").to_dict())
+    app = create_app(lambda: None, history=history)
+
+    async def local_peer(scope, receive, send):
+        # /scan is only served to a loopback peer, which TestClient does not supply.
+        if scope["type"] == "http":
+            scope = {**scope, "client": ("127.0.0.1", 12345)}
+        await app(scope, receive, send)
+
+    client = TestClient(local_peer, base_url="http://127.0.0.1:8000")
+    html = client.post(
+        "/open",
+        data={"lang": "en"},
+        files={"file": ("opened.xml", (FIXTURES / "V2_smart_home.xml").read_bytes(), "text/xml")},
+    ).text
+    token = re.search(r"scan=([A-Za-z0-9_-]+)", html)[1]
+    for page in ("/", "/devices", "/assistant", "/history", "/risks", "/scan", "/report"):
+        text = client.get(page, params={"lang": "en", "scan": token}).text
+        links = {unescape(u) for u in re.findall(r'href="(/[^"]*)"', text)}
+        # "Back to the latest check" is the one deliberate way out of the opened file.
+        dropped = {u for u in links if "scan=" not in u and not u.startswith("/static/")}
+        assert dropped <= {"/?lang=en&ai=0", "/?lang=en"}, (page, dropped)
+        assert f"/{page.strip('/')}?lang=ro" in {u.split("&")[0] for u in links}, page
+        for form in re.findall(r'<form method="get".*?</form>', text, re.S):
+            assert f'name="scan" value="{token}"' in form, page
