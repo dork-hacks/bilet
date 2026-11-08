@@ -30,4 +30,5 @@ T29_http_name_variants.xml,100
 T30_outdated_without_own_finding.xml,60
 T31_outdated_samba_139_and_445.xml,70
 T32_http_title_edge_cases.xml,100
+T33_http_title_diagnostics.xml,90
 T34_embedded_mac_text.xml,90

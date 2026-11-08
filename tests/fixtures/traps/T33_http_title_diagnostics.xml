@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- Synthetic fixture: diagnostic suffixes are not page titles. -->
+<nmaprun scanner="nmap" start="1794042000">
+<host><status state="up"/><address addr="192.168.1.10" addrtype="ipv4"/><hostnames><hostname name="fixture-device"/></hostnames><ports><port protocol="tcp" portid="80"><state state="open"/><service name="http"/><script id="http-title" output="Welcome&#10;Requested resource was /admin/login"/></port></ports></host>
+<host><status state="up"/><address addr="192.168.1.11" addrtype="ipv4"/><hostnames><hostname name="fixture-device"/></hostnames><ports><port protocol="tcp" portid="80"><state state="open"/><service name="http"/><script id="http-title" output="Admin Login&#13;&#10;Requested resource was /home"/></port></ports></host>
+<host><status state="up"/><address addr="192.168.1.12" addrtype="ipv4"/><hostnames><hostname name="fixture-device"/></hostnames><ports><port protocol="tcp" portid="80"><state state="open"/><service name="http"/><script id="http-title" output="&#10;Admin Login"/></port></ports></host>
+</nmaprun>

@@ -189,6 +189,7 @@ def _parse_port(el: ET.Element) -> RawPort | None:
 # http-title writes these instead of a title. "Did not follow redirect to …/login.htm"
 # must not count as an admin page title.
 _NOT_A_TITLE = ("did not follow redirect", "site doesn't have a title", "request failed")
+_TITLE_LINE_END = re.compile(r"[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]")
 
 
 def _http_title(script: ET.Element) -> str | None:
@@ -196,7 +197,10 @@ def _http_title(script: ET.Element) -> str | None:
     elems = script.findall("elem")
     if elems:  # structured output: only an explicit title element is a title
         return next((_raw(e.text, MAX_TITLE_CHARS) for e in elems if e.get("key") == "title"), None)
-    output = _raw(script.get("output"), MAX_TITLE_CHARS)
+    # Split before RAW normalization joins lines: later lines are diagnostics.
+    raw = script.get("output") or ""
+    end = _TITLE_LINE_END.search(raw)
+    output = _raw(raw[: end.start()] if end else raw, MAX_TITLE_CHARS)
     if output is None or output.lower().startswith(_NOT_A_TITLE):
         return None
     return output

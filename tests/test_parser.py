@@ -276,6 +276,29 @@ def test_format_characters_are_stripped():
     assert parse_bytes(data, "x.xml").hosts[0].ports[0].product == "ab cd ef"
 
 
+@pytest.mark.parametrize("newline", ["&#10;", "&#13;&#10;", "&#13;", "&#x85;", "&#x2028;"])
+@pytest.mark.parametrize(
+    "title, expected",
+    [("Welcome", "Welcome"), ("Admin Login", "Admin Login"), ("", None), ("Request failed", None)],
+)
+def test_http_title_fallback_ignores_diagnostic_lines(newline, title, expected):
+    ports = '<port protocol="tcp" portid="80"><state state="open"/><service name="http"/>'
+    ports += (
+        f'<script id="http-title" output="{title}{newline}'
+        'Requested resource was /admin/login"/></port>'
+    )
+    assert parse_bytes(nmap(host(ports)), "x.xml").hosts[0].ports[0].http_title == expected
+
+
+def test_http_title_structured_title_ignores_output_diagnostics():
+    ports = '<port protocol="tcp" portid="80"><state state="open"/><service name="http"/>'
+    ports += (
+        '<script id="http-title" output="Request failed&#10;/admin">'
+        '<elem key="title">Router Login</elem></script></port>'
+    )
+    assert parse_bytes(nmap(host(ports)), "x.xml").hosts[0].ports[0].http_title == "Router Login"
+
+
 @pytest.mark.parametrize(
     "mac", ["aa:bb:cc:12:34:56", "AA-BB-CC-12-34-56", "aabb.cc12.3456", "aabbcc123456"]
 )
