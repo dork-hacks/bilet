@@ -235,7 +235,7 @@ UI = {
         "en": "Drag to explore. Select a device for details.",
     },
     "map_fullscreen": {"ro": "Ecran complet", "en": "Full screen"},
-    "map_exit_fullscreen": {"ro": "Închide ecranul complet", "en": "Exit full screen"},
+    "map_exit_fullscreen": {"ro": "Închideți ecranul complet", "en": "Exit full screen"},
     "map_focus": {"ro": "Arătați dispozitivul de aproape", "en": "Zoom to this device"},
     "map_selected": {"ro": "Dispozitiv selectat", "en": "Selected device"},
     "map_inspector": {"ro": "Detalii și dispozitive", "en": "Device details and search"},
