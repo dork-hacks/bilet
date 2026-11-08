@@ -18,8 +18,8 @@ TEXT = {
         "a home network security checker",
     ),
     "analyze": (
-        "analizează un dosar cu fișiere XML nmap și scrie findings.csv / scores.csv",
-        "analyse a folder of nmap XML files and write findings.csv / scores.csv",
+        "analizează un fișier sau un dosar cu fișiere XML nmap și scrie findings.csv / scores.csv",
+        "analyse a file or folder of nmap XML files and write findings.csv / scores.csv",
     ),
     "detect": (
         "arată rețeaua la care este conectat calculatorul",
@@ -59,7 +59,7 @@ TEXT = {
         "unde se salvează XML nmap (implicit: scans în dosarul de date, șters cu istoricul)",
         "where to save nmap XML (default: app data/scans, deleted with history)",
     ),
-    "folder": ("dosar cu fișiere XML nmap", "folder with nmap XML files"),
+    "folder": ("fișier sau dosar cu fișiere XML nmap", "file or folder with nmap XML files"),
     "out": ("unde se scriu fișierele CSV", "where to write the CSVs"),
     "json_results": (
         "scrie și un ScanResult JSON pentru fiecare fișier",
@@ -70,7 +70,7 @@ TEXT = {
         "also store the scans in the local history",
     ),
     "json": ("ieșire pentru procesare automată", "machine-readable output"),
-    "not_folder": ("nu este un dosar", "not a folder"),
+    "not_folder": ("nu este un fișier sau un dosar", "not a file or folder"),
     "all_files": (
         "citește și fișierele fără terminația .xml "
         "(un fișier care nu se poate citi primește ERROR)",

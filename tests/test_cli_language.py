@@ -82,7 +82,7 @@ def test_missing_folder(capsys, tmp_path, lang):
     assert main(["--lang", lang, "analyze", str(folder)]) == 2
     err = capsys.readouterr().err
     assert str(folder) in err
-    assert ("nu este un dosar" if lang == "ro" else "not a folder") in err
+    assert ("nu este un fișier sau un dosar" if lang == "ro" else "not a file or folder") in err
 
 
 @pytest.mark.parametrize("lang", ["ro", "en"])

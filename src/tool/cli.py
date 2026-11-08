@@ -102,7 +102,7 @@ def build_parser(lang: str = "ro") -> argparse.ArgumentParser:
                 "--scans-dir", type=Path, default=None, help=cli_text("scans_dir", lang)
             )
         if name == "analyze":
-            cmd.add_argument("folder", type=Path, help=cli_text("folder", lang))
+            cmd.add_argument("folder", metavar="INPUT", type=Path, help=cli_text("folder", lang))
             cmd.add_argument("--out", type=Path, default=Path("out"), help=cli_text("out", lang))
             cmd.add_argument("--json", action="store_true", help=cli_text("json_results", lang))
             cmd.add_argument("--save", action="store_true", help=cli_text("save", lang))
@@ -230,7 +230,7 @@ def analyze_command(args: argparse.Namespace) -> int:
     from tool.export import analyze_folder, skipped_files
 
     folder: Path = args.folder
-    if not folder.is_dir():
+    if not folder.is_dir() and not folder.is_file():
         print(f"{folder}: {cli_text('not_folder', args.lang)}", file=sys.stderr)
         return 2
     json_dir = args.out / "json" if args.json else None
