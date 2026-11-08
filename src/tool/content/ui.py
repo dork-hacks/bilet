@@ -35,6 +35,14 @@ MAP_LEVELS = {
 }
 
 UI = {
+    "scan_snapshot": {
+        "ro": "Rezultat salvat, nu o vedere în timp real",
+        "en": "Saved result, not a live view",
+    },
+    "scan_unknown_file": {"ro": "Fișier necunoscut", "en": "Unknown file"},
+    "scan_recorded": {"ro": "Verificare înregistrată:", "en": "Recorded scan:"},
+    "scan_tools": {"ro": "Istoric și instrumente", "en": "History and tools"},
+    "see_steps": {"ro": "Vezi pașii", "en": "See the steps"},
     "report_total": {"ro": "În total", "en": "Total"},
     "report_device_one": {"ro": "dispozitiv", "en": "device"},
     "report_device_many": {"ro": "dispozitive", "en": "devices"},

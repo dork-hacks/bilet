@@ -4,8 +4,12 @@
        against each background, so keep colours as hex values and sizes in rem or px.
        Page #fbf6ef (cream), text #2b2420 (warm brown), accent #0f5c57 (deep teal). */
     :root { font-size: 18px; color: #2b2420; background: #fbf6ef; }
+    *, *::before, *::after { box-sizing: border-box; }
+    ::selection { background: #0f5c57; color: #ffffff; }
+    input, textarea { caret-color: #0f5c57; }
+    button, input, select { font-family: inherit; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-           line-height: 1.6; margin: 0 auto; max-width: 46rem; padding: 1.25rem 1.25rem 3rem; }
+           line-height: 1.6; margin: 0 auto; max-width: 54rem; padding: 1.25rem 1.25rem 3rem; }
     h1 { font-size: 1.9rem; line-height: 1.25; margin: .5rem 0; }
     h2 { font-size: 1.4rem; line-height: 1.3; margin: 2rem 0 .75rem; }
     a { color: #0f5c57; text-underline-offset: .2em; }
@@ -25,22 +29,22 @@
     nav a:hover { background: #efe5d6; }
     nav [aria-current="true"] { font-weight: 700; color: #2b2420; background: #efe5d6; }
     /* The score: calm traffic light. Icon + label + number, so colour is never alone. */
-    .score { border: 3px solid; border-radius: 1.5rem; padding: 1.5rem; margin: 1.5rem 0;
-             display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
-             box-shadow: 0 6px 20px rgba(80, 55, 30, .08); }
-    .score .icon { font-size: 2.6rem; font-weight: 700; width: 5rem; height: 5rem;
+    .score { border: 1px solid; border-radius: .8rem; padding: 1rem 1.25rem; margin: 1rem 0;
+             display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap; }
+    .score .icon { font-size: 1.8rem; font-weight: 700; width: 3rem; height: 3rem;
                    border-radius: 50%; display: flex; align-items: center;
                    justify-content: center; color: #ffffff; flex-shrink: 0; }
-    .score .number { font-size: 3.4rem; font-weight: 800; line-height: 1; }
-    .score .label { font-size: 1.4rem; font-weight: 700; }
+    .score .number { font-size: 2.8rem; font-weight: 800; line-height: 1; }
+    .score .label { font-size: 1.1rem; font-weight: 700; }
+    .score h2 { font-size: 1rem; margin: 0; }
+    .score p { margin: .2rem 0; }
     .good { border-color: #2e6b34; background: #edf6ea; } .good .icon { background: #2e6b34; }
     .warn { border-color: #8a5300; background: #fff3dc; } .warn .icon { background: #8a5300; }
     .bad  { border-color: #a8322a; background: #fdecea; } .bad .icon  { background: #a8322a; }
     /* "Do this first": the one clear call to action. */
-    .first { border: 3px solid #0f5c57; border-radius: 1.25rem; padding: 1rem 1.25rem;
-             background: #ffffff; margin: 1.25rem 0;
-             box-shadow: 0 6px 20px rgba(80, 55, 30, .08); }
-    .first p { margin: .5rem 0; font-size: 1.2rem; }
+    .first { border: 1px solid #0f5c57; border-radius: .8rem; padding: 1rem 1.25rem;
+             background: #ffffff; margin: 1rem 0; }
+    .first p { margin: .5rem 0; font-size: 1rem; }
     /* Change alerts (#78): icon + heading text, so colour is never the only signal. */
     .alerts { border: 2px solid #d9b46a; background: #fff3dc; border-radius: 1.25rem;
               padding: .5rem 1.25rem; margin: 1rem 0; }
@@ -51,18 +55,17 @@
     .alerts li { font-size: 1.1rem; margin: .25rem 0; }
     .muted { color: #5b5048; }
     /* Devices and findings (#55). The severity is always written in the tag text. */
-    .device { border: 1px solid #eadfce; border-radius: 1.25rem; padding: 1rem 1.25rem;
-              margin: 1rem 0; background: #ffffff;
-              box-shadow: 0 3px 12px rgba(80, 55, 30, .06); }
+    .device { border: 1px solid #eadfce; border-radius: .8rem; padding: 1rem 1.25rem;
+              margin: 1rem 0; background: #ffffff; }
     .device h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; display: flex;
                  align-items: center; flex-wrap: wrap; gap: .5rem; }
     /* Device-type icons (#162): decorative, the device type is always in the text too. */
     .dev-icon { width: 2.25rem; height: 2.25rem; padding: .35rem; border-radius: .75rem;
                 background: #f6ecdf; color: #6b4a2b; flex-shrink: 0; vertical-align: middle; }
     .safe li .dev-icon { width: 1.75rem; height: 1.75rem; padding: .25rem; margin-right: .4rem; }
-    .finding { border-left: 6px solid #5b5048; border-radius: .5rem; padding: .35rem 1rem;
+    .finding { border-top: 1px solid #eadfce; border-radius: .5rem; padding: .35rem 1rem;
                margin: .9rem 0; background: #fdfaf5; }
-    .finding h4 { margin: .25rem 0; font-size: 1.1rem; }
+    .finding h4 { display: inline; margin: .25rem 0; font-size: 1.1rem; }
     .finding p, .finding ol { margin: .45rem 0; }
     .finding li { margin: .2rem 0; }
     .tag { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: #ffffff;
@@ -75,7 +78,7 @@
     .safe summary { cursor: pointer; font-weight: 700; padding: .6rem 0; }
     /* The AI / standard label is text, not only colour (MASTERPLAN 6.5). */
     .source-tag { display: inline-block; font-size: .9rem; border: 1px solid #5b5048;
-           border-radius: 999px; padding: 0 .6rem; color: #5b5048; white-space: nowrap; }
+           border-radius: 999px; padding: 0 .6rem; color: #5b5048; white-space: normal; }
     .ai { margin-top: 2.5rem; border-top: 2px solid #eadfce; }
     .ai h2 { font-size: 1.3rem; }
     .plan { background: #ffffff; border-radius: 1.25rem; padding: .5rem 1.25rem;
@@ -88,14 +91,18 @@
     /* Buttons: rounded, large tap targets (at least 44px high) for phones. */
     .ask button, .history button, .button {
            font-size: 1rem; font-weight: 700; min-height: 2.5rem; margin-top: .6rem;
-           padding: .5rem 1.25rem; border: 2px solid #0f5c57; border-radius: 999px;
+           padding: .55rem 1rem; border: 2px solid #0f5c57; border-radius: .55rem;
            background: #0f5c57; color: #ffffff; cursor: pointer; text-decoration: none;
-           display: inline-block; }
+           display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+           font-family: inherit; line-height: 1.35; max-width: 100%; text-align: center; }
     .ask button:hover, .history button:hover, .button:hover { background: #0a4642; }
+    .button.secondary, .ask button.suggestion { background: #ffffff; color: #0f5c57; }
+    .button.secondary:hover, .ask button.suggestion:hover { background: #efe5d6; color: #0a4642; }
+    button:disabled, .button[aria-disabled="true"] { opacity: .65; cursor: not-allowed; }
     .history button.danger { background: #ffffff; color: #a8322a; border-color: #a8322a; }
     .history button.danger:hover { background: #fdecea; }
     /* "Open a scan file" (#92). */
-    .open input[type=file] { display: block; font-size: 1rem; padding: .35rem 0; }
+    .open input[type=file] { display: block; max-width: 100%; font-size: 1rem; padding: .35rem 0; }
     .opened, .reply, .notice { border-left: 6px solid #0f5c57; border-radius: .75rem;
            padding: .5rem 1.25rem; background: #ffffff; }
     /* History screen (#65). The band label is always written next to its colour. */
@@ -188,20 +195,17 @@
     /* Gentle motion (#162 part 2). Only when the visitor has not asked for less motion:
        with prefers-reduced-motion the page is shown as is, with nothing moving. */
     @media (prefers-reduced-motion: no-preference) {
-      @keyframes rise { from { opacity: 0; transform: translateY(.75rem); }
+      @keyframes rise { from { transform: translateY(.4rem); }
                         to { opacity: 1; transform: none; } }
       @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.25); }
                        100% { transform: scale(1); } }
-      .score, .first, .alerts, .plan, .device, .safe, .changes, .chart {
+      .first {
         animation: rise .5s ease-out both; }
-      .first { animation-delay: .1s; } .alerts, .plan { animation-delay: .15s; }
-      .device { animation-delay: .2s; } .device + .device { animation-delay: .28s; }
-      .device + .device + .device { animation-delay: .36s; }
+
       .done-mark { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both .3s; }
       .device, .button, .ask button, .history button, nav a {
         transition: transform .15s ease-out, box-shadow .15s ease-out, background .15s; }
-      .device:hover { transform: translateY(-2px);
-                      box-shadow: 0 8px 22px rgba(80, 55, 30, .1); }
+
       .button:hover, .ask button:hover, .history button:hover { transform: translateY(-1px); }
       .button:active, .ask button:active, .history button:active { transform: none; }
     }
@@ -210,7 +214,7 @@
       body { padding: .75rem .75rem 2rem; overflow-wrap: anywhere; }
       .score > div { min-width: 0; }
       .source-tag { white-space: normal; }
-      .score { padding: 1.1rem; gap: 1rem; }
+      .score { padding: .85rem; gap: .75rem; }
       .score .number { font-size: 2.8rem; }
       .device, .first { padding: .85rem 1rem; }
       table { display: block; overflow-x: auto; }
@@ -235,5 +239,36 @@
     @media (prefers-reduced-motion: no-preference) {
       .chat-status.waiting { animation: chat-wait 1.4s ease-in-out infinite alternate; }
       @keyframes chat-wait { from { opacity: 1; } to { opacity: .6; } }
+    }
+    /* Shared rhythm and disclosures keep the fixing task ahead of exploration. */
+    .scan-context { margin: 1rem 0; overflow-wrap: anywhere; }
+    .scan-context p { margin: .2rem 0; }
+    .scan-context time { font-variant-numeric: tabular-nums; }
+    .action-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .75rem 0 .25rem; }
+    .action-row form { margin: 0; }
+    .action-row .button { margin: 0; }
+    .support-links { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: 1rem 0 2rem; }
+    .support-links a { padding: .3rem 0; text-decoration: underline; border-radius: 0; font-weight: 500; }
+    .support-links a:hover { background: transparent; }
+    summary { cursor: pointer; padding: .6rem 0; }
+    summary:hover { color: #0f5c57; }
+    .disclosure { border-top: 1px solid #eadfce; padding: .5rem 0; }
+    .disclosure > summary { font-weight: 700; font-size: 1.15rem; }
+    .disclosure > section { margin: .5rem 0 1.5rem; }
+    .disclosure .netmap, .disclosure .plan { border: 0; box-shadow: none; padding: 0; background: transparent; }
+    .why { margin-top: .75rem; }
+    .why summary { color: #0f5c57; text-decoration: underline; text-underline-offset: .2em; }
+    .finding { padding: .25rem 0; background: transparent; }
+    .finding details > :not(summary) { margin-left: .75rem; }
+    .finding:has(details:not([open])) { margin: .25rem 0; }
+    .home .ai { border: 0; margin-top: 0; }
+    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eadfce; color: #5b5048; }
+    @media (max-width: 32rem) {
+      h1 { font-size: 1.6rem; }
+      .score .icon { width: 2.5rem; height: 2.5rem; }
+      .score .number { font-size: 2.4rem; }
+      .device { padding: .75rem; }
+      .tag, .lvl, .worst { white-space: normal; }
+      .chat-message { max-width: 100%; }
     }
   </style>

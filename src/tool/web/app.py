@@ -269,6 +269,11 @@ def create_app(
                 "netmap": network_map(result, view.lang) if view.kind == "ok" else None,
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
+                "scan_start": (
+                    result.get("scan_start")
+                    if isinstance(result, dict) and isinstance(result.get("scan_start"), str)
+                    else None
+                ),
                 "report_token": report_token,
                 "can_scan": scan_runner is not None and local_scan_client(request),
                 **context(view.lang),
