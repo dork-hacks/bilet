@@ -236,6 +236,10 @@
                        100% { transform: scale(1); } }
       .first {
         animation: rise .5s ease-out both; }
+      /* #273 PR 4: pages cross-fade into each other (browsers without View Transitions
+         just load the page), and the hero map follows the answer by a beat. */
+      @view-transition { navigation: auto; }
+      .hero.has-map > .netmap { animation: rise .5s ease-out both .15s; }
 
       .done-mark { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both .3s; }
       .device, .button, .ask button, .history button, nav a {
