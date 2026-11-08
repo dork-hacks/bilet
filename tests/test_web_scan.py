@@ -284,3 +284,14 @@ def test_check_again_links_to_real_lab_fixture_comparison_without_false_resoluti
     assert (comparison.old.id, comparison.new.id) == (before_id, after_id)
     assert len(dict(comparison.sections)[UI["diff_resolved"][lang]]) == 2
     assert comparison.score_line in browser.get(f"/history?lang={lang}").text
+
+
+def test_pages_never_send_no_referrer_so_their_own_posts_keep_their_origin():
+    # "no-referrer" makes browsers send `Origin: null` on form POSTs, which same_origin()
+    # refuses: Check again (and the other forms) answered 403. "same-origin" still keeps
+    # the URL from other sites but sends the real Origin to us.
+    from pathlib import Path
+
+    web = Path(__file__).parents[1] / "src" / "tool" / "web"
+    for path in [web / "app.py", *(web / "templates").glob("*.html")]:
+        assert "no-referrer" not in path.read_text(encoding="utf-8"), path.name

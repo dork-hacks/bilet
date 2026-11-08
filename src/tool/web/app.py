@@ -291,7 +291,7 @@ def create_app(
                 **context(view.lang),
             },
             status_code=status,
-            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "same-origin"},
         )
 
     def render_history(
@@ -471,7 +471,7 @@ def create_app(
             request,
             "report.html",
             {"view": view, "report_token": report_token, **context(lang)},
-            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "same-origin"},
         )
 
     @app.get("/map.json")
