@@ -78,7 +78,7 @@ TEXT = {
     ),
     "skipped": (
         "Fișiere ignorate (nu se termină în .xml): {names}. Dacă fac parte din verificare, "
-        "rulează din nou cu --all-files.",
+        "rulați din nou cu --all-files.",
         "Skipped files (not ending in .xml): {names}. If they are part of the check, "
         "run again with --all-files.",
     ),
@@ -91,11 +91,11 @@ TEXT = {
         "saved {count} scans to the local history",
     ),
     "analyze_root": (
-        "Analiza nu poate porni ca root. Pornește-o ca utilizator obișnuit.",
+        "Analiza nu poate porni ca root. Porniți-o ca utilizator obișnuit.",
         "Refusing to analyze as root. Run it as a normal user.",
     ),
     "serve_root": (
-        "Interfața web nu poate porni ca root. Pornește-o ca utilizator obișnuit.",
+        "Interfața web nu poate porni ca root. Porniți-o ca utilizator obișnuit.",
         "Refusing to start the web interface as root. Run it as a normal user.",
     ),
 }
@@ -108,7 +108,7 @@ def cli_text(key: str, lang: str, **values: object) -> str:
 # Match argparse's templates, leaving user input (even English-looking paths) intact.
 _ERROR_PATTERNS = (
     (r"argument (.*?): (.*)", "argumentul {0}: {1}"),
-    (r"invalid choice: (.*?) \(choose from (.*)\)", "valoare nevalidă: {0} (alege dintre {1})"),
+    (r"invalid choice: (.*?) \(choose from (.*)\)", "valoare nevalidă: {0} (alegeți dintre {1})"),
     (r"the following arguments are required: (.*)", "următoarele argumente sunt obligatorii: {0}"),
     (r"unrecognized arguments: (.*)", "argumente nerecunoscute: {0}"),
     (r"expected one argument", "se așteaptă un argument"),
