@@ -80,12 +80,12 @@ DEVICE_STEPS: dict[tuple[str, str], dict[str, list[str]]] = {
         "ro": [
             "Verificați programul și versiunea veche indicate pentru camera de la adresa {ip}.",
             "Acesta este pasul care rezolvă problema: actualizați programul vechi sau opriți-l.",
-            "Avertismentul rămâne dacă doar schimbați parola. El dispare când versiunea veche nu mai este accesibilă; pagina demonstrativă nu are un buton de actualizare.",
+            "Avertismentul rămâne dacă doar schimbați parola. El dispare când versiunea veche nu mai este accesibilă. Dacă pagina camerei nu are o opțiune de actualizare, cereți ajutor persoanei care a configurat camera.",
         ],
         "en": [
             "Check the old program and version reported for the camera at {ip}.",
             "This is the step that fixes it: update the old program or turn it off.",
-            "Changing only the password leaves this warning in place. It clears when the old version is no longer reachable; the demo page has no update button.",
+            "Changing only the password leaves this warning in place. It clears when the old version is no longer reachable. If the camera's page has no update option, ask whoever set up the camera for help.",
         ],
     },
     # Router: no lab switch names here, because a real router's menus differ by model.
