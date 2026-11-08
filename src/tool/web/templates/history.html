@@ -58,12 +58,12 @@
         <title id="chart-title">{{ ui.chart_label }}. {{ view.trend_summary }}</title>
         {% for mark in (0, 50, 80, 100) %}
         <line x1="30" x2="{{ c.width - 30 }}" y1="{{ c.y_for(mark) }}" y2="{{ c.y_for(mark) }}"
-              stroke="#c8c8c8" stroke-dasharray="4 4"/>
+              class="chart-grid"/>
         <text x="2" y="{{ c.y_for(mark) + 5 }}">{{ mark }}</text>
         {% endfor %}
-        <polyline points="{{ c.polyline }}" fill="none" stroke="#0b4f9c" stroke-width="3"/>
+        <polyline class="chart-line" points="{{ c.polyline }}"/>
         {% for p in c.points %}
-        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="6" fill="#0b4f9c"><title>{{ p.when }}: {{ p.score }}</title></circle>
+        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="6" class="chart-dot"><title>{{ p.when }}: {{ p.score }}</title></circle>
         <text x="{{ p.x }}" y="{{ p.y - 12 }}" text-anchor="middle">{{ p.score }}</text>
         {% endfor %}
       </svg>

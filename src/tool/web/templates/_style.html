@@ -1,140 +1,163 @@
   <style>
+    /* Design tokens (#273): the one place for colours, radii, shadows and motion.
+       Every page and static/netmap.css use these names; never write a hex value
+       outside this block. tests/test_web_a11y.py resolves var(--c-*) back to these
+       values and checks every text/background pair for WCAG AA. */
+    :root {
+      --c-page: #fbf6ef; --c-surface: #ffffff; --c-text: #2b2420;
+      --c-muted: #5b5048; --c-accent: #0f5c57; --c-accent-hover: #0a4642;
+      --c-accent-tint: #edf4f0; --c-line: #eadfce; --c-line-strong: #8c7d6f;
+      --c-tint: #efe5d6; --c-tint-soft: #fdfaf5; --c-sunken: #f6efe4;
+      --c-icon-bg: #f6ecdf; --c-icon: #6b4a2b; --c-good: #2e6b34;
+      --c-good-bg: #edf6ea; --c-warn: #8a5300; --c-warn-bg: #fff3dc;
+      --c-warn-line: #d9b46a; --c-bad: #a8322a; --c-bad-bg: #fdecea;
+      --c-low: #1d5a8a;
+      --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem;
+      --space-5: 1.25rem; --space-6: 2rem;
+      --radius-s: .5rem; --radius-m: .8rem; --radius-l: 1.25rem; --radius-pill: 999px;
+      --shadow-1: 0 3px 10px rgba(80, 55, 30, .12);
+      --shadow-2: 0 12px 40px rgba(43, 55, 48, .06);
+      --dur-fast: .15s; --dur-base: .45s; --ease-out: cubic-bezier(.2, .8, .2, 1);
+    }
     /* Warm, calm palette (#162 part 1). Base text 18px (>= 16px, MASTERPLAN 6.5). Every
        colour pair below passes WCAG AA: tests/test_web_a11y.py checks each text colour
        against each background, so keep colours as hex values and sizes in rem or px.
        Page #fbf6ef (cream), text #2b2420 (warm brown), accent #0f5c57 (deep teal). */
-    :root { font-size: 18px; color: #2b2420; background: #fbf6ef; }
+    :root { font-size: 18px; color: var(--c-text); background: var(--c-page); }
     *, *::before, *::after { box-sizing: border-box; }
-    ::selection { background: #0f5c57; color: #ffffff; }
-    input, textarea { caret-color: #0f5c57; }
+    ::selection { background: var(--c-accent); color: var(--c-surface); }
+    input, textarea { caret-color: var(--c-accent); }
     button, input, select { font-family: inherit; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
            line-height: 1.6; margin: 0 auto; max-width: 54rem; padding: 1.25rem 1.25rem 3rem; }
     h1 { font-size: 1.9rem; line-height: 1.25; margin: .5rem 0; }
     h2 { font-size: 1.4rem; line-height: 1.3; margin: 2rem 0 .75rem; }
-    a { color: #0f5c57; text-underline-offset: .2em; }
-    a:hover { color: #0a4642; }
+    a { color: var(--c-accent); text-underline-offset: .2em; }
+    a:hover { color: var(--c-accent-hover); }
     a:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible,
     input:focus-visible {
-      outline: 3px solid #0f5c57; outline-offset: 3px; border-radius: .4rem; }
+      outline: 3px solid var(--c-accent); outline-offset: 3px; border-radius: .4rem; }
     .skip { position: absolute; left: -999px; }
-    .skip:focus { left: 1rem; top: 1rem; background: #ffffff; padding: .5rem 1rem;
+    .skip:focus { left: 1rem; top: 1rem; background: var(--c-surface); padding: .5rem 1rem;
                   border-radius: .75rem; z-index: 10; }
     header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-             flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 2px solid #eadfce; }
+             flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 2px solid var(--c-line); }
     nav ul { list-style: none; display: flex; gap: .5rem; margin: 0; padding: 0;
              flex-wrap: wrap; }
     nav a { display: inline-block; padding: .35rem .9rem; border-radius: 999px;
             text-decoration: none; font-weight: 600; }
-    nav a:hover { background: #efe5d6; }
-    nav [aria-current="true"] { font-weight: 700; color: #2b2420; background: #efe5d6; }
+    nav a:hover { background: var(--c-tint); }
+    nav [aria-current="true"] { font-weight: 700; color: var(--c-text); background: var(--c-tint); }
     /* The score: calm traffic light. Icon + label + number, so colour is never alone. */
     .score { border: 1px solid; border-radius: .8rem; padding: 1rem 1.25rem; margin: 1rem 0;
              display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap; }
     .score .icon { font-size: 1.8rem; font-weight: 700; width: 3rem; height: 3rem;
                    border-radius: 50%; display: flex; align-items: center;
-                   justify-content: center; color: #ffffff; flex-shrink: 0; }
+                   justify-content: center; color: var(--c-surface); flex-shrink: 0; }
     .score .number { font-size: 2.8rem; font-weight: 800; line-height: 1; }
     .score .label { font-size: 1.1rem; font-weight: 700; }
     .score h2 { font-size: 1rem; margin: 0; }
     .score p { margin: .2rem 0; }
-    .good { border-color: #2e6b34; background: #edf6ea; } .good .icon { background: #2e6b34; }
-    .warn { border-color: #8a5300; background: #fff3dc; } .warn .icon { background: #8a5300; }
-    .bad  { border-color: #a8322a; background: #fdecea; } .bad .icon  { background: #a8322a; }
+    .good { border-color: var(--c-good); background: var(--c-good-bg); } .good .icon { background: var(--c-good); }
+    .warn { border-color: var(--c-warn); background: var(--c-warn-bg); } .warn .icon { background: var(--c-warn); }
+    .bad  { border-color: var(--c-bad); background: var(--c-bad-bg); } .bad .icon  { background: var(--c-bad); }
     /* "Do this first": the one clear call to action. */
-    .first { border: 1px solid #0f5c57; border-radius: .8rem; padding: 1rem 1.25rem;
-             background: #ffffff; margin: 1rem 0; }
+    .first { border: 1px solid var(--c-accent); border-radius: .8rem; padding: 1rem 1.25rem;
+             background: var(--c-surface); margin: 1rem 0; }
     .first p { margin: .5rem 0; font-size: 1rem; }
     /* Change alerts (#78): icon + heading text, so colour is never the only signal. */
-    .alerts { border: 2px solid #d9b46a; background: #fff3dc; border-radius: 1.25rem;
+    .alerts { border: 2px solid var(--c-warn-line); background: var(--c-warn-bg); border-radius: 1.25rem;
               padding: .5rem 1.25rem; margin: 1rem 0; }
     .alerts h2 { display: flex; align-items: center; gap: .5rem; margin: .75rem 0; }
-    .alerts .icon { background: #8a5300; color: #ffffff; border-radius: 50%; width: 2.2rem;
+    .alerts .icon { background: var(--c-warn); color: var(--c-surface); border-radius: 50%; width: 2.2rem;
                     height: 2.2rem; display: inline-flex; align-items: center;
                     justify-content: center; font-weight: 700; flex-shrink: 0; }
     .alerts li { font-size: 1.1rem; margin: .25rem 0; }
-    .muted { color: #5b5048; }
+    .muted { color: var(--c-muted); }
     /* Devices and findings (#55). The severity is always written in the tag text. */
-    .device { border: 1px solid #eadfce; border-radius: .8rem; padding: 1rem 1.25rem;
-              margin: 1rem 0; background: #ffffff; }
+    .device { border: 1px solid var(--c-line); border-radius: .8rem; padding: 1rem 1.25rem;
+              margin: 1rem 0; background: var(--c-surface); }
     .device h3 { margin: .25rem 0 .5rem; font-size: 1.25rem; display: flex;
                  align-items: center; flex-wrap: wrap; gap: .5rem; }
     /* Device-type icons (#162): decorative, the device type is always in the text too. */
     .dev-icon { width: 2.25rem; height: 2.25rem; padding: .35rem; border-radius: .75rem;
-                background: #f6ecdf; color: #6b4a2b; flex-shrink: 0; vertical-align: middle; }
+                background: var(--c-icon-bg); color: var(--c-icon); flex-shrink: 0; vertical-align: middle; }
     .safe li .dev-icon { width: 1.75rem; height: 1.75rem; padding: .25rem; margin-right: .4rem; }
-    .finding { border-top: 1px solid #eadfce; border-radius: .5rem; padding: .35rem 1rem;
-               margin: .9rem 0; background: #fdfaf5; }
+    .finding { border-top: 1px solid var(--c-line); border-radius: .5rem; padding: .35rem 1rem;
+               margin: .9rem 0; background: var(--c-tint-soft); }
     .finding h4 { display: inline; margin: .25rem 0; font-size: 1.1rem; }
     .finding p, .finding ol { margin: .45rem 0; }
     .finding li { margin: .2rem 0; }
-    .tag { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: #ffffff;
-           background: #5b5048; white-space: nowrap; }
-    .sev-high { border-left-color: #a8322a; } .sev-high .tag { background: #a8322a; }
-    .sev-medium { border-left-color: #8a5300; } .sev-medium .tag { background: #8a5300; }
-    .sev-low { border-left-color: #1d5a8a; } .sev-low .tag { background: #1d5a8a; }
-    .safe { background: #ffffff; border-radius: 1.25rem; padding: .25rem 1.25rem;
-            border: 1px solid #eadfce; }
+    .tag { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: var(--c-surface);
+           background: var(--c-muted); white-space: nowrap; }
+    .sev-high { border-left-color: var(--c-bad); } .sev-high .tag { background: var(--c-bad); }
+    .sev-medium { border-left-color: var(--c-warn); } .sev-medium .tag { background: var(--c-warn); }
+    .sev-low { border-left-color: var(--c-low); } .sev-low .tag { background: var(--c-low); }
+    .safe { background: var(--c-surface); border-radius: 1.25rem; padding: .25rem 1.25rem;
+            border: 1px solid var(--c-line); }
     .safe summary { cursor: pointer; font-weight: 700; padding: .6rem 0; }
     /* The AI / standard label is text, not only colour (MASTERPLAN 6.5). */
-    .source-tag { display: inline-block; font-size: .9rem; border: 1px solid #5b5048;
-           border-radius: 999px; padding: 0 .6rem; color: #5b5048; white-space: normal; }
-    .ai { margin-top: 2.5rem; border-top: 2px solid #eadfce; }
+    .source-tag { display: inline-block; font-size: .9rem; border: 1px solid var(--c-muted);
+           border-radius: 999px; padding: 0 .6rem; color: var(--c-muted); white-space: normal; }
+    .ai { margin-top: 2.5rem; border-top: 2px solid var(--c-line); }
     .ai h2 { font-size: 1.3rem; }
-    .plan { background: #ffffff; border-radius: 1.25rem; padding: .5rem 1.25rem;
-            border: 1px solid #eadfce; }
+    .plan { background: var(--c-surface); border-radius: 1.25rem; padding: .5rem 1.25rem;
+            border: 1px solid var(--c-line); }
     .plan ol { margin: .5rem 0; padding-left: 1.5rem; }
     .ask label { display: block; font-weight: 700; margin: .75rem 0 .35rem; }
     .ask input[type=text] { font-size: 1rem; width: 100%; box-sizing: border-box;
-           padding: .7rem 1rem; border: 2px solid #8c7d6f; border-radius: 1rem;
-           background: #ffffff; color: #2b2420; }
+           padding: .7rem 1rem; border: 2px solid var(--c-line-strong); border-radius: 1rem;
+           background: var(--c-surface); color: var(--c-text); }
     /* Buttons: rounded, large tap targets (at least 44px high) for phones. */
     .ask button, .history button, .button {
            font-size: 1rem; font-weight: 700; min-height: 2.5rem; margin-top: .6rem;
-           padding: .55rem 1rem; border: 2px solid #0f5c57; border-radius: .55rem;
-           background: #0f5c57; color: #ffffff; cursor: pointer; text-decoration: none;
+           padding: .55rem 1rem; border: 2px solid var(--c-accent); border-radius: .55rem;
+           background: var(--c-accent); color: var(--c-surface); cursor: pointer; text-decoration: none;
            display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
            font-family: inherit; line-height: 1.35; max-width: 100%; text-align: center; }
-    .ask button:hover, .history button:hover, .button:hover { background: #0a4642; }
-    .button.secondary, .ask button.suggestion { background: #ffffff; color: #0f5c57; }
-    .button.secondary:hover, .ask button.suggestion:hover { background: #efe5d6; color: #0a4642; }
+    .ask button:hover, .history button:hover, .button:hover { background: var(--c-accent-hover); }
+    .button.secondary, .ask button.suggestion { background: var(--c-surface); color: var(--c-accent); }
+    .button.secondary:hover, .ask button.suggestion:hover { background: var(--c-tint); color: var(--c-accent-hover); }
     button:disabled, .button[aria-disabled="true"] { opacity: .65; cursor: not-allowed; }
-    .history button.danger { background: #ffffff; color: #a8322a; border-color: #a8322a; }
-    .history button.danger:hover { background: #fdecea; }
+    .history button.danger { background: var(--c-surface); color: var(--c-bad); border-color: var(--c-bad); }
+    .history button.danger:hover { background: var(--c-bad-bg); }
     /* "Open a scan file" (#92). */
     .open input[type=file] { display: block; max-width: 100%; font-size: 1rem; padding: .35rem 0; }
-    .opened, .reply, .notice { border-left: 6px solid #0f5c57; border-radius: .75rem;
-           padding: .5rem 1.25rem; background: #ffffff; }
+    .opened, .reply, .notice { border-left: 6px solid var(--c-accent); border-radius: .75rem;
+           padding: .5rem 1.25rem; background: var(--c-surface); }
     /* History screen (#65). The band label is always written next to its colour. */
     table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem;
-            background: #ffffff; border-radius: 1rem; overflow: hidden; }
-    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #eadfce; }
-    .chip { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: #ffffff;
+            background: var(--c-surface); border-radius: 1rem; overflow: hidden; }
+    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--c-line); }
+    .chip { font-weight: 700; padding: .05rem .55rem; border-radius: 999px; color: var(--c-surface);
             white-space: nowrap; }
-    .chip.good { background: #2e6b34; } .chip.warn { background: #8a5300; }
-    .chip.bad { background: #a8322a; }
-    .chart { width: 100%; height: auto; border: 1px solid #eadfce; border-radius: 1rem;
-             background: #ffffff; }
-    .chart text { font-size: 16px; fill: #2b2420; }
+    .chip.good { background: var(--c-good); } .chip.warn { background: var(--c-warn); }
+    .chip.bad { background: var(--c-bad); }
+    .chart { width: 100%; height: auto; border: 1px solid var(--c-line); border-radius: 1rem;
+             background: var(--c-surface); }
+    .chart text { font-size: 16px; fill: var(--c-text); }
+    .chart-grid { stroke: var(--c-line-strong); stroke-dasharray: 4 4; opacity: .5; }
+    .chart-line { fill: none; stroke: var(--c-accent); stroke-width: 3; }
+    .chart-dot { fill: var(--c-accent); }
     .picker label { display: block; font-weight: 700; margin: .75rem 0 .35rem; }
     .picker select { font-size: 1rem; padding: .5rem .75rem; max-width: 100%;
-                     border: 2px solid #8c7d6f; border-radius: .75rem; background: #ffffff;
-                     color: #2b2420; }
+                     border: 2px solid var(--c-line-strong); border-radius: .75rem; background: var(--c-surface);
+                     color: var(--c-text); }
     .changes h3 { font-size: 1.1rem; margin: 1rem 0 .25rem; }
     /* Network map (#170). Each level is a chip with a sign and a word, never colour alone.
        The 3D stage is drawn by static/netmap.js; the list is the map without JS/WebGL. */
-    .netmap { background: #ffffff; border: 1px solid #eadfce; border-radius: 1.25rem;
+    .netmap { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 1.25rem;
               padding: .25rem 1.25rem 1rem; margin: 1.5rem 0;
               box-shadow: 0 3px 12px rgba(80, 55, 30, .06); }
-    .lvl { font-weight: 700; padding: .05rem .6rem; border-radius: 999px; color: #ffffff;
-           background: #5b5048; white-space: nowrap; display: inline-block; }
-    .lvl-high { background: #a8322a; } .lvl-medium { background: #8a5300; }
-    .lvl-low { background: #1d5a8a; } .lvl-none { background: #2e6b34; }
-    .worst { font-weight: 700; border: 2px solid #a8322a; color: #a8322a; border-radius: 999px;
+    .lvl { font-weight: 700; padding: .05rem .6rem; border-radius: 999px; color: var(--c-surface);
+           background: var(--c-muted); white-space: nowrap; display: inline-block; }
+    .lvl-high { background: var(--c-bad); } .lvl-medium { background: var(--c-warn); }
+    .lvl-low { background: var(--c-low); } .lvl-none { background: var(--c-good); }
+    .worst { font-weight: 700; border: 2px solid var(--c-bad); color: var(--c-bad); border-radius: 999px;
              padding: 0 .55rem; white-space: nowrap; display: inline-block; }
     .netmap-list ul, .netmap-legend ul { list-style: none; padding: 0; margin: .25rem 0; }
     .netmap-list li { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
-                      padding: .4rem 0; border-bottom: 1px solid #eadfce; }
+                      padding: .4rem 0; border-bottom: 1px solid var(--c-line); }
     .netmap-list p .dev-icon, .netmap-list .dev-icon { width: 2rem; height: 2rem;
                       padding: .3rem; vertical-align: middle; }
     .netmap-legend ul { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -142,26 +165,26 @@
     .netmap-switch { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
     .netmap-switch button, .netmap-tools button, .nm-label { font-family: inherit; }
     .netmap-switch button { font-size: 1rem; font-weight: 700; min-height: 2.75rem;
-           padding: .4rem 1.1rem; border: 2px solid #0f5c57; border-radius: 999px;
-           background: #ffffff; color: #0f5c57; cursor: pointer; }
-    .netmap-switch button[aria-pressed="true"] { background: #0f5c57; color: #ffffff; }
+           padding: .4rem 1.1rem; border: 2px solid var(--c-accent); border-radius: 999px;
+           background: var(--c-surface); color: var(--c-accent); cursor: pointer; }
+    .netmap-switch button[aria-pressed="true"] { background: var(--c-accent); color: var(--c-surface); }
     .netmap-stage { position: relative; height: clamp(20rem, 60vw, 30rem); overflow: hidden;
-           border-radius: 1rem; border: 1px solid #eadfce; touch-action: pan-y;
-           background: #f6efe4;
-           background-image: radial-gradient(circle at 50% 40%, #fdfaf5 0%, #efe5d6 100%); }
-    .netmap-stage:focus-visible { outline: 3px solid #0f5c57; outline-offset: 3px; }
+           border-radius: 1rem; border: 1px solid var(--c-line); touch-action: pan-y;
+           background: var(--c-sunken);
+           background-image: radial-gradient(circle at 50% 40%, var(--c-tint-soft) 0%, var(--c-tint) 100%); }
+    .netmap-stage:focus-visible { outline: 3px solid var(--c-accent); outline-offset: 3px; }
     .netmap-stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
     .netmap-stage canvas:active { cursor: grabbing; }
     .netmap-tools { position: absolute; right: .5rem; bottom: .5rem; z-index: 2000; display: flex;
            gap: .35rem; }
     .netmap-tools button { min-width: 2.75rem; font-size: 1rem; font-weight: 700; min-height: 2.5rem;
-           padding: .3rem .9rem; border: 2px solid #0f5c57; border-radius: 999px;
-           background: #ffffff; color: #0f5c57; cursor: pointer; }
+           padding: .3rem .9rem; border: 2px solid var(--c-accent); border-radius: 999px;
+           background: var(--c-surface); color: var(--c-accent); cursor: pointer; }
     /* One button per device on the map: the keyboard and screen-reader way in. */
     .nm-label { position: absolute; left: 0; top: 0; z-index: 2; display: flex;
            align-items: center; gap: .35rem; font-size: 1rem; line-height: 1.25;
            padding: .25rem .55rem .25rem .3rem; border-radius: .9rem; cursor: pointer;
-           border: 2px solid #8c7d6f; background: #ffffff; color: #2b2420;
+           border: 2px solid var(--c-line-strong); background: var(--c-surface); color: var(--c-text);
            box-shadow: 0 3px 10px rgba(80, 55, 30, .18); max-width: 14rem; text-align: left;
            will-change: transform; }
     .nm-label .dev-icon { width: 1.9rem; height: 1.9rem; padding: .2rem; }
@@ -169,15 +192,15 @@
            gap: .15rem; }
     .nm-label .nm-type { font-weight: 700; }
     .nm-label .lvl { font-size: 1rem; padding: 0 .45rem; }
-    .nm-label.lvl-high-b { border-color: #a8322a; } .nm-label.lvl-medium-b { border-color: #8a5300; }
-    .nm-label.lvl-low-b { border-color: #1d5a8a; } .nm-label.lvl-none-b { border-color: #2e6b34; }
+    .nm-label.lvl-high-b { border-color: var(--c-bad); } .nm-label.lvl-medium-b { border-color: var(--c-warn); }
+    .nm-label.lvl-low-b { border-color: var(--c-low); } .nm-label.lvl-none-b { border-color: var(--c-good); }
     .netmap-stage.compact .nm-type, .netmap-stage.compact .nm-label .lvl-word { display: none; }
     .netmap-stage.compact .nm-label .dev-icon { width: 1.6rem; height: 1.6rem; }
-    .nm-label[aria-pressed="true"] { outline: 3px solid #0f5c57; outline-offset: 2px; }
-    .nm-label:focus-visible { outline: 4px solid #0f5c57; outline-offset: 3px; }
+    .nm-label[aria-pressed="true"] { outline: 3px solid var(--c-accent); outline-offset: 2px; }
+    .nm-label:focus-visible { outline: 4px solid var(--c-accent); outline-offset: 3px; }
     .nm-label[data-behind="true"] { opacity: .55; }
-    .netmap-detail { margin-top: .75rem; border-left: 6px solid #0f5c57; border-radius: .75rem;
-           padding: .25rem 1.25rem; background: #fdfaf5; }
+    .netmap-detail { margin-top: .75rem; border-left: 6px solid var(--c-accent); border-radius: .75rem;
+           padding: .25rem 1.25rem; background: var(--c-tint-soft); }
     .netmap-detail h3 { font-size: 1.25rem; display: flex; align-items: center; flex-wrap: wrap;
            gap: .5rem; margin: .6rem 0 .4rem; }
     .netmap-detail dl { display: grid; grid-template-columns: auto 1fr; gap: .1rem .75rem;
@@ -191,7 +214,7 @@
     /* Resolved findings in history get a check mark (#162). The text says "resolved" too. */
     .done-mark { display: inline-flex; align-items: center; justify-content: center;
                  width: 1.5rem; height: 1.5rem; margin-right: .4rem; border-radius: 50%;
-                 background: #2e6b34; color: #ffffff; font-weight: 700; font-size: .9rem; }
+                 background: var(--c-good); color: var(--c-surface); font-weight: 700; font-size: .9rem; }
     /* Gentle motion (#162 part 2). Only when the visitor has not asked for less motion:
        with prefers-reduced-motion the page is shown as is, with nothing moving. */
     @media (prefers-reduced-motion: no-preference) {
@@ -227,13 +250,13 @@
     .chat-message { max-width: 85%; padding: .75rem 1rem; border-radius: 1rem;
                     overflow-wrap: anywhere; }
     .chat-message p { margin: .25rem 0 .5rem; }
-    .chat-message.assistant { align-self: flex-start; background: #ffffff; }
-    .chat-message.owner { align-self: flex-end; background: #efe5d6; }
+    .chat-message.assistant { align-self: flex-start; background: var(--c-surface); }
+    .chat-message.owner { align-self: flex-end; background: var(--c-tint); }
     .chat-suggestions { display: flex; flex-wrap: wrap; gap: .5rem; }
     .chat-suggestions[hidden] { display: none; }
-    .ask button.suggestion { background: #ffffff; color: #0f5c57; text-align: left;
+    .ask button.suggestion { background: var(--c-surface); color: var(--c-accent); text-align: left;
                             white-space: normal; }
-    .ask button.suggestion:hover { background: #efe5d6; }
+    .ask button.suggestion:hover { background: var(--c-tint); }
     .chat button:disabled { cursor: wait; opacity: .65; }
     .chat-status { min-height: 1.6em; }
     @media (prefers-reduced-motion: no-preference) {
@@ -251,18 +274,18 @@
     .support-links a { padding: .3rem 0; text-decoration: underline; border-radius: 0; font-weight: 500; }
     .support-links a:hover { background: transparent; }
     summary { cursor: pointer; padding: .6rem 0; }
-    summary:hover { color: #0f5c57; }
-    .disclosure { border-top: 1px solid #eadfce; padding: .5rem 0; }
+    summary:hover { color: var(--c-accent); }
+    .disclosure { border-top: 1px solid var(--c-line); padding: .5rem 0; }
     .disclosure > summary { font-weight: 700; font-size: 1.15rem; }
     .disclosure > section { margin: .5rem 0 1.5rem; }
     .disclosure .netmap, .disclosure .plan { border: 0; box-shadow: none; padding: 0; background: transparent; }
     .why { margin-top: .75rem; }
-    .why summary { color: #0f5c57; text-decoration: underline; text-underline-offset: .2em; }
+    .why summary { color: var(--c-accent); text-decoration: underline; text-underline-offset: .2em; }
     .finding { padding: .25rem 0; background: transparent; }
     .finding details > :not(summary) { margin-left: .75rem; }
     .finding:has(details:not([open])) { margin: .25rem 0; }
     .home .ai { border: 0; margin-top: 0; }
-    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eadfce; color: #5b5048; }
+    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--c-line); color: var(--c-muted); }
     @media (max-width: 32rem) {
       h1 { font-size: 1.6rem; }
       .score .icon { width: 2.5rem; height: 2.5rem; }

@@ -53,9 +53,26 @@ def full_hex(colour: str) -> str:
     return colour if len(colour) == 7 else "#" + "".join(c * 2 for c in colour[1:])
 
 
+def tokens(styles: str) -> dict[str, str]:
+    """The design tokens (#273): `--name: #hex;` declarations in any :root block."""
+    return dict(re.findall(r"--([\w-]+)\s*:\s*(#[0-9a-fA-F]{3,6})\b", styles))
+
+
+def resolve(styles: str) -> str:
+    """Replace var(--token) with its hex value, so tokenised rules are still audited."""
+    table = tokens(styles)
+
+    def value(match: re.Match[str]) -> str:
+        name = match.group(1)
+        assert name in table, f"var(--{name}) has no colour token"
+        return table[name]
+
+    return re.sub(r"var\(--(c-[\w-]+)\)", value, styles)
+
+
 def colours(prop: str, styles: str) -> set[str]:
     # Read the whole declaration so gradient stops count as backgrounds too.
-    declarations = re.findall(rf"(?<![-\w]){prop}\s*:\s*([^;{{}}]+)", styles)
+    declarations = re.findall(rf"(?<![-\w]){prop}\s*:\s*([^;{{}}]+)", resolve(styles))
     return {
         full_hex(colour)
         for value in declarations
@@ -116,6 +133,22 @@ def test_no_text_smaller_than_16px(path):
         value, unit = match.groups()
         px = float(value) * (ROOT_PX if unit == "rem" else 1)
         assert px >= MIN_PX, f"{path.name}: font-size {value}{unit} is {px:.1f}px"
+
+
+def test_colours_come_only_from_the_design_tokens():
+    """#273: one palette. A hex value outside the :root token block is a stray colour."""
+    pages = sorted(STYLE.parent.glob("*.html"))
+    for path in [MAP_STYLE, *pages]:
+        if path == REPORT_STYLE:
+            continue  # the standalone printable report keeps its own small print palette
+        text = css(path)
+        text = re.sub(r"\{#.*?#\}", "", text, flags=re.S)  # Jinja comments mention issues
+        text = re.sub(r":root\s*\{[^}]*\}", "", text)
+        stray = re.findall(r"#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", text)
+        assert not stray, f"{path.name}: use a var(--c-*) token instead of {stray}"
+        assert " style=" not in text, f"{path.name}: inline style attribute"
+    for name in re.findall(r"var\(--(c-[\w-]+)\)", css() + css(MAP_STYLE)):
+        assert name in tokens(css()), f"var(--{name}) is not defined in _style.html"
 
 
 def test_root_font_size_is_the_one_the_test_assumes():
