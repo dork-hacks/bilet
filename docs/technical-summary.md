@@ -22,10 +22,10 @@ bilet scans a network you own, scores it against the official catalog and explai
 
 MACs are masked and devices keyed by a salted HMAC. History stays local, with one-click delete.
 
-**Checked on `main` (`c7d2b03`), 8 Nov:**
+**Checked on `main` (`9cecdf5`), 8 Nov:**
 
-- 1,566 tests pass.
-- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 31 trap files, a generated 21 MiB one (`ERROR`) and the lab captures.
+- 1,776 tests pass.
+- `make validate` reproduces the Validation Set's 24 findings and 8 scores byte for byte (V7 is `ERROR`), plus our 33 trap files, a generated 21 MiB one (`ERROR`) and the lab captures.
 - CI runs gitleaks, tests, lint and the golden test on every PR.
 
 ## Assumptions
