@@ -109,11 +109,11 @@ The same file through the UI's "Open a scan file" shows the RO/EN error on the p
 
 ## 6. Before/after from our own lab: the score improves
 
-The lab captures (#34) are the real ones. Load **only L1 and L2** into a **fresh** history, then
-open **`/history`**. Not the whole folder: L3 (score 20, the other toggles) is newer than L2
-(55), the trend runs from the first scan to the last and the compare view defaults to the two
-newest, so with L3 loaded `/history` would say the score went *down* (#225). Older scans in
-your normal history would muddle the chart too.
+The lab captures (#34) are the real ones: `tests/fixtures/lab/` holds exactly L1 (25) and L2
+(55). Load **only that pair** into a **fresh** history, then open **`/history`**. The trend runs
+from the first scan to the last, and the compare view defaults to the two newest. So any other
+scan in that history, such as older scans from your normal history or a later capture with other
+toggles, would change the chart or the compared pair (#225).
 
 ```bash
 export TOOL_DATA_DIR=$(mktemp -d)        # a fresh history for this check only
