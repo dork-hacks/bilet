@@ -614,8 +614,8 @@ SCAN_MESSAGES: dict[str, dict[str, str]] = {
         "en": "This computer ({address}) isn't checked: a scan of itself doesn't see what the rest of the network sees.",
     },
     "DONE": {
-        "ro": "Scanare salvată: {path}. Scor: {score}/100. Probleme găsite: {findings}. Vedeți rezultatele cu comanda: tool serve",
-        "en": "Scan saved: {path}. Score: {score}/100. Findings: {findings}. See the results with the command: tool serve",
+        "ro": "Scanare salvată: {path}. Scor: {score}/100. Probleme găsite: {findings}. Vedeți rezultatele cu comanda: bilet serve",
+        "en": "Scan saved: {path}. Score: {score}/100. Findings: {findings}. See the results with the command: bilet serve",
     },
     "NMAP_NOT_FOUND": {
         "ro": "nmap nu este instalat. Instalați-l (de exemplu sudo apt install nmap sau brew install nmap) și încercați din nou.",
