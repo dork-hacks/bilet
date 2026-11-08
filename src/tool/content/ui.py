@@ -514,12 +514,14 @@ UI = {
     "delete_heading": {"ro": "Șterge istoricul meu", "en": "Delete my history"},
     "delete_note": {
         "ro": (
-            "Șterge istoricul, explicațiile AI și fișierele XML din dosarul de date al aplicației. "
-            "Fișierele din alte dosare, inclusiv vechiul scans/, rămân acolo. Nu se poate anula."
+            "Șterge istoricul, explicațiile AI și capturile XML din subdosarul scans al dosarului "
+            "de date. Copiile din alte dosare alese manual, inclusiv alte subdosare ale "
+            "dosarului de date și vechiul scans/ separat, rămân. Nu se poate anula."
         ),
         "en": (
-            "This deletes history, saved AI explanations and raw XML in the app's data folder. "
-            "Files in other folders, including the old scans/ folder, are kept. It can't be undone."
+            "This deletes history, saved AI explanations and XML captures in the app data folder's "
+            "scans subfolder. Copies in other custom folders, including other subfolders of "
+            "the data folder and the old separate scans/ folder, are kept. It can't be undone."
         ),
     },
     "delete_button": {"ro": "Șterge istoricul", "en": "Delete my history"},

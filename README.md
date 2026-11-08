@@ -48,7 +48,7 @@ Then open <http://127.0.0.1:8000>. By default it listens on this computer only. 
 - **Every risk explained (`/risks`):** the explanation and fix steps for all 15 problem types, with their CIS Controls and OWASP IoT references.
 - **History (`/history`):** the score over time, a comparison of any two scans (new and removed devices, opened and closed ports, fixed problems), and "Delete my history".
 
-History, the device-key salt, the AI cache and default raw scan XML live in `data/` (git-ignored; set `TOOL_DATA_DIR` to move it). "Delete my history" removes these managed files, including `data/scans/`. XML contains full device identifiers, so remove unwanted copies too. Explicit `--scans-dir` locations outside this managed folder and captures created by older versions in the separate `scans/` folder are **not** deleted or moved automatically; remove those yourself. A deletion failure is reported instead of claiming everything was removed.
+History, the device-key salt, the AI cache and default raw scan XML live in `data/` (git-ignored; set `TOOL_DATA_DIR` to move it). "Delete my history" removes these managed files, including `data/scans/`. XML contains full device identifiers, so remove unwanted copies too. Only captures in the managed `<data folder>/scans` subfolder are included. Other explicit `--scans-dir` locations, including `<data folder>/custom-output`, and captures created by older versions in the separate `scans/` folder are **not** deleted or moved automatically; remove those yourself. The normal AI-cache cleanup still applies to the app-owned `ai_cache` directory. A deletion failure is reported instead of claiming everything was removed.
 
 ### AI explanations (optional)
 

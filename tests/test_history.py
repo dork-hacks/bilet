@@ -179,14 +179,15 @@ def test_delete_my_history_leaves_nothing(tmp_path):
     h.delete_all()  # twice is fine
 
 
-def test_delete_removes_nested_managed_captures_but_not_legacy_or_custom(tmp_path):
+@pytest.mark.parametrize("relative", ["scans", "data/custom-output"])
+def test_delete_removes_nested_managed_captures_but_not_legacy_or_custom(tmp_path, relative):
     history = History(tmp_path / "data")
     history.add(scan("V1_home_basic.xml"))
     managed = history.folder / "scans" / "nested"
     managed.mkdir(parents=True)
     (managed / "raw.xml").write_text("private raw capture")
-    legacy = tmp_path / "scans"
-    legacy.mkdir()
+    legacy = tmp_path / relative
+    legacy.mkdir(parents=True)
     external = legacy / "keep.xml"
     external.write_text("explicit or legacy capture")
     history.delete_all()
