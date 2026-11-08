@@ -83,7 +83,7 @@ can demonstrate the physical sequence during the separate live checks if ready.
 | Lab 25 → 55, two resolved | `tests/fixtures/lab/expected_scores.csv` and the committed screenshots linked above; see [asset notes](screenshots/155-lab-manager/README.md). |
 | 269 seconds, score 25, 23/23 rehearsal checks | Agent-D's hardware evidence, recorded on main `3a19d3e`, 8 Nov 00:23–00:28 UTC; summarized in [human actions](human-actions.md). Not measured by the pitch author. Do not promise the same timing with extra hotspot clients. |
 | AI answers rejected | **No measured count supplied for this pitch.** If demonstrating it, read the current UI's “AI answers blocked by the safety check” counter and state the observed count and context. Do not invent a total or label every rejected answer a hallucination. |
-| Final UI / full browser Check again path | #273 UI integration and #145 physical browser acceptance remain separate gates. Earlier runner acceptance is not proof of the whole browser path. |
+| Final UI / full browser Check again path | The #273 UI integration is merged (#294, #296). The #145 in-browser Check again press on the lab is still open (`docs/human-actions.md` row 4). Earlier runner acceptance is not proof of the whole browser path. |
 | User acceptance | Native Romanian review and the polite-form decision are recorded in #145/#287. Testing with a real nontechnical person is still pending; do not claim it passed. |
 | Morning Test Set / final build | Follow [Test Set runbook](test-set-runbook.md) and [live checks](live-checks.md). Replace no evidence with guesses. Upload and final tag remain human-only. |
 
