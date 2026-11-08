@@ -186,8 +186,8 @@ function start(data) {
       section.classList.remove("is-expanded"); syncFullscreen();
     });
     focusButton.className = "nm-focus-action";
-    detail.insertBefore(focusButton, facts);
-    actions.append(link); detail.append(actions);
+    // One row of actions under the facts (#298): the fix steps first, the camera move after.
+    actions.append(link, focusButton); detail.append(actions);
   }
   function select(entry, move = false) {
     selected = entry;
