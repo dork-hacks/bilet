@@ -412,3 +412,18 @@ def test_serve_wires_the_runner_to_the_same_history(tmp_path, monkeypatch):
     assert isinstance(seen["runner"], sr.ScanRunner) and seen["host"] == "127.0.0.1"
     assert seen["runner"]._history() is seen["history"]  # new scans show up in /history
     assert not seen["runner"].state().running  # nothing starts until the button is pressed
+
+
+def test_web_runner_default_capture_follows_runtime_data_dir_and_delete(lab, monkeypatch):
+    recorder = Recorder()
+    runner = sr.ScanRunner(make_runner=lambda kind, folder: recorder, launcher=lambda: sr.PKEXEC)
+    # A module-global runner may be constructed before the environment is configured.
+    folder = lab / "later-data"
+    monkeypatch.setenv("TOOL_DATA_DIR", str(folder))
+    runner.start_scan("en")
+    done = runner.wait(10)
+    assert done.outcome == sr.DONE
+    capture = list((folder / "scans").glob("scan_*.xml"))
+    assert len(capture) == 1
+    History(folder).delete_all()
+    assert not capture[0].exists()

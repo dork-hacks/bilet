@@ -570,3 +570,32 @@ def test_a_broken_history_never_breaks_the_scan(lab, tmp_path, capsys, how):
     assert len(list((tmp_path / "scans").glob("scan_*.xml"))) == 1
     assert "the history couldn't be updated" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_default_cli_captures_follow_data_dir_and_are_deleted_with_history(lab, tmp_path):
+    assert main(["scan", "--confirm", "--lang", "en"]) == 0
+    folder = tmp_path / "data"
+    capture = list((folder / "scans").glob("scan_*.xml"))
+    assert len(capture) == 1
+    assert capture[0].read_bytes() == V1
+    assert capture[0].stat().st_mode & 0o777 == 0o600
+    History(folder).delete_all()
+    assert not capture[0].exists()
+    assert not (tmp_path / "scans").exists()
+
+
+def test_default_run_scan_resolves_current_data_dir_at_call_time(tmp_path, monkeypatch):
+    selected = tmp_path / "selected"
+    monkeypatch.setenv("TOOL_DATA_DIR", str(selected))
+    saved = live.run_scan(
+        [net(V1_NET)], runner=FakeNmap(found=discovery("192.168.1.1")), services_text=SERVICES
+    )
+    assert saved.parent == selected / "scans"
+    assert saved.parent.stat().st_mode & 0o777 == 0o700
+
+
+def test_custom_capture_directory_survives_history_deletion(lab, tmp_path):
+    assert scan(tmp_path, "--confirm", "--lang", "en") == 0
+    capture = next((tmp_path / "scans").glob("scan_*.xml"))
+    History(tmp_path / "data").delete_all()
+    assert capture.read_bytes() == V1

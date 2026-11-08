@@ -6,7 +6,7 @@ Nothing runs before the previous step has passed:
 3. a port scan of the live hosts that lie inside those ranges: the top 1,000 TCP ports
    from the installed nmap's own nmap-services file, plus the catalog ports outside them,
    plus UDP 53, 123, 161, 1900 and 5353, with -sV, http-title and --max-rate 100;
-4. the XML is saved under scans/ for the unprivileged analyser (`analyze_file`).
+4. the XML is saved under the private data folder for the unprivileged analyser (`analyze_file`).
 
 Only the two nmap processes run with sudo. nmap writes its XML to stdout, so root never
 creates a file: this process, as a normal user, saves it.
@@ -26,6 +26,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tool.config import default_scans_dir
 from tool.engine.parser import MAX_FILE_BYTES, ParseError, parse_bytes
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
@@ -323,7 +324,7 @@ def live_hosts(
 def run_scan(
     networks: list[Network],
     runner: Runner = run_nmap,
-    scans_dir: Path = Path("scans"),
+    scans_dir: Path | None = None,
     services_text: str | None = None,
     now: datetime | None = None,
     exclude: Iterable[str] = (),
@@ -349,12 +350,14 @@ def run_scan(
     if on_hosts is not None:
         on_hosts(hosts)
     xml = runner(port_scan_args(hosts, spec), on_progress)
-    return save_xml(xml, scans_dir, now or datetime.now(UTC))
+    return save_xml(
+        xml, scans_dir if scans_dir is not None else default_scans_dir(), now or datetime.now(UTC)
+    )
 
 
 def save_xml(xml: bytes, scans_dir: Path, now: datetime) -> Path:
-    """Write the scan as scans/scan_<UTC time>.xml, readable only by this user: it holds
-    real MACs and hostnames (NFR-02), and scans/ is git-ignored."""
+    """Write a private scan_<UTC time>.xml in the selected folder; it holds
+    real MACs and hostnames (NFR-02). The default is the managed data/scans folder."""
     scans_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     stamp = now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
     path = scans_dir / f"scan_{stamp}.xml"

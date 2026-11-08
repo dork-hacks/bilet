@@ -270,7 +270,7 @@ class ScanRunner:
 
     def __init__(
         self,
-        scans_dir: Path = Path("scans"),
+        scans_dir: Path | None = None,
         make_runner: RunnerFactory | None = None,
         launcher: Callable[[], str] = pick_launcher,
         history: Callable[[], object] | None = None,

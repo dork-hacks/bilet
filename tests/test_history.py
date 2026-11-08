@@ -177,3 +177,54 @@ def test_delete_my_history_leaves_nothing(tmp_path):
     assert list(folder.iterdir()) == []
     assert h.scans() == []
     h.delete_all()  # twice is fine
+
+
+@pytest.mark.parametrize("relative", ["scans", "data/custom-output"])
+def test_delete_removes_nested_managed_captures_but_not_legacy_or_custom(tmp_path, relative):
+    history = History(tmp_path / "data")
+    history.add(scan("V1_home_basic.xml"))
+    managed = history.folder / "scans" / "nested"
+    managed.mkdir(parents=True)
+    (managed / "raw.xml").write_text("private raw capture")
+    legacy = tmp_path / relative
+    legacy.mkdir(parents=True)
+    external = legacy / "keep.xml"
+    external.write_text("explicit or legacy capture")
+    history.delete_all()
+    assert not (history.folder / "scans").exists()
+    assert external.read_text() == "explicit or legacy capture"
+
+
+def test_incomplete_capture_delete_raises_before_deleting_database(tmp_path, monkeypatch):
+    import tool.history as module
+
+    history = History(tmp_path / "data")
+    history.add(scan("V1_home_basic.xml"))
+    managed = history.folder / "scans"
+    managed.mkdir()
+    capture = managed / "capture.xml"
+    capture.write_text("private capture")
+    original = module.shutil.rmtree
+
+    def denied(path):
+        if path == managed:
+            raise PermissionError("private-path-must-not-be-exposed")
+        return original(path)
+
+    monkeypatch.setattr(module.shutil, "rmtree", denied)
+    with pytest.raises(PermissionError):
+        history.delete_all()
+    assert history.path.exists() and capture.exists()
+
+
+def test_capture_symlink_never_deletes_an_external_directory(tmp_path):
+    history = History(tmp_path / "data")
+    history.folder.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    kept = outside / "keep.xml"
+    kept.write_text("outside the managed folder")
+    (history.folder / "scans").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(OSError):
+        history.delete_all()
+    assert kept.exists()

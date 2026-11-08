@@ -30,7 +30,7 @@ from tool.engine.device import SALT_FILE
 DB_FILE = "history.sqlite3"
 # Everything "delete my history" removes from the data folder (the AI layer's files too).
 PRIVATE_FILES = (DB_FILE, f"{DB_FILE}-wal", f"{DB_FILE}-shm", SALT_FILE, "ai_rejections.jsonl")
-PRIVATE_DIRS = ("ai_cache",)
+PRIVATE_DIRS = ("ai_cache", "scans")
 
 
 @dataclass(frozen=True)
@@ -169,11 +169,16 @@ class History:
             return int(cur.lastrowid)
 
     def delete_all(self) -> None:
-        """'Delete my history': the database, the device-key salt and the AI cache."""
+        """Delete managed history, AI data and raw captures; report incomplete deletion."""
+        for name in PRIVATE_DIRS:
+            folder = self.folder / name
+            try:
+                shutil.rmtree(folder)
+            except FileNotFoundError:
+                if folder.exists() or folder.is_symlink():
+                    raise  # a nested deletion failed; do not claim the folder was removed
         for name in PRIVATE_FILES:
             (self.folder / name).unlink(missing_ok=True)
-        for name in PRIVATE_DIRS:
-            shutil.rmtree(self.folder / name, ignore_errors=True)
 
     # -- reading -------------------------------------------------------------------
 

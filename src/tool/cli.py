@@ -99,7 +99,7 @@ def build_parser(lang: str = "ro") -> argparse.ArgumentParser:
             cmd.add_argument("targets", nargs="*", help=cli_text("targets", lang))
             cmd.add_argument("--confirm", action="store_true", help=cli_text("confirm", lang))
             cmd.add_argument(
-                "--scans-dir", type=Path, default=Path("scans"), help=cli_text("scans_dir", lang)
+                "--scans-dir", type=Path, default=None, help=cli_text("scans_dir", lang)
             )
         if name == "analyze":
             cmd.add_argument("folder", type=Path, help=cli_text("folder", lang))
