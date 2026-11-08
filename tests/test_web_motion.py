@@ -66,3 +66,13 @@ def test_resolved_findings_get_a_hidden_check_mark(tmp_path, lang):
     html = client.get("/history", params={"lang": lang}).text
     marks = html.count('<span class="done-mark" aria-hidden="true">✓</span>')
     assert marks == 3  # the brief's V6a -> V6b pair fixes three problems
+
+
+def test_page_transitions_and_the_map_entrance_only_without_reduced_motion():
+    # #273 PR 4: CSS only, so nothing moves for visitors who asked for less motion.
+    css = STYLE
+    rest = outside_reduced_motion_guard(css)
+    assert "@view-transition { navigation: auto; }" in css
+    assert "@view-transition" not in rest
+    assert ".hero.has-map > .netmap { animation:" in css
+    assert ".hero.has-map > .netmap" not in rest
