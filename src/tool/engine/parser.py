@@ -3,8 +3,8 @@
 Turns one nmap XML file into plain host and port records, or raises ParseError
 with one of the error codes from docs/contracts/data-model.md. Every string
 copied from the file is RAW: capped and stripped of control and format
-characters, nothing more. Callers must escape it before display and never pass
-it to an LLM as is.
+characters, with complete embedded MAC addresses masked. Callers must escape it
+before display and never pass it to an LLM as is.
 """
 
 import ipaddress
@@ -21,6 +21,13 @@ import defusedxml.ElementTree as SafeET
 
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_RAW_CHARS = 256
+# Full identifiers only: preserve short model IDs and ordinary version strings.
+_RAW_MAC = re.compile(
+    r"(?<![0-9a-z])(?:[0-9a-f]{2}(?::[0-9a-f]{2}){5}|"
+    r"[0-9a-f]{2}(?:-[0-9a-f]{2}){5}|(?:[0-9a-f]{4}\.){2}[0-9a-f]{4}|"
+    r"[0-9a-f]{12})(?![0-9a-z])",
+    re.IGNORECASE,
+)
 # Titles stay longer here so a keyword past character 256 still reaches the rules.
 # Output (the contract's evidence) caps them to MAX_RAW_CHARS like every RAW field.
 MAX_TITLE_CHARS = 4096
@@ -242,8 +249,15 @@ def _raw(value: str | None, limit: int = MAX_RAW_CHARS) -> str | None:
     if value is None:
         return None
     cleaned = "".join(" " if unicodedata.category(ch) in ("Cc", "Cf") else ch for ch in value)
-    cleaned = " ".join(cleaned.split())[:limit]
+    cleaned = " ".join(cleaned.split())
+    # Mask before truncation so a cut-off identifier cannot escape recognition.
+    cleaned = _RAW_MAC.sub(_mask_raw_mac, cleaned)[:limit]
     return cleaned or None
+
+
+def _mask_raw_mac(match: re.Match) -> str:
+    compact = re.sub(r"[:.-]", "", match.group()).upper()
+    return ":".join(compact[i : i + 2] for i in range(0, 6, 2)) + ":xx:xx:xx"
 
 
 def _valid_ip(value: str, version: int) -> str | None:

@@ -297,3 +297,33 @@ def test_http_title_structured_title_ignores_output_diagnostics():
         '<elem key="title">Router Login</elem></script></port>'
     )
     assert parse_bytes(nmap(host(ports)), "x.xml").hosts[0].ports[0].http_title == "Router Login"
+
+
+@pytest.mark.parametrize(
+    "mac", ["aa:bb:cc:12:34:56", "AA-BB-CC-12-34-56", "aabb.cc12.3456", "aabbcc123456"]
+)
+def test_raw_embedded_macs_are_masked_without_changing_identity(mac):
+    extra = '<address addr="AA:BB:CC:12:34:56" addrtype="mac" vendor="Example"/>'
+    extra += f'<hostnames><hostname name="device-{mac}"/></hostnames>'
+    ports = (
+        '<port protocol="tcp" portid="80"><state state="open"/>'
+        f'<service name="http" product="server {mac}" version="{mac}"/>'
+    )
+    ports += f'<script id="http-title" output="Admin {mac}"/></port>'
+    parsed = parse_bytes(nmap(host(ports, extra=extra)), "x.xml").hosts[0]
+    assert parsed.mac == "AA:BB:CC:12:34:56"
+    assert parsed.hostnames == ("device-AA:BB:CC:xx:xx:xx",)
+    service = parsed.ports[0]
+    assert service.product == "server AA:BB:CC:xx:xx:xx"
+    assert service.version == "AA:BB:CC:xx:xx:xx"
+    assert service.http_title == "Admin AA:BB:CC:xx:xx:xx"
+
+
+def test_raw_mac_masking_preserves_versions_short_ids_and_ipv6():
+    text = "OpenSSH 9.6p1 ESP_A1B2C3 fe80::aabb:ccdd:eeff:1234 0123456789abcdef"
+    assert parser._raw(text) == text
+
+
+def test_raw_mac_is_masked_before_truncation():
+    value = "x" * 250 + " AA:BB:CC:12:34:56"
+    assert parser._raw(value, limit=265).endswith("AA:BB:CC:xx:xx")
