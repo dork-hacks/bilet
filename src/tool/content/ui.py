@@ -42,7 +42,7 @@ UI = {
     "scan_unknown_file": {"ro": "Fișier necunoscut", "en": "Unknown file"},
     "scan_recorded": {"ro": "Verificare înregistrată:", "en": "Recorded scan:"},
     "scan_tools": {"ro": "Istoric și instrumente", "en": "History and tools"},
-    "see_steps": {"ro": "Vezi pașii", "en": "See the steps"},
+    "see_steps": {"ro": "Vedeți pașii", "en": "See the steps"},
     "report_total": {"ro": "În total", "en": "Total"},
     "report_device_one": {"ro": "dispozitiv", "en": "device"},
     "report_device_many": {"ro": "dispozitive", "en": "devices"},
@@ -62,34 +62,34 @@ UI = {
     "observed_service": {"ro": "Ce a observat verificarea", "en": "What the scan saw"},
     "scan_no_live_hosts": {
         "ro": (
-            "Niciun dispozitiv nu a răspuns. Verifică legătura cu hotspot-ul tău "
-            "și încearcă din nou."
+            "Niciun dispozitiv nu a răspuns. Verificați legătura cu hotspot-ul dumneavoastră și "
+            "încercați din nou."
         ),
         "en": "No device answered. Check your connection to your own hotspot and try again.",
     },
     "scan_unexpected": {
         "ro": (
-            "Verificarea nu s-a încheiat. Încearcă din nou sau folosește "
-            "bilet scan --confirm într-un terminal."
+            "Verificarea nu s-a încheiat. Încercați din nou sau folosiți bilet scan --confirm "
+            "într-un terminal."
         ),
         "en": "The check did not finish. Try again or use bilet scan --confirm in a terminal.",
     },
     "scan_refused": {
         "ro": (
             "Verificarea a fost refuzată: rețeaua detectată nu respectă limitele permise. "
-            "Conectează calculatorul numai la hotspot-ul tău și încearcă din nou."
+            "Conectați calculatorul numai la hotspot-ul dumneavoastră și încercați din nou."
         ),
         "en": (
             "The check was refused: the detected network is outside the allowed limits. "
             "Connect this computer only to your own hotspot and try again."
         ),
     },
-    "scan_check_again": {"ro": "Verifică din nou", "en": "Check again"},
+    "scan_check_again": {"ro": "Verificați din nou", "en": "Check again"},
     "fix_verify": {
         "ro": (
-            "După modificări, verifică din nou întreaga rețea. Compară rezultatele în "
-            "istoric ca să vezi dacă această problemă a dispărut; simpla schimbare a "
-            "parolei poate să nu elimine avertismentul."
+            "După modificări, verificați din nou întreaga rețea. Comparați rezultatele în istoric "
+            "ca să vedeți dacă această problemă a dispărut; simpla schimbare a parolei poate să "
+            "nu elimine avertismentul."
         ),
         "en": (
             "After your changes, check the whole network again. Compare the results "
@@ -98,50 +98,50 @@ UI = {
         ),
     },
     "fix_compare": {
-        "ro": "Vezi ce s-a schimbat în istoric",
+        "ro": "Vedeți ce s-a schimbat în istoric",
         "en": "See what changed in history",
     },
     "scan_title": {"ro": "Verificarea rețelei", "en": "Network check"},
     "scan_ready": {
-        "ro": "Poți verifica din nou rețeaua ta.",
+        "ro": "Puteți verifica din nou rețeaua dumneavoastră.",
         "en": "You can check your network again.",
     },
     "scan_complete": {
         "ro": "Verificarea s-a încheiat. Noul rezultat este salvat în istoric.",
         "en": "The check is complete. Your new result is saved in history.",
     },
-    "scan_cancel": {"ro": "Oprește verificarea", "en": "Stop checking"},
+    "scan_cancel": {"ro": "Opriți verificarea", "en": "Stop checking"},
     "scan_cancelled": {
-        "ro": "Verificarea a fost oprită. Poți încerca din nou.",
+        "ro": "Verificarea a fost oprită. Puteți încerca din nou.",
         "en": "The check was stopped. You can try again.",
     },
     "scan_auth_cancelled": {
         "ro": (
-            "Fereastra de autorizare a fost închisă. Rețeaua nu a fost verificată. Poți "
-            "încerca din nou."
+            "Fereastra de autorizare a fost închisă. Rețeaua nu a fost verificată. Puteți încerca "
+            "din nou."
         ),
         "en": "The password window was closed. Your network was not checked. You can try again.",
     },
     "scan_no_auth_dialog": {
         "ro": (
-            "Fereastra de autorizare nu este disponibilă. Folosește bilet scan --confirm "
-            "într-un terminal."
+            "Fereastra de autorizare nu este disponibilă. Folosiți bilet scan --confirm într-un "
+            "terminal."
         ),
         "en": "No password window is available. Use bilet scan --confirm in a terminal.",
     },
     "scan_unavailable": {
         "ro": (
-            "Verificarea din browser nu este disponibilă. Folosește bilet scan --confirm "
-            "într-un terminal."
+            "Verificarea din browser nu este disponibilă. Folosiți bilet scan --confirm într-un "
+            "terminal."
         ),
         "en": "Browser checking is unavailable. Use bilet scan --confirm in a terminal.",
     },
     "scan_auth_hint": {
         "ro": (
-            "Verificarea poate dura câteva minute. Calculatorul îți poate cere parola "
-            "de două ori pentru ca bilet să verifice rețeaua. Caută fereastra de parolă "
-            "în bara de activități sau în Dock. Parola se introduce "
-            "numai în fereastra sistemului, niciodată în această pagină."
+            "Verificarea poate dura câteva minute. Calculatorul vă poate cere parola de două ori "
+            "pentru ca bilet să verifice rețeaua. Căutați fereastra de parolă în bara de "
+            "activități sau în Dock. Parola se introduce numai în fereastra sistemului, niciodată "
+            "în această pagină."
         ),
         "en": (
             "Checking can take a few minutes. Your computer may ask for your password "
@@ -150,20 +150,20 @@ UI = {
             "system window, never on this page."
         ),
     },
-    "scan_see_score": {"ro": "Vezi noul scor", "en": "See your new score"},
-    "scan_refresh": {"ro": "Actualizează starea", "en": "Refresh status"},
+    "scan_see_score": {"ro": "Vedeți noul scor", "en": "See your new score"},
+    "scan_refresh": {"ro": "Actualizați starea", "en": "Refresh status"},
     "scan_refresh_error": {
         "ro": (
-            "Starea nu a putut fi actualizată. Folosește „Actualizează starea” pentru a "
-            "încerca din nou."
+            "Starea nu a putut fi actualizată. Folosiți „Actualizați starea” pentru a încerca din "
+            "nou."
         ),
         "en": "The status could not be refreshed. Use “Refresh status” to try again.",
     },
     "report_link": {"ro": "Raport de tipărit", "en": "Printable report"},
     "report_title": {"ro": "Rezumatul verificării", "en": "Check summary"},
-    "report_print": {"ro": "Tipărește / salvează PDF", "en": "Print / save PDF"},
+    "report_print": {"ro": "Tipăriți / salvați PDF", "en": "Print / save PDF"},
     "report_intro": {
-        "ro": "O pagină cu prioritățile tale. Începe cu primul pas de mai jos.",
+        "ro": "O pagină cu prioritățile dumneavoastră. Începeți cu primul pas de mai jos.",
         "en": "One page of priorities. Start with the first step below.",
     },
     "report_counts": {
@@ -187,9 +187,9 @@ UI = {
     },
     "report_note": {
         "ro": (
-            "Bazat doar pe această verificare și pe explicațiile standard, fără AI. "
-            "Un scor bun nu garantează siguranța. După remedieri, verifică din nou. "
-            "Pentru o pagină, tipărește pe A4 fără antetul și subsolul browserului."
+            "Bazat doar pe această verificare și pe explicațiile standard, fără AI. Un scor bun "
+            "nu garantează siguranța. După remedieri, verificați din nou. Pentru o pagină, "
+            "tipăriți pe A4 fără antetul și subsolul browserului."
         ),
         "en": (
             "Based only on this check and built-in explanations, without AI. "
@@ -198,16 +198,16 @@ UI = {
         ),
     },
     "page_title": {"ro": "Siguranța rețelei de acasă", "en": "Home network safety"},
-    "score_heading": {"ro": "Scorul rețelei tale", "en": "Your network score"},
+    "score_heading": {"ro": "Scorul rețelei dumneavoastră", "en": "Your network score"},
     "score_out_of": {"ro": "din 100", "en": "out of 100"},
     "most_dangerous": {"ro": "Cel mai periculos dispozitiv:", "en": "Most dangerous device:"},
-    "do_first": {"ro": "Fă asta mai întâi:", "en": "Do this first:"},
+    "do_first": {"ro": "Faceți asta mai întâi:", "en": "Do this first:"},
     "nothing_to_fix": {
-        "ro": "Nu am găsit nicio problemă. Nu trebuie să faci nimic acum.",
+        "ro": "Nu am găsit nicio problemă. Nu trebuie să faceți nimic acum.",
         "en": "We found no problems. There is nothing you need to do right now.",
     },
     "no_scan": {
-        "ro": "Încă nu există nicio verificare. Pornește o verificare a rețelei tale.",
+        "ro": "Încă nu există nicio verificare. Porniți o verificare a rețelei dumneavoastră.",
         "en": "There is no check yet. Start a check of your network.",
     },
     "error_heading": {
@@ -219,7 +219,7 @@ UI = {
     "device_at": {"ro": "{device} la adresa {ip}", "en": "{device} at {ip}"},
     "points": {"ro": "{n} puncte de risc", "en": "{n} risk points"},
     # Network map on the home screen (#170).
-    "map_heading": {"ro": "Harta rețelei tale", "en": "Your network map"},
+    "map_heading": {"ro": "Harta rețelei dumneavoastră", "en": "Your network map"},
     "map_intro": {
         "ro": (
             "Harta grupează dispozitivele în jurul routerului; liniile nu sunt cabluri reale. "
@@ -231,19 +231,19 @@ UI = {
         ),
     },
     "map_how": {
-        "ro": "Trage pentru rotire. Alege un dispozitiv pentru detalii.",
+        "ro": "Trageți pentru rotire. Alegeți un dispozitiv pentru detalii.",
         "en": "Drag to explore. Select a device for details.",
     },
     "map_fullscreen": {"ro": "Ecran complet", "en": "Full screen"},
     "map_exit_fullscreen": {"ro": "Închide ecranul complet", "en": "Exit full screen"},
-    "map_focus": {"ro": "Arată dispozitivul de aproape", "en": "Zoom to this device"},
+    "map_focus": {"ro": "Arătați dispozitivul de aproape", "en": "Zoom to this device"},
     "map_selected": {"ro": "Dispozitiv selectat", "en": "Selected device"},
     "map_inspector": {"ro": "Detalii și dispozitive", "en": "Device details and search"},
-    "map_search": {"ro": "Găsește un dispozitiv", "en": "Find a device"},
+    "map_search": {"ro": "Găsiți un dispozitiv", "en": "Find a device"},
     "map_search_hint": {"ro": "Nume, adresă sau tip", "en": "Name, address or type"},
     "map_count": {"ro": "{shown} din {total} dispozitive", "en": "{shown} of {total} devices"},
     "map_no_matches": {
-        "ro": "Niciun dispozitiv găsit. Încearcă alt nume sau adresă.",
+        "ro": "Niciun dispozitiv găsit. Încercați alt nume sau adresă.",
         "en": "No devices found. Try another name or address.",
     },
     "map_previous": {"ro": "Pagina anterioară", "en": "Previous devices"},
@@ -253,15 +253,15 @@ UI = {
         "en": "With the keyboard: the arrow keys turn the map, and + and - zoom in and out.",
     },
     "map_canvas_label": {
-        "ro": "Harta 3D a rețelei tale. Alege un dispozitiv din butoanele de pe hartă.",
+        "ro": "Harta 3D a rețelei dumneavoastră. Alegeți un dispozitiv din butoanele de pe hartă.",
         "en": "3D map of your network. Pick a device from the buttons on the map.",
     },
     "map_legend": {"ro": "Ce înseamnă culorile", "en": "What the colours mean"},
     "map_view_3d": {"ro": "Hartă 3D", "en": "3D map"},
     "map_view_list": {"ro": "Listă simplă", "en": "Simple list"},
-    "map_view_label": {"ro": "Cum vezi harta", "en": "How to show the map"},
+    "map_view_label": {"ro": "Cum vedeți harta", "en": "How to show the map"},
     "map_hub": {"ro": "În mijloc:", "en": "In the middle:"},
-    "map_hub_virtual": {"ro": "Wi-Fi-ul tău de acasă", "en": "Your home Wi-Fi"},
+    "map_hub_virtual": {"ro": "Wi-Fi-ul dumneavoastră de acasă", "en": "Your home Wi-Fi"},
     "map_linked": {"ro": "Legate de el:", "en": "Linked to it:"},
     "map_most_dangerous": {"ro": "Cel mai periculos", "en": "Most dangerous"},
     "map_ip": {"ro": "Adresa în rețea:", "en": "Network address:"},
@@ -272,27 +272,27 @@ UI = {
         "en": "We found no problems on this device.",
     },
     "map_go_problems": {
-        "ro": "Vezi problemele și cum le rezolvi",
+        "ro": "Vedeți problemele și cum le rezolvați",
         "en": "See the problems and how to fix them",
     },
-    "map_go_device": {"ro": "Vezi dispozitivul în listă", "en": "See this device in the list"},
-    "map_reset": {"ro": "Pune harta la loc", "en": "Reset the map"},
-    "map_zoom_in": {"ro": "Mărește harta", "en": "Zoom in"},
-    "map_zoom_out": {"ro": "Micșorează harta", "en": "Zoom out"},
+    "map_go_device": {"ro": "Vedeți dispozitivul în listă", "en": "See this device in the list"},
+    "map_reset": {"ro": "Puneți harta la loc", "en": "Reset the map"},
+    "map_zoom_in": {"ro": "Măriți harta", "en": "Zoom in"},
+    "map_zoom_out": {"ro": "Micșorați harta", "en": "Zoom out"},
     "map_pick": {
-        "ro": "Apasă pe un dispozitiv de pe hartă ca să vezi detaliile aici.",
+        "ro": "Apăsați pe un dispozitiv de pe hartă ca să vedeți detaliile aici.",
         "en": "Press a device on the map to see its details here.",
     },
     # Devices and findings list (#55)
-    "devices_heading": {"ro": "Dispozitivele tale", "en": "Your devices"},
+    "devices_heading": {"ro": "Dispozitivele dumneavoastră", "en": "Your devices"},
     "devices_intro": {
-        "ro": "Cel mai periculos dispozitiv este primul. Rezolvă problemele de sus în jos.",
+        "ro": "Cel mai periculos dispozitiv este primul. Rezolvați problemele de sus în jos.",
         "en": "The most dangerous device comes first. Fix the problems from top to bottom.",
     },
     "hardware_address": {"ro": "Adresă hardware:", "en": "Hardware address:"},
     "device_name": {"ro": "Nume:", "en": "Name:"},
     "port": {"ro": "Port {port}", "en": "Port {port}"},
-    "how_to_fix": {"ro": "Cum rezolvi:", "en": "How to fix it:"},
+    "how_to_fix": {"ro": "Cum rezolvați:", "en": "How to fix it:"},
     # Followed by the CIS Controls and OWASP IoT Top 10 reference codes (#66).
     "standards": {"ro": "Standarde de securitate:", "en": "Security standards:"},
     # Shown with AI on: how often the safety check replaced an AI answer (MASTERPLAN §5.3).
@@ -301,15 +301,15 @@ UI = {
         "en": "AI answers blocked by the safety check: {n}",
     },
     # "Open a scan file" form on the home screen (#92). The file is checked, never saved.
-    "open_heading": {"ro": "Deschide un fișier de verificare", "en": "Open a scan file"},
-    "open_label": {"ro": "Alege un fișier nmap XML", "en": "Choose an nmap XML file"},
+    "open_heading": {"ro": "Deschideți un fișier de verificare", "en": "Open a scan file"},
+    "open_label": {"ro": "Alegeți un fișier nmap XML", "en": "Choose an nmap XML file"},
     "open_hint": {
         "ro": "Îl verificăm pe acest calculator. Nu îl păstrăm în istoric.",
         "en": "We check it on this computer. We don't keep it in your history.",
     },
-    "open_button": {"ro": "Verifică fișierul", "en": "Check the file"},
+    "open_button": {"ro": "Verificați fișierul", "en": "Check the file"},
     "open_showing": {
-        "ro": "Vezi rezultatul pentru fișierul pe care l-ai deschis.",
+        "ro": "Vedeți rezultatul pentru fișierul pe care l-ați deschis.",
         "en": "You are looking at the result for the file you opened.",
     },
     "open_back": {"ro": "Înapoi la ultima verificare", "en": "Back to the latest check"},
@@ -330,15 +330,15 @@ UI = {
         "ro": "Explicațiile cu AI sunt oprite.",
         "en": "AI explanations are off.",
     },
-    "ai_turn_on": {"ro": "Pornește explicațiile cu AI", "en": "Turn on AI explanations"},
-    "ai_turn_off": {"ro": "Oprește explicațiile cu AI", "en": "Turn off AI explanations"},
+    "ai_turn_on": {"ro": "Porniți explicațiile cu AI", "en": "Turn on AI explanations"},
+    "ai_turn_off": {"ro": "Opriți explicațiile cu AI", "en": "Turn off AI explanations"},
     "ai_data_note": {
         "ro": (
-            "Dacă le pornești, trimitem unui serviciu AI doar tipul problemelor, numerele "
-            "porturilor, numele și versiunea programelor și tipul dispozitivului. "
-            "Dacă pui o întrebare, o trimitem și pe ea, dar adresele IP și numele "
-            "dispozitivelor din ea devin „Dispozitivul A”, „Dispozitivul B”. "
-            "Nu trimitem niciodată adrese MAC, adrese IP sau numele dispozitivelor."
+            "Dacă le porniți, trimitem unui serviciu AI doar tipul problemelor, numerele "
+            "porturilor, numele și versiunea programelor și tipul dispozitivului. Dacă puneți o "
+            "întrebare, o trimitem și pe ea, dar adresele IP și numele dispozitivelor din ea "
+            "devin „Dispozitivul A”, „Dispozitivul B”. Nu trimitem niciodată adrese MAC, adrese "
+            "IP sau numele dispozitivelor."
         ),
         "en": (
             "If you turn them on, we send an AI service only the problem types, port "
@@ -349,25 +349,25 @@ UI = {
         ),
     },
     "ai_not_set_up": {
-        "ro": "AI nu este configurat pe acest calculator, așa că vezi explicațiile standard.",
+        "ro": "AI nu este configurat pe acest calculator, așa că vedeți explicațiile standard.",
         "en": "AI is not set up on this computer, so you see the standard explanations.",
     },
     # Summary and Q&A (#50). The "can't tell" sentence is shown whenever the scan
     # evidence doesn't cover a question, and whenever an AI answer is rejected.
     "ai_summary_intro": {"ro": "Ordinea recomandată:", "en": "What to do, in order:"},
-    "plan_heading": {"ro": "Planul tău", "en": "Your plan"},
-    "ask_heading": {"ro": "Întreabă despre rețeaua ta", "en": "Ask about your network"},
-    "ask_label": {"ro": "Întrebarea ta", "en": "Your question"},
+    "plan_heading": {"ro": "Planul dumneavoastră", "en": "Your plan"},
+    "ask_heading": {"ro": "Întrebați despre rețeaua dumneavoastră", "en": "Ask about your network"},
+    "ask_label": {"ro": "Întrebarea dumneavoastră", "en": "Your question"},
     "ask_hint": {
         "ro": "De exemplu: E sigur că imprimanta mea are portul 9100 deschis?",
         "en": "For example: Is it safe that my printer has port 9100 open?",
     },
     "chat_welcome": {
-        "ro": "Sunt aici să te ajut să înțelegi verificarea rețelei tale.",
+        "ro": "Sunt aici să vă ajut să înțelegeți verificarea rețelei dumneavoastră.",
         "en": "I'm here to help you understand your network check.",
     },
     "chat_off": {
-        "ro": "Asistentul AI este oprit. Îți arăt pașii standard, fără să trimit date.",
+        "ro": "Asistentul AI este oprit. Vă arăt pașii standard, fără să trimit date.",
         "en": "The AI assistant is off. Here are the standard steps, without sending data.",
     },
     "chat_first": {"ro": "Ce să repar prima dată?", "en": "What should I fix first?"},
@@ -377,18 +377,18 @@ UI = {
     },
     "chat_wait": {"ro": "Pregătesc răspunsul…", "en": "Preparing your answer…"},
     "chat_error": {
-        "ro": "Răspunsul nu a ajuns. Încearcă din nou.",
+        "ro": "Răspunsul nu a ajuns. Încercați din nou.",
         "en": "The answer didn't arrive. Please try again.",
     },
-    "ask_button": {"ro": "Întreabă", "en": "Ask"},
-    "ask_you_asked": {"ro": "Ai întrebat:", "en": "You asked:"},
+    "ask_button": {"ro": "Întrebați", "en": "Ask"},
+    "ask_you_asked": {"ro": "Ați întrebat:", "en": "You asked:"},
     "ask_answer": {"ro": "Răspuns:", "en": "Answer:"},
     "ai_summary_nothing": {
-        "ro": "Verificarea nu a găsit nimic de reparat. Nu trebuie să faci nimic acum.",
+        "ro": "Verificarea nu a găsit nimic de reparat. Nu trebuie să faceți nimic acum.",
         "en": "The scan found nothing to fix. You don't need to do anything right now.",
     },
     "ai_cant_tell": {
-        "ro": "Scanarea nu îmi poate spune asta. Uită-te la lista de probleme de mai jos.",
+        "ro": "Scanarea nu îmi poate spune asta. Uitați-vă la lista de probleme de mai jos.",
         "en": "The scan can't tell me that. Please look at the list of problems below.",
     },
     "ai_question_needs_ai": {
@@ -407,7 +407,7 @@ UI = {
         "en": "What's new since the previous check",
     },
     # History screen (#65): score trend, compare two checks, delete my history.
-    "history_link": {"ro": "Vezi istoricul verificărilor", "en": "See your check history"},
+    "history_link": {"ro": "Vedeți istoricul verificărilor", "en": "See your check history"},
     "history_title": {"ro": "Istoricul verificărilor", "en": "Check history"},
     "back_home": {"ro": "Înapoi la pagina principală", "en": "Back to the home page"},
     # "Every risk explained" page (#83): all catalog codes, read from tool.content only.
@@ -418,8 +418,8 @@ UI = {
     "risks_title": {"ro": "Riscurile pe care le verificăm", "en": "The risks we check for"},
     "risks_intro": {
         "ro": (
-            "Aici sunt toate problemele pe care le poate găsi verificarea, de la cea mai "
-            "gravă la cea mai ușoară, cu ce înseamnă și cum le rezolvi."
+            "Aici sunt toate problemele pe care le poate găsi verificarea, de la cea mai gravă la "
+            "cea mai ușoară, cu ce înseamnă și cum le rezolvați."
         ),
         "en": (
             "These are all the problems the check can find, from the most serious to the "
@@ -432,13 +432,13 @@ UI = {
         "en": "History is not turned on on this computer.",
     },
     "history_empty": {
-        "ro": "Încă nu ai nicio verificare salvată. După prima verificare, o vei vedea aici.",
+        "ro": "Încă nu aveți nicio verificare salvată. După prima verificare, o veți vedea aici.",
         "en": "You have no saved checks yet. After your first check, you will see it here.",
     },
     "history_one": {
         "ro": (
-            "Ai o singură verificare salvată. După ce repari ceva, fă încă o verificare "
-            "ca să vezi ce s-a schimbat."
+            "Aveți o singură verificare salvată. După ce reparați ceva, faceți încă o verificare "
+            "ca să vedeți ce s-a schimbat."
         ),
         "en": (
             "You have only one saved check. After you fix something, run another check "
@@ -464,17 +464,17 @@ UI = {
         "ro": "Graficul scorului, de la cea mai veche la cea mai nouă verificare",
         "en": "Score chart, from the oldest check to the newest",
     },
-    "scans_heading": {"ro": "Verificările tale", "en": "Your checks"},
+    "scans_heading": {"ro": "Verificările dumneavoastră", "en": "Your checks"},
     "col_when": {"ro": "Când", "en": "When"},
     "col_file": {"ro": "Fișier", "en": "File"},
     "col_score": {"ro": "Scor", "en": "Score"},
     "col_state": {"ro": "Stare", "en": "State"},
-    "compare_heading": {"ro": "Compară două verificări", "en": "Compare two checks"},
+    "compare_heading": {"ro": "Comparați două verificări", "en": "Compare two checks"},
     "compare_before": {"ro": "Înainte", "en": "Before"},
     "compare_after": {"ro": "După", "en": "After"},
-    "compare_button": {"ro": "Compară", "en": "Compare"},
+    "compare_button": {"ro": "Comparați", "en": "Compare"},
     "compare_same": {
-        "ro": "Alege două verificări diferite ca să le compari.",
+        "ro": "Alegeți două verificări diferite ca să le comparați.",
         "en": "Choose two different checks to compare them.",
     },
     "diff_score_up": {
@@ -493,8 +493,8 @@ UI = {
     "diff_resolved": {"ro": "Probleme rezolvate", "en": "Problems you fixed"},
     "history_read_failed": {
         "ro": (
-            "Istoricul nu poate fi citit sau comparat acum. Încearcă din nou. "
-            "Dacă alegi să îl ștergi, verificările salvate vor fi pierdute."
+            "Istoricul nu poate fi citit sau comparat acum. Încercați din nou. Dacă alegeți să îl "
+            "ștergeți, verificările salvate vor fi pierdute."
         ),
         "en": (
             "History cannot be read or compared right now. Try again. "
@@ -503,8 +503,8 @@ UI = {
     },
     "history_delete_failed": {
         "ro": (
-            "Istoricul nu a fost șters complet. Verifică dacă ai dreptul să modifici "
-            "fișierele salvate, apoi încearcă din nou."
+            "Istoricul nu a fost șters complet. Verificați dacă aveți dreptul să modificați "
+            "fișierele salvate, apoi încercați din nou."
         ),
         "en": (
             "History was not completely deleted. Check that you have permission to "
@@ -519,11 +519,11 @@ UI = {
     },
     "diff_opened": {"ro": "Porturi deschise acum", "en": "Ports that are now open"},
     "diff_closed": {"ro": "Porturi închise", "en": "Ports that are now closed"},
-    "delete_heading": {"ro": "Șterge istoricul meu", "en": "Delete my history"},
+    "delete_heading": {"ro": "Ștergerea istoricului", "en": "Delete my history"},
     "delete_note": {
         "ro": (
-            "Șterge istoricul, explicațiile AI și capturile XML din subdosarul scans al dosarului "
-            "de date. Copiile din alte dosare alese manual, inclusiv alte subdosare ale "
+            "Butonul șterge istoricul, explicațiile AI și capturile XML din subdosarul scans al "
+            "dosarului de date. Copiile din alte dosare alese manual, inclusiv alte subdosare ale "
             "dosarului de date și vechiul scans/ separat, rămân. Nu se poate anula."
         ),
         "en": (
@@ -532,14 +532,17 @@ UI = {
             "the data folder and the old separate scans/ folder, are kept. It can't be undone."
         ),
     },
-    "delete_button": {"ro": "Șterge istoricul", "en": "Delete my history"},
+    "delete_button": {"ro": "Ștergeți istoricul", "en": "Delete my history"},
     "delete_confirm": {
-        "ro": "Sigur vrei să ștergi tot istoricul? Nu îl vei mai putea recupera.",
+        "ro": "Sigur vreți să ștergeți tot istoricul? Nu îl veți mai putea recupera.",
         "en": "Are you sure you want to delete all your history? You can't get it back.",
     },
-    "delete_yes": {"ro": "Da, șterge tot", "en": "Yes, delete everything"},
-    "delete_no": {"ro": "Nu, păstrează istoricul", "en": "No, keep my history"},
-    "deleted_done": {"ro": "Istoricul tău a fost șters.", "en": "Your history was deleted."},
+    "delete_yes": {"ro": "Da, ștergeți tot", "en": "Yes, delete everything"},
+    "delete_no": {"ro": "Nu, păstrați istoricul", "en": "No, keep my history"},
+    "deleted_done": {
+        "ro": "Istoricul dumneavoastră a fost șters.",
+        "en": "Your history was deleted.",
+    },
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}
