@@ -47,7 +47,10 @@ bilet serve
 
 Then open <http://127.0.0.1:8000>. By default it listens on this computer only. `--port` changes the port. Don't use `--host 0.0.0.0` or your network address: the interface has no password, so anyone on the same Wi-Fi could see your results and delete your history. It refuses to start as root: only the live scan's nmap step ever needs admin rights. The app accepts only loopback Host names/addresses (localhost, 127.0.0.1 or ::1) and refuses framing. Network-address URLs and custom DNS names are rejected. Every page has a Română / English switch.
 
-- **Home (`/`):** the score as a traffic light (icon, label and number), the most dangerous device and the first thing to do, then every device with its problems and fix steps, and an alert when a new device or a new open port appears. It shows the newest scan in the history; `--result path/to/result.json` (from `bilet analyze --json`) shows that file instead. "Open a scan file" checks any nmap XML file without saving it, and a broken file gives a plain error, not a crash.
+- **Home (`/`):** the score as a traffic light (icon, label and number), the most dangerous device and the first thing to do, the 3D network map, and an alert when a new device or a new open port appears. It shows the newest scan in the history; `--result path/to/result.json` (from `bilet analyze --json`) shows that file instead. "Open a scan file" checks any nmap XML file without saving it, and a broken file gives a plain error, not a crash. An opened file stays selected on every page until "Back to the latest check".
+- **Devices (`/devices`):** every device with its problems and fix steps, most dangerous first.
+- **Assistant (`/assistant`):** questions about the latest saved scan (optional AI, see below).
+- **Report (`/report`):** a one-page summary to print or save as PDF.
 - **Every risk explained (`/risks`):** the explanation and fix steps for all 15 problem types, with their CIS Controls and OWASP IoT references.
 - **History (`/history`):** the score over time, a comparison of any two scans (new and removed devices, opened and closed ports, fixed problems), and "Delete my history".
 
@@ -91,4 +94,4 @@ CI runs gitleaks, the tests, the lint check and `make validate` on every PR.
 - [Test Set and submission runbook](docs/test-set-runbook.md): reproducible exports, comparisons and the human upload/tag steps.
 - [Real lab captures and expected CSVs](tests/fixtures/lab/): the before/after pair, L1 (25) to L2 (55).
 - [Validation fixtures](tests/fixtures/validation/) and [regression traps](tests/fixtures/traps/): deterministic scoring evidence.
-- [UI screenshots](docs/screenshots/245-home/README.md): recorded examples at desktop and phone sizes; the final Test Set screenshot is captured during submission.
+- UI screenshots: [current pages](docs/screenshots/273-ui/) and [earlier desktop and phone sizes](docs/screenshots/245-home/README.md); the final Test Set screenshot is captured during submission.
