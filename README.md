@@ -6,7 +6,7 @@ The name comes from "bile, bile", Romanian Gen-Z slang for "good": that's what i
 
 ## Setup
 
-Needs Python 3.12 and `make`. For live scans, also nmap and admin rights.
+Needs Python 3.12 or newer and `make`. `make setup` uses `python3.12` when it's installed, otherwise the first newer one; `make setup PYTHON=/path/to/python3` picks one yourself. For live scans, also nmap (`sudo apt install nmap`, `sudo dnf install nmap` or `brew install nmap`) and admin rights.
 
 ```bash
 make setup

@@ -1,4 +1,6 @@
-PYTHON ?= python3.12
+# The first Python that is 3.12 or newer: 3.12 (what CI and the runbook use), then
+# newer ones. Override with `make setup PYTHON=/path/to/python3.x`.
+PYTHON ?= $(firstword $(foreach p,python3.12 python3.13 python3.14 python3,$(shell command -v $(p) 2>/dev/null)))
 VENV   ?= .venv
 BIN    := $(VENV)/bin
 
@@ -8,6 +10,8 @@ BIN    := $(VENV)/bin
 setup: $(BIN)/tool
 
 $(BIN)/tool: pyproject.toml
+	@"$(PYTHON)" -c 'import sys; sys.exit(sys.version_info < (3, 12))' 2>/dev/null || \
+		{ echo "make setup needs Python 3.12 or newer (found: '$(PYTHON)'). Install it, or pass PYTHON=/path/to/python3.12"; exit 1; }
 	$(PYTHON) -m venv $(VENV)
 	$(BIN)/pip install --quiet --upgrade pip
 	$(BIN)/pip install --quiet -e '.[dev]'
