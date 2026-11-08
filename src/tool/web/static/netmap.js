@@ -179,7 +179,8 @@ function start(data) {
       focus(entry); stage.scrollIntoView({ block: "center", behavior: "instant" });
       stage.focus({ preventScroll: true });
     });
-    const link = el("a", { href: `#${node.id}`, text: node.has_problems ? T.map_go_problems : T.map_go_device });
+    // The fix steps live on /devices since #273; the section carries that page's URL.
+    const link = el("a", { href: `${section.dataset.devicesUrl || ""}#${node.id}`, text: node.has_problems ? T.map_go_problems : T.map_go_device });
     link.addEventListener("click", async () => {
       if (document.fullscreenElement === section) await document.exitFullscreen();
       section.classList.remove("is-expanded"); syncFullscreen();

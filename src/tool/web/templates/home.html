@@ -1,4 +1,7 @@
 <!doctype html>
+{#- One template for three pages (#273): page is "home", "devices" or "assistant". -#}
+{% set page_path = {"home": "/", "devices": "/devices", "assistant": "/assistant"}[page] %}
+{% set devices_url = "/devices?lang=" ~ view.lang ~ "&ai=" ~ ai_param ~ ("&scan=" ~ report_token if report_token else "") %}
 <html lang="{{ view.lang }}">
 <head>
   <meta charset="utf-8">
@@ -15,12 +18,12 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="/?lang={{ code }}&amp;ai={{ ai_param }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}"
+        <li><a href="{{ page_path }}?lang={{ code }}&amp;ai={{ ai_param }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
       </ul>
     </nav>
-    {% set nav_current = "home" %}{% include "_nav.html" %}
+    {% set nav_current = page %}{% include "_nav.html" %}
   </header>
 
   <main id="main">
@@ -55,13 +58,14 @@
       </div>
     </section>
 
+    {% if page == "home" %}
     <section class="first" aria-live="polite">
       {% if view.first %}
       <p><strong>{{ ui.most_dangerous }}</strong> {{ view.first.device }}{% if view.first.hostname %}
         (<span class="muted">{{ view.first.hostname }}</span>){% endif %}.
         <span class="muted">{{ ui.points.replace("{n}", view.first.risk_points|string) }}</span></p>
       <p><strong>{{ ui.do_first }}</strong> {{ view.first.step }}</p>
-      <div class="action-row"><a class="button secondary" href="#fixing-steps">{{ ui.see_steps }}</a>{% include "_scan_button.html" %}</div>
+      <div class="action-row"><a class="button secondary" href="{{ devices_url }}#fixing-steps">{{ ui.see_steps }}</a>{% include "_scan_button.html" %}</div>
       <details class="why"><summary>{{ ui.why }}</summary><p>{{ view.first.explanation }}
         <span class="source-tag">{% if view.first.explanation_source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></p></details>
       {% else %}
@@ -85,8 +89,12 @@
       </ul>
     </section>
     {% endif %}
+    {% endif %}
 
-    {% if view.devices or view.safe_devices %}
+    {% if page == "devices" and not (view.devices or view.safe_devices) %}
+    <p>{{ ui.nothing_to_fix }}</p>
+    {% endif %}
+    {% if page == "devices" and (view.devices or view.safe_devices) %}
     <section id="fixing-steps" tabindex="-1" aria-labelledby="devices-heading">
       <h2 id="devices-heading">{{ ui.devices_heading }}</h2>
       {% if view.devices %}<p>{{ ui.devices_intro }}</p>{% endif %}
@@ -147,7 +155,7 @@
     </section>
     {% endif %}
 
-{% if view.plan %}<details class="disclosure"><summary>{{ ui.plan_heading }}</summary>
+{% if page == "home" and view.plan %}<details class="disclosure"><summary>{{ ui.plan_heading }}</summary>
     <section class="plan" aria-labelledby="plan-heading">
       <h2 id="plan-heading">{{ ui.plan_heading }}
         <span class="source-tag">{% if view.plan.source == "ai" %}{{ ui.explained_by_ai }}{% else %}{{ ui.standard_explanation }}{% endif %}</span></h2>
@@ -161,14 +169,14 @@
       {% endif %}
     </section>
 </details>{% endif %}
-{% if netmap %}<details class="disclosure"><summary>{{ ui.map_heading }}</summary>
+{% if page == "home" and netmap %}<details class="disclosure"><summary>{{ ui.map_heading }}</summary>
     {#- The network map (#170). The plain list below is the map without JS or WebGL; the
         script draws the 3D view on top of it and lets the user switch between the two.
         Every level is written as text with its sign, so colour is never the only signal. -#}
     {% macro level_chip(level) -%}
       <span class="lvl lvl-{{ level.key }}"><span aria-hidden="true">{{ level.icon }}</span> {{ level.label }}</span>
     {%- endmacro %}
-    <section class="netmap" id="network-map" aria-labelledby="map-heading">
+    <section class="netmap" id="network-map" aria-labelledby="map-heading" data-devices-url="{{ devices_url }}">
       <div class="netmap-heading">
         <div><h2 id="map-heading">{{ ui.map_heading }}</h2></div>
         <button type="button" class="netmap-fullscreen" aria-pressed="false" hidden>{{ ui.map_fullscreen }}</button>
@@ -210,7 +218,7 @@
         <p><strong>{{ ui.map_hub }}</strong>
         {% if netmap.hub %}
           {{ device_icon(netmap.hub.type) }}
-          <a href="#{{ netmap.hub.id }}">{{ ui.device_at.replace("{device}", netmap.hub.type_label).replace("{ip}", netmap.hub.ip) }}</a>
+          <a href="{{ devices_url }}#{{ netmap.hub.id }}">{{ ui.device_at.replace("{device}", netmap.hub.type_label).replace("{ip}", netmap.hub.ip) }}</a>
           {{ level_chip(netmap.hub.level) }}
           {% if netmap.hub.worst %}<span class="worst">{{ ui.map_most_dangerous }}</span>{% endif %}
         {% else %}{{ ui.map_hub_virtual }}{% endif %}</p>
@@ -219,7 +227,7 @@
         <ul>
           {% for node in netmap.nodes %}
           <li>{{ device_icon(node.type) }}
-            <a href="#{{ node.id }}">{{ ui.device_at.replace("{device}", node.type_label).replace("{ip}", node.ip) }}</a>
+            <a href="{{ devices_url }}#{{ node.id }}">{{ ui.device_at.replace("{device}", node.type_label).replace("{ip}", node.ip) }}</a>
             {{ level_chip(node.level) }}
             {% if node.worst %}<span class="worst">{{ ui.map_most_dangerous }}</span>{% endif %}</li>
           {% endfor %}
@@ -241,12 +249,13 @@
       <script type="module" src="/static/netmap.js"></script>
     </section>
 </details>{% endif %}
-{% if not opened %}<details class="disclosure"{% if view.reply %} open{% endif %}><summary>{{ ui.ask_heading }}</summary>
+{% if page == "assistant" and not opened %}
     {% include "_chat.html" %}
-</details>{% endif %}
+{% endif %}
   {% endif %}
 
     {% if view.kind != "ok" %}{% include "_scan_button.html" %}{% endif %}
+    {% if page == "home" %}
     <p class="muted">{{ ui.port_hint }}</p>
     <details class="disclosure"{% if view.kind != "ok" %} open{% endif %}><summary>{{ ui.open_heading }}</summary>
     <section class="ask open" aria-labelledby="open-heading">
@@ -278,6 +287,7 @@
       {% endif %}
     </section>
     </details>
+    {% endif %}
     <footer>{{ display_name }} · <a href="/risks?lang={{ view.lang }}">{{ ui.risks_link }}</a> · <a href="/history?lang={{ view.lang }}">{{ ui.history_link }}</a></footer>
   </main>
 </body>

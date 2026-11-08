@@ -410,6 +410,8 @@ UI = {
     "nav_label": {"ro": "Pagini", "en": "Pages"},
     "nav_menu": {"ro": "Meniu", "en": "Menu"},
     "nav_home": {"ro": "Acasă", "en": "Home"},
+    "nav_devices": {"ro": "Dispozitive", "en": "Devices"},
+    "nav_assistant": {"ro": "Asistent", "en": "Assistant"},
     "nav_history": {"ro": "Istoric", "en": "History"},
     "nav_risks": {"ro": "Riscuri", "en": "Risks"},
     "nav_scan": {"ro": "Verifică acum", "en": "Check now"},

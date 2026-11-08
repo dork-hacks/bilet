@@ -8,6 +8,8 @@
     <span aria-hidden="true">&#9776;</span> {{ ui.nav_menu }}</button>
   <ul id="site-nav-list">
     <li><a href="/?{{ q }}"{% if nav_current == "home" %} aria-current="page"{% endif %}>{{ ui.nav_home }}</a></li>
+    <li><a href="/devices?{{ q }}"{% if nav_current == "devices" %} aria-current="page"{% endif %}>{{ ui.nav_devices }}</a></li>
+    {% if not report_token %}<li><a href="/assistant?{{ q }}"{% if nav_current == "assistant" %} aria-current="page"{% endif %}>{{ ui.nav_assistant }}</a></li>{% endif %}
     <li><a href="/history?{{ q }}"{% if nav_current == "history" %} aria-current="page"{% endif %}>{{ ui.nav_history }}</a></li>
     <li><a href="/risks?{{ q }}"{% if nav_current == "risks" %} aria-current="page"{% endif %}>{{ ui.nav_risks }}</a></li>
     <li><a href="/report?{{ q }}"{% if nav_current == "report" %} aria-current="page"{% endif %}>{{ ui.nav_report }}</a></li>
