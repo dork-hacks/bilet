@@ -157,13 +157,25 @@ def scan_command(args: argparse.Namespace) -> int:
         scan_message,
     )
     from tool.engine import analyze_file
-    from tool.guardrail import Refused, authorize, build_allowlist, extra_ranges_from_env
+    from tool.guardrail import (
+        Refused,
+        authorize,
+        build_allowlist,
+        extra_ranges_from_env,
+        preflight_targets,
+    )
     from tool.network import DetectError, detect
 
     # Least privilege (MASTERPLAN §3.7): only the nmap subprocess gets admin rights.
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         print(scan_message("RUN_AS_ROOT", args.lang), file=sys.stderr)
         return 2
+    try:
+        preflight_targets(args.targets)
+    except Refused as exc:
+        print(refusal_message(exc.code, exc.target, args.lang), file=sys.stderr)
+        print(f"({exc.code})", file=sys.stderr)
+        return 3
     try:
         net = detect()
     except DetectError as exc:

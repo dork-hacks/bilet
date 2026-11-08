@@ -5,9 +5,9 @@ A target is scanned only if every check passes, in this order:
 2. it is not loopback, link-local, multicast, the mobile operator's 100.64.0.0/10 or
    any other non-home range: only RFC 1918 (10/8, 172.16/12, 192.168/16) and IPv6 ULA
    (fc00::/7) count, because Python's `is_private` also admits test and benchmark nets;
-3. it covers at most 256 addresses (a /24);
-4. it lies inside the allowlist: by default the subnet this computer is on (detect,
+3. it lies inside the allowlist: by default the subnet this computer is on (detect,
    #19), plus extra ranges only when configured explicitly;
+4. it covers at most 256 addresses (a /24);
 5. and the user passed --confirm.
 
 Refusals carry a code; the RO/EN text for each comes from tool.content.
@@ -67,8 +67,8 @@ def parse_target(text: str) -> Network:
     raise Refused(INVALID_TARGET, target)
 
 
-def check_range(net: Network, label: str | None = None) -> Network:
-    """Rules 2 and 3: a home range of at most 256 addresses, or Refused."""
+def _check_home(net: Network, label: str | None = None) -> Network:
+    """Address-class checks, independent of detection, size or the allowlist."""
     label = label or str(net)
     if net.is_loopback:
         raise Refused(LOOPBACK_ADDRESS, label)
@@ -82,9 +82,21 @@ def check_range(net: Network, label: str | None = None) -> Network:
         raise Refused(INVALID_TARGET, label)
     if not any(net.version == home.version and net.subnet_of(home) for home in HOME_RANGES):
         raise Refused(PUBLIC_ADDRESS, label)
-    if net.num_addresses > MAX_ADDRESSES:
-        raise Refused(RANGE_TOO_LARGE, label)
     return net
+
+
+def check_range(net: Network, label: str | None = None) -> Network:
+    """A home range of at most 256 addresses, including configured allowlist ranges."""
+    _check_home(net, label)
+    if net.num_addresses > MAX_ADDRESSES:
+        raise Refused(RANGE_TOO_LARGE, label or str(net))
+    return net
+
+
+def preflight_targets(targets: list[str]) -> None:
+    """Reject explicit invalid/non-home targets before any network detection."""
+    for text in targets:
+        _check_home(parse_target(text), text.strip())
 
 
 def build_allowlist(connected_subnet: str | None, extra: Iterable[str] = ()) -> list[Network]:
@@ -106,10 +118,10 @@ def extra_ranges_from_env(env: dict[str, str] | None = None) -> list[str]:
 
 def check_target(text: str, allowlist: list[Network]) -> Network:
     """Rules 1-4 for one target. Returns the network to scan, or raises Refused."""
-    net = check_range(parse_target(text), text.strip())
+    net = _check_home(parse_target(text), text.strip())
     if not any(net.version == allowed.version and net.subnet_of(allowed) for allowed in allowlist):
         raise Refused(OUTSIDE_ALLOWLIST, text.strip())
-    return net
+    return check_range(net, text.strip())
 
 
 def authorize(targets: list[str], allowlist: list[Network], confirm: bool) -> list[Network]:
