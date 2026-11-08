@@ -42,8 +42,8 @@ Show these recorded images in order; do not wait for a new scan during the pitch
 4. [History: two problems resolved](screenshots/155-lab-manager/11a-bilet-history-first-screen.png)
 
 Operator note: these are earlier recorded screens. Say “recorded lab run,” not
-“live run.” Romanian screenshots predate #287's wording change; use the English
-images above unless refreshed captures are available. An authorized lab operator
+“live run.” The 09a/10a/11a first-screen crops above are Romanian retakes on d31bd68,
+after #300/#301; the original full-page 09/10/11 images remain English. An authorized lab operator
 can demonstrate the physical sequence during the separate live checks if ready.
 
 ## 3. Numbers — teammate3, 1 minute

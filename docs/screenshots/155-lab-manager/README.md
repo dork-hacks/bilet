@@ -2,7 +2,8 @@
 
 Screenshots of the **real** lab manager and bilet, captured on 8 Nov 2026 on `RSH-dork_unit`.
 The bilet pages (09–12) are rendered from the real lab captures `L1`/`L2`. `12` was retaken after #287,
-so its Romanian matches `main`. The others are in English, so #287 doesn't change them.
+so its Romanian matches `main`. The 09a/10a/11a first-screen crops are Romanian retakes on
+`d31bd68`, after #300/#301; the original full-page 09/10/11 images remain English.
 The access code doesn't appear anywhere in this folder. Keep it that way: anyone on the
 hotspot, jury included, can reach the sign-in page.
 
