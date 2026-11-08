@@ -218,6 +218,7 @@ UI = {
     "language": {"ro": "Limba", "en": "Language"},
     "device_at": {"ro": "{device} la adresa {ip}", "en": "{device} at {ip}"},
     "points": {"ro": "{n} puncte de risc", "en": "{n} risk points"},
+    "points_many": {"ro": "{n} de puncte de risc", "en": "{n} risk points"},
     # Network map on the home screen (#170).
     "map_heading": {"ro": "Harta rețelei dumneavoastră", "en": "Your network map"},
     "map_intro": {
@@ -414,7 +415,7 @@ UI = {
     "nav_assistant": {"ro": "Asistent", "en": "Assistant"},
     "nav_history": {"ro": "Istoric", "en": "History"},
     "nav_risks": {"ro": "Riscuri", "en": "Risks"},
-    "nav_scan": {"ro": "Verifică acum", "en": "Check now"},
+    "nav_scan": {"ro": "Verificați acum", "en": "Check now"},
     "nav_report": {"ro": "Raport", "en": "Report"},
     # History screen (#65): score trend, compare two checks, delete my history.
     "history_link": {"ro": "Vedeți istoricul verificărilor", "en": "See your check history"},
@@ -556,3 +557,9 @@ UI = {
 }
 
 LANG_NAMES = {"ro": "Română", "en": "English"}
+
+
+def points_text(n: int, lang: str) -> str:
+    """'{n} risk points'. Romanian adds "de" when the last two digits are 00 or 20-99."""
+    many = n >= 20 and (n % 100 == 0 or n % 100 >= 20)
+    return UI["points_many" if many else "points"][lang].replace("{n}", str(n))

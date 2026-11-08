@@ -13,7 +13,7 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="/risks?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+        <li><a href="/risks?lang={{ code }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
       </ul>
@@ -29,7 +29,7 @@
       <h2 id="{{ risk.code }}-h">{{ risk.title }}</h2>
       <p><code>{{ risk.code }}</code></p>
       <p><span class="tag">{{ risk.severity_label }}</span>
-        <span class="muted"> · {{ ui.points.replace("{n}", risk.points|string) }}</span></p>
+        <span class="muted"> · {{ points_text(risk.points) }}</span></p>
       <p><strong>{{ ui.why }}</strong> {{ risk.explanation }}</p>
       {% if risk.steps %}
       <p><strong>{{ ui.how_to_fix }}</strong></p>
@@ -42,6 +42,6 @@
     {% endfor %}
   </main>
 
-  <p><a class="button" href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+  <p><a class="button" href="/?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.back_home }}</a></p>
 </body>
 </html>
