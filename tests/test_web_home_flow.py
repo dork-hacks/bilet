@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from tool.content.ui import UI
 from tool.engine import analyze_file
 from tool.web.app import create_app
+from tool.web.history_view import scan_time_label
 
 FIXTURE = Path(__file__).parent / "fixtures/validation/V2_smart_home.xml"
 
@@ -30,7 +31,11 @@ def test_home_gives_saved_context_then_score_then_fixing_steps(lang):
     ]
     assert positions == sorted(positions)
     assert UI["scan_snapshot"][lang] in html
-    assert f'<time>{result["scan_start"]}</time>' in html
+    assert (
+        f'<time datetime="{result["scan_start"]}">'
+        f'{scan_time_label(result["scan_start"], lang)}</time>'
+    ) in html
+    assert " UTC</time>" in html
     assert '<a class="button secondary" href="#fixing-steps">' in html
     # The first finding opens to its actual steps. Other findings stay discoverable.
     findings = html.split('<div class="finding ')[1:]
@@ -48,6 +53,7 @@ def test_scan_time_never_invents_current_time_or_interprets_input(start):
     if isinstance(start, str):
         assert "<img src=x" not in html
         assert "&lt;img" in html
+        assert UI["history_no_time"]["en"] in html
     else:
         assert UI["history_no_time"]["en"] in html
         assert "<time>" not in html

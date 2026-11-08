@@ -43,7 +43,7 @@
   {% else %}
     <div class="scan-context">
       <p><strong>{{ ui.scan_snapshot }}</strong> · {{ view.file or ui.scan_unknown_file }}</p>
-      <p class="muted">{{ ui.scan_recorded }} {% if scan_start %}<time>{{ scan_start }}</time>{% else %}{{ ui.history_no_time }}{% endif %}</p>
+      <p class="muted">{{ ui.scan_recorded }} {% if scan_start %}<time datetime="{{ scan_start }}">{{ scan_time_label }}</time>{% else %}{{ ui.history_no_time }}{% endif %}</p>
     </div>
     <section class="score {{ view.band.key }}" aria-labelledby="score-heading">
       <span class="icon" aria-hidden="true">{{ view.band.icon }}</span>

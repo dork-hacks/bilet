@@ -95,8 +95,11 @@ class HistoryView:
 
 
 def when_label(summary: ScanSummary, lang: str) -> str:
+    return scan_time_label(summary.scan_start, lang)
+
+
+def scan_time_label(start: str | None, lang: str) -> str:
     """nmap's start time as "YYYY-MM-DD HH:MM UTC" (the contract stores ISO 8601 UTC)."""
-    start = summary.scan_start
     if start and len(start) >= 16 and start[10] == "T":
         return f"{start[:10]} {start[11:16]} UTC"
     return t("history_no_time", lang)

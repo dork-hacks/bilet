@@ -12,6 +12,8 @@ Screenshots deliberately show the initial viewport, with no scroll.
 
 The home now shows saved-file context and its recorded timestamp before the score,
 then the priority device, actual fixing action, steps link and Check again.
+The after screenshots include the review fix: home and history share the readable
+`YYYY-MM-DD HH:MM UTC` format, with the original timestamp retained in `datetime`.
 The first finding is expanded; other findings use native disclosures. Device steps
 come before optional plan, map and assistant disclosures. Supporting navigation
 uses links, while primary, secondary and destructive actions retain distinct styles.

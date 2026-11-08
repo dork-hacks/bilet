@@ -37,7 +37,7 @@ from tool.content.ui import LANG_NAMES, UI
 from tool.engine.parser import EMPTY_FILE, MAX_FILE_BYTES, NOT_XML, TOO_LARGE
 from tool.engine.result import analyze_file, error_result
 from tool.history import Alert, History, HistoryError
-from tool.web.history_view import HistoryView, history_view
+from tool.web.history_view import HistoryView, history_view, scan_time_label
 from tool.web.map_view import network_map
 from tool.web.report import report_view
 from tool.web.risks_view import risks_view
@@ -261,6 +261,9 @@ def create_app(
                 opened_reports[report_token] = {"result": result, "reports": projections}
                 while len(opened_reports) > 16:
                     opened_reports.popitem(last=False)
+        scan_start = result.get("scan_start") if isinstance(result, dict) else None
+        if not isinstance(scan_start, str):
+            scan_start = None
         return templates.TemplateResponse(
             request,
             "home.html",
@@ -269,11 +272,8 @@ def create_app(
                 "netmap": network_map(result, view.lang) if view.kind == "ok" else None,
                 "ai_param": "1" if view.ai_on else "0",
                 "opened": opened,
-                "scan_start": (
-                    result.get("scan_start")
-                    if isinstance(result, dict) and isinstance(result.get("scan_start"), str)
-                    else None
-                ),
+                "scan_start": scan_start,
+                "scan_time_label": scan_time_label(scan_start, view.lang),
                 "report_token": report_token,
                 "can_scan": scan_runner is not None and local_scan_client(request),
                 **context(view.lang),
