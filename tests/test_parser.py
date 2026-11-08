@@ -274,3 +274,26 @@ def test_format_characters_are_stripped():
     # U+202E right-to-left override, U+200B zero-width space
     data = nmap(host(port(service='name="http" product="ab&#x202E;cd&#x200B;ef"')))
     assert parse_bytes(data, "x.xml").hosts[0].ports[0].product == "ab cd ef"
+
+
+@pytest.mark.parametrize("newline", ["&#10;", "&#13;&#10;", "&#13;", "&#x85;", "&#x2028;"])
+@pytest.mark.parametrize(
+    "title, expected",
+    [("Welcome", "Welcome"), ("Admin Login", "Admin Login"), ("", None), ("Request failed", None)],
+)
+def test_http_title_fallback_ignores_diagnostic_lines(newline, title, expected):
+    ports = '<port protocol="tcp" portid="80"><state state="open"/><service name="http"/>'
+    ports += (
+        f'<script id="http-title" output="{title}{newline}'
+        'Requested resource was /admin/login"/></port>'
+    )
+    assert parse_bytes(nmap(host(ports)), "x.xml").hosts[0].ports[0].http_title == expected
+
+
+def test_http_title_structured_title_ignores_output_diagnostics():
+    ports = '<port protocol="tcp" portid="80"><state state="open"/><service name="http"/>'
+    ports += (
+        '<script id="http-title" output="Request failed&#10;/admin">'
+        '<elem key="title">Router Login</elem></script></port>'
+    )
+    assert parse_bytes(nmap(host(ports)), "x.xml").hosts[0].ports[0].http_title == "Router Login"
