@@ -38,6 +38,7 @@ data = result.to_dict()       # exactly the JSON shape below
 
 | Code | When |
 |---|---|
+| `ANALYSIS_FAILED` | Unexpected per-file analysis failure in batch export; no finding rows and an ERROR score. Raw exception details are not exported. |
 | `EMPTY_FILE` | 0 bytes |
 | `TOO_LARGE` | Over the size limit (default 20 MB) |
 | `NOT_XML` | Malformed or truncated XML (like V7) |

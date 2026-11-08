@@ -58,7 +58,7 @@ DEVICE_TYPE_ENUM = {
     "server",
     "unknown",
 }
-ERROR_CODES = {"EMPTY_FILE", "TOO_LARGE", "NOT_XML", "UNSAFE_XML", "NOT_NMAP"}
+ERROR_CODES = {"ANALYSIS_FAILED", "EMPTY_FILE", "TOO_LARGE", "NOT_XML", "UNSAFE_XML", "NOT_NMAP"}
 OWASP_IOT = {f"I{n}" for n in range(1, 11)}
 
 # Jargon a non-technical reader wouldn't know. Use plain words instead.

@@ -74,3 +74,4 @@ T30_outdated_without_own_finding.xml,192.168.1.50,80,OUTDATED_SERVICE,high
 T30_outdated_without_own_finding.xml,192.168.1.51,443,OUTDATED_SERVICE,high
 T31_outdated_samba_139_and_445.xml,192.168.1.62,445,OUTDATED_SERVICE,high
 T31_outdated_samba_139_and_445.xml,192.168.1.62,445,SMB_EXPOSED,medium
+T33_http_title_diagnostics.xml,192.168.1.11,80,HTTP_ADMIN_CLEARTEXT,medium

@@ -464,6 +464,10 @@ DEVICE_TYPES: dict[str, dict[str, str]] = {
 
 # Keyed by `error.code` for unreadable files (docs/contracts/data-model.md).
 FILE_ERRORS: dict[str, dict[str, str]] = {
+    "ANALYSIS_FAILED": {
+        "ro": "Aplicația nu a putut verifica acest fișier. Celelalte fișiere vor fi verificate.",
+        "en": "The app could not check this file. The other files will still be checked.",
+    },
     "EMPTY_FILE": {
         "ro": "Acest fișier este gol, deci nu există nimic de verificat.",
         "en": "This file is empty, so there is nothing to check.",

@@ -219,17 +219,23 @@ def analyze_command(args: argparse.Namespace) -> int:
     json_dir = args.out / "json" if args.json else None
     # History keys devices with the private local salt; CSV-only runs never need it.
     salt = None
-    if args.save:
+    if args.save or args.json:
         try:
             salt = load_salt()
-        except OSError as exc:  # the data folder can't be written (agent-D, #134)
-            print(
-                f"{history_error_message(args.lang)} ({type(exc).__name__}: {exc})", file=sys.stderr
-            )
-            args.save = False  # the CSVs are still written; only the history is skipped
-            # --json would load the same salt again: give it a one-off one for this run.
-            salt = secrets.token_hex(32).encode() if args.json else None
-    report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
+        except OSError as exc:
+            if args.save:
+                print(f"{history_error_message(args.lang)} ({type(exc).__name__})", file=sys.stderr)
+            print(cli_text("LOCAL_SALT_UNAVAILABLE", args.lang), file=sys.stderr)
+            args.save = False  # ephemeral keys must never be stored as stable history
+            salt = secrets.token_bytes(32) if args.json else b""
+    try:
+        report = analyze_folder(folder, args.out, json_dir=json_dir, salt=salt)
+    except OSError:
+        print(cli_text("export_failed", args.lang), file=sys.stderr)
+        return 2
+    for file, code in report.warnings:
+        prefix = f"{file}: " if file else ""
+        print(f"{prefix}{cli_text(code, args.lang)} ({code})", file=sys.stderr)
     for file, code in report.errors:  # a broken file is reported, never fatal
         print(f"{file}: {file_error_message(code, args.lang)} ({code})", file=sys.stderr)
     print(
