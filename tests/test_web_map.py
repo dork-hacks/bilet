@@ -263,6 +263,8 @@ def test_map_panel_shortcuts_have_focusable_destinations(lang):
 def test_hero_uses_wide_page_and_map_panels_follow_container_width():
     css = (STATIC / "netmap.css").read_text(encoding="utf-8")
     assert ":not(#network-map):not(.hero)" in css
-    assert "body:has(#network-map) > main > .hero.has-map { max-width: 72rem" in css
+    assert "body:has(#network-map) > main > .hero.has-map,\n" in css
+    assert "> main > .scan-context { max-width: 72rem" in css
+    assert "body:has(#network-map) > header { max-width: 72rem" in css  # aligned with the hero
     assert ".netmap { container-type: inline-size" in css
     assert "@container (max-width: 40rem)" in css
