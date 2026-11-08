@@ -258,3 +258,11 @@ def test_map_panel_shortcuts_have_focusable_destinations(lang):
         assert f'aria-controls="{target}"' in page
         assert f'id="{target}" tabindex="-1"' in page
     assert 'class="netmap-panel-links" hidden' in page
+
+
+def test_hero_uses_wide_page_and_map_panels_follow_container_width():
+    css = (STATIC / "netmap.css").read_text(encoding="utf-8")
+    assert ":not(#network-map):not(.hero)" in css
+    assert "body:has(#network-map) > main > .hero.has-map { max-width: 72rem" in css
+    assert ".netmap { container-type: inline-size" in css
+    assert "@container (max-width: 40rem)" in css
