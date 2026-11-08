@@ -13,7 +13,7 @@
     <nav aria-label="{{ ui.language }}">
       <ul>
         {% for code, name in langs %}
-        <li><a href="/risks?lang={{ code }}" lang="{{ code }}" hreflang="{{ code }}"
+        <li><a href="/risks?lang={{ code }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}" lang="{{ code }}" hreflang="{{ code }}"
                {% if code == view.lang %}aria-current="true"{% endif %}>{{ name }}</a></li>
         {% endfor %}
       </ul>
@@ -42,6 +42,6 @@
     {% endfor %}
   </main>
 
-  <p><a class="button" href="/?lang={{ view.lang }}">{{ ui.back_home }}</a></p>
+  <p><a class="button" href="/?lang={{ view.lang }}{% if report_token %}&amp;scan={{ report_token }}{% endif %}">{{ ui.back_home }}</a></p>
 </body>
 </html>

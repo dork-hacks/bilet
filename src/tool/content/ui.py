@@ -414,7 +414,7 @@ UI = {
     "nav_assistant": {"ro": "Asistent", "en": "Assistant"},
     "nav_history": {"ro": "Istoric", "en": "History"},
     "nav_risks": {"ro": "Riscuri", "en": "Risks"},
-    "nav_scan": {"ro": "Verifică acum", "en": "Check now"},
+    "nav_scan": {"ro": "Verificați acum", "en": "Check now"},
     "nav_report": {"ro": "Raport", "en": "Report"},
     # History screen (#65): score trend, compare two checks, delete my history.
     "history_link": {"ro": "Vedeți istoricul verificărilor", "en": "See your check history"},
