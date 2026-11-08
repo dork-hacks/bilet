@@ -139,3 +139,33 @@ def test_serve_root_refusal(monkeypatch, capsys, lang):
     assert main(["serve", "--lang", lang]) == 2
     err = capsys.readouterr().err
     assert ("utilizator obișnuit" if lang == "ro" else "normal user") in err
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+@pytest.mark.parametrize("options", [[], ["--save"], ["--json"], ["--save", "--json"]])
+def test_analyze_root_refusal_precedes_all_data_writes(
+    monkeypatch, capsys, tmp_path, lang, options
+):
+    monkeypatch.setattr("tool.cli.os.geteuid", lambda: 0)
+    data, out = tmp_path / "data", tmp_path / "out"
+    monkeypatch.setenv("TOOL_DATA_DIR", str(data))
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("root refusal must precede salt/history/export access")
+
+    monkeypatch.setattr("tool.engine.device.load_salt", unexpected)
+    monkeypatch.setattr("tool.export.analyze_folder", unexpected)
+    assert main(["analyze", str(VALIDATION), "--out", str(out), "--lang", lang, *options]) == 2
+    captured = capsys.readouterr()
+    assert ("utilizator obișnuit" if lang == "ro" else "normal user") in captured.err
+    assert not captured.out
+    assert not data.exists()
+    assert not out.exists()
+
+
+def test_analyze_still_runs_as_normal_user(monkeypatch, tmp_path):
+    monkeypatch.setattr("tool.cli.os.geteuid", lambda: 1000)
+    out = tmp_path / "out"
+    assert main(["analyze", str(VALIDATION), "--out", str(out)]) == 0
+    for name in ("findings.csv", "scores.csv"):
+        assert (out / name).read_bytes() == (VALIDATION / f"expected_{name}").read_bytes()
