@@ -370,3 +370,7 @@ HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
     "scan": scan_command,
     "serve": serve,
 }
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
