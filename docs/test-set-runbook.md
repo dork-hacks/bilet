@@ -232,6 +232,8 @@ Settle each line with this table. **"Keep" is the right answer unless the brief 
 
 **A skipped file that belongs to the Test Set** (no `.xml` ending, for example the unreadable one): `tool analyze` also names it on stderr. Don't rename it, because the file name is a CSV column. Re-run steps 5 and 6 with `--all-files`, which reads every visible file except CSVs and `*.md`, so it gets its `ERROR` row (#203):
 
+Before switching to `--all-files`, check that every name in the skipped list is a scan input. If it also includes a note (`.txt`, `.pdf`, etc.), ask the organizers which files are scans before uploading; the flag includes those visible files too. Keep every supplied file in the original copy/checksum record.
+
 ```bash
 ANALYZE_ARGS=(--all-files)
 .venv/bin/tool analyze "$TS" --out out/testset --lang en "${ANALYZE_ARGS[@]}"
