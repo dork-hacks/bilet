@@ -42,9 +42,9 @@ def allowlist(subnet=HOTSPOT, extra=()):
         ("router.lan", g.HOSTNAME_NOT_ALLOWED),
         ("example.com", g.HOSTNAME_NOT_ALLOWED),
         ("localhost", g.HOSTNAME_NOT_ALLOWED),
-        ("192.168.0.0/16", g.RANGE_TOO_LARGE),
-        ("10.0.0.0/8", g.RANGE_TOO_LARGE),
-        ("172.20.10.0/23", g.RANGE_TOO_LARGE),
+        ("192.168.0.0/16", g.OUTSIDE_ALLOWLIST),
+        ("10.0.0.0/8", g.OUTSIDE_ALLOWLIST),
+        ("172.20.10.0/23", g.OUTSIDE_ALLOWLIST),
         ("192.168.1.0/24", g.OUTSIDE_ALLOWLIST),  # e.g. the venue Wi-Fi
         ("10.0.0.5", g.OUTSIDE_ALLOWLIST),
         ("172.20.10.16/28", g.OUTSIDE_ALLOWLIST),  # the next /28 over
@@ -185,3 +185,44 @@ def test_scan_refuses_when_the_network_is_unclear(monkeypatch, capsys):
 
     monkeypatch.setattr("tool.network.detect", fail)
     assert main(["scan", "172.20.10.3", "--confirm"]) == 1
+
+
+@pytest.mark.parametrize("target", ["192.168.0.0/16", "10.0.0.0/8", "fc00::/7"])
+def test_outside_allowlist_precedes_target_size(target):
+    assert refused(g.check_target, target, allowlist()) == g.OUTSIDE_ALLOWLIST
+
+
+@pytest.mark.parametrize("target", ["192.168.0.0/16", "fc00::/7"])
+def test_size_cap_still_applies_inside_an_oversized_manual_allowlist(target):
+    network = ipaddress.ip_network(target)
+    assert refused(g.check_target, target, [network]) == g.RANGE_TOO_LARGE
+
+
+@pytest.mark.parametrize("lang", ["ro", "en"])
+@pytest.mark.parametrize(
+    "targets, code",
+    [
+        (["8.8.8.8"], g.PUBLIC_ADDRESS),
+        (["router.lan"], g.HOSTNAME_NOT_ALLOWED),
+        (["1.2.3"], g.INVALID_TARGET),
+        (["127.0.0.1"], g.LOOPBACK_ADDRESS),
+        (["100.64.0.1"], g.CGNAT_ADDRESS),
+        (["172.20.10.3", "8.8.8.8"], g.PUBLIC_ADDRESS),
+    ],
+)
+def test_explicit_unsafe_targets_are_refused_before_detection(
+    monkeypatch, capsys, lang, targets, code
+):
+    def unexpected(*args, **kwargs):
+        pytest.fail("unsafe target must not reach detection or a runner")
+
+    monkeypatch.setattr("tool.cli.os.geteuid", lambda: 1000)
+    monkeypatch.setattr("tool.network.detect", unexpected)
+    monkeypatch.setattr("tool.scan.run_scan", unexpected)
+    assert main(["scan", *targets, "--confirm", "--lang", lang]) == 3
+    assert code in capsys.readouterr().err
+
+
+def test_private_preflight_does_not_replace_full_authorization():
+    g.preflight_targets(["192.168.0.0/16"])
+    assert refused(g.authorize, ["192.168.0.0/16"], allowlist(), True) == g.OUTSIDE_ALLOWLIST
