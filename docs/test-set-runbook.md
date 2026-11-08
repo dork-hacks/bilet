@@ -108,32 +108,64 @@ gh issue comment 1 -R dork-hacks/bilet --body "[human:<name>] Merge freeze from 
 
 ### 4. Copy the Test Set to its own folder
 
-From the USB stick or the shared link:
+From the USB stick or shared download, unpack the archive first. Point `SOURCE` at
+that unpacked folder. Use a **new, empty** `$TS`; keep every supplied file, including
+an extensionless broken file and any notes. Do not rename inputs.
 
 ```bash
-mkdir -p "$TS" && cp <USB or download>/*.xml "$TS"/   # unzip first if it comes as a .zip
-ls "$TS" | wc -l                                       # about 9
-(cd "$TS" && sha256sum *.xml) > "$UP/testset.sha256"
+SOURCE="/path/to/unpacked Test Set"
+SOURCE="$SOURCE" TS="$TS" UP="$UP" .venv/bin/python - <<'PY'
+import hashlib
+import json
+import os
+import shutil
+from pathlib import Path
+
+source = Path(os.environ["SOURCE"]).resolve()
+target = Path(os.environ["TS"]).resolve()
+if not source.is_dir() or target == source or target.is_relative_to(source):
+    raise SystemExit("Choose a source folder and a separate, empty Test Set folder")
+if target.exists() and any(target.iterdir()):
+    raise SystemExit("TS is not empty: choose a fresh folder; do not mix Test Sets")
+if any(path.is_symlink() for path in source.rglob("*")):
+    raise SystemExit("Source contains a symbolic link: ask the organizers for regular files")
+shutil.copytree(source, target, dirs_exist_ok=True)
+manifest = {}
+for path in sorted(target.rglob("*")):
+    if path.is_file():
+        with path.open("rb") as stream:
+            manifest[path.relative_to(target).as_posix()] = hashlib.file_digest(stream, "sha256").hexdigest()
+upload = Path(os.environ["UP"])
+upload.mkdir(parents=True, exist_ok=True)
+(upload / "testset-sha256.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+print(f"Copied and hashed {len(manifest)} supplied files")
+PY
+ANALYZE_ARGS=()    # keep this array for every analysis; step 7 may set --all-files
 ```
 
 **Pass:**
-- The file count matches what the organizers announced.
-- Every file ends in `.xml`. `tool analyze` reads only visible `.xml` files at the top of the folder, in any letter case. The report in step 7 names any file it skips.
-- The checksums let the jury check, later, that we re-run the very same files.
+- The supplied file count matches the organizers' package, including notes if present.
+- `$UP/testset-sha256.json` records **all** copied files, not only `*.xml`; JSON safely
+  preserves filenames containing spaces, punctuation or newlines.
+- Scan inputs are at the top level, as expected by `analyze`. Ask the organizers if
+  the package uses subfolders; do not silently drop or overwrite duplicate names.
+- The default analyzer reads visible `.xml` files in any letter case. Step 7 names
+  other candidate files; `--all-files` includes visible regular files except CSVs
+  and Markdown notes. Those exclusions stay copied and checksummed.
 
 ### 5. Analyse twice and compare (NFR-05)
 
 ```bash
-.venv/bin/tool analyze "$TS" --out out/testset --lang en
-.venv/bin/tool analyze "$TS" --out out/testset-run2 --lang en
+.venv/bin/tool analyze "$TS" --out out/testset --lang en "${ANALYZE_ARGS[@]}"
+.venv/bin/tool analyze "$TS" --out out/testset-run2 --lang en "${ANALYZE_ARGS[@]}"
 cmp out/testset/findings.csv out/testset-run2/findings.csv &&
   cmp out/testset/scores.csv out/testset-run2/scores.csv && echo DETERMINISTIC
 ```
 
 **Pass:**
-- Each run ends with `N files, M findings, K unreadable -> out/testset/findings.csv, out/testset/scores.csv`, where N is the file count from step 4.
+- Each run ends with `N files, M findings, K unreadable -> out/testset/findings.csv, out/testset/scores.csv`, where N is the number of selected scan inputs (not the copied notes or answer keys).
 - `DETERMINISTIC` is printed.
-- `scores.csv` has one row per file: `wc -l out/testset/scores.csv` is N + 1, counting the header.
+- `scores.csv` has one CSV record per selected file, plus its header; step 11 checks the exact filename set using a CSV reader.
 
 Each unreadable file prints one line before the summary, like `V7_broken.xml: This file is damaged or incomplete, so it can't be read. (NOT_XML)`. A Python traceback instead of the summary is a crash: see [What can go wrong](#what-can-go-wrong).
 
@@ -201,11 +233,14 @@ Settle each line with this table. **"Keep" is the right answer unless the brief 
 **A skipped file that belongs to the Test Set** (no `.xml` ending, for example the unreadable one): `tool analyze` also names it on stderr. Don't rename it, because the file name is a CSV column. Re-run steps 5 and 6 with `--all-files`, which reads every visible file except CSVs and `*.md`, so it gets its `ERROR` row (#203):
 
 ```bash
-.venv/bin/tool analyze "$TS" --out out/testset --lang en --all-files
-.venv/bin/tool analyze "$TS" --out out/testset-run2 --lang en --all-files
+ANALYZE_ARGS=(--all-files)
+.venv/bin/tool analyze "$TS" --out out/testset --lang en "${ANALYZE_ARGS[@]}"
+.venv/bin/tool analyze "$TS" --out out/testset-run2 --lang en "${ANALYZE_ARGS[@]}"
+cmp out/testset/findings.csv out/testset-run2/findings.csv &&
+  cmp out/testset/scores.csv out/testset-run2/scores.csv && echo DETERMINISTIC
 ```
 
-Use the same flag in steps 8 and 11, so every run reads the same files.
+Keep `ANALYZE_ARGS` in this shell for steps 8 and 11, so every run reads the same files. If you open another terminal, set the same array there first.
 
 If a line really contradicts the brief:
 1. Open an issue (`type:bug`, `area:engine`, `prio:p0`) with the line and the brief's sentence.
@@ -218,7 +253,7 @@ If a line really contradicts the brief:
 
 ```bash
 sort -t, -k2,2n out/testset/scores.csv | grep -v -e ERROR -e network_score | head -1   # the lowest score
-.venv/bin/tool analyze "$TS" --out out/testset-ui --json --lang en                      # same CSVs, plus one JSON per file
+.venv/bin/tool analyze "$TS" --out out/testset-ui --json --lang en "${ANALYZE_ARGS[@]}"  # same CSVs, plus JSON
 .venv/bin/tool serve --result out/testset-ui/json/<that file>.json
 ```
 
@@ -265,17 +300,63 @@ Leave `agents:paused` on #1 until the jury sessions end. From now on the laptop 
 The jury picks one Test Set file and we re-run it live (`docs/live-checks.md`, check 1). Rehearse it now for **every** file, so no file depends on the others:
 
 ```bash
-for f in "$TS"/*.xml; do
-  F=$(basename "$f"); rm -rf /tmp/one /tmp/rerun; mkdir /tmp/one; cp "$f" /tmp/one/
-  .venv/bin/tool analyze /tmp/one --out /tmp/rerun --lang en >/dev/null
-  if grep "^$F," "$UP/testset/findings.csv" | cmp -s - <(grep "^$F," /tmp/rerun/findings.csv) &&
-     grep "^$F," "$UP/testset/scores.csv" | cmp -s - <(grep "^$F," /tmp/rerun/scores.csv)
-  then echo "SAME  $(grep "^$F," /tmp/rerun/scores.csv)"; else echo "DIFF  $F"; fi
-done
-(cd "$TS" && sha256sum -c --quiet "$UP/testset.sha256") && echo "Test Set files unchanged"
+TS="$TS" UP="$UP" .venv/bin/python - "${ANALYZE_ARGS[@]}" <<'PY'
+import csv
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from tool.export import scan_files
+
+source, upload = Path(os.environ["TS"]), Path(os.environ["UP"])
+flags = sys.argv[1:]
+if flags not in ([], ["--all-files"]):
+    raise SystemExit("Use the same empty or --all-files ANALYZE_ARGS array as the upload")
+files = scan_files(source, all_files=bool(flags))
+def rows(path):
+    with path.open(newline="", encoding="utf-8") as stream:
+        return list(csv.reader(stream))
+
+expected = {name: rows(upload / "testset" / name) for name in ("findings.csv", "scores.csv")}
+if [row[0] for row in expected["scores.csv"][1:]] != [path.name for path in files]:
+    raise SystemExit("Upload filenames differ from selected inputs: check ANALYZE_ARGS")
+tool = str(Path(".venv/bin/tool").resolve())
+with tempfile.TemporaryDirectory(prefix="bilet-rerun-") as temporary:
+    root = Path(temporary)
+    for path in files:
+        single = root / "one"
+        single.mkdir()
+        shutil.copy2(path, single / path.name)
+        output = root / "rerun"
+        subprocess.run([tool, "analyze", str(single), "--out", str(output), "--lang", "en", *flags],
+                       check=True, stdout=subprocess.DEVNULL)
+        for name, records in expected.items():
+            wanted = [records[0]] + [row for row in records[1:] if row[0] == path.name]
+            if rows(output / name) != wanted:
+                raise SystemExit(f"DIFF {path.name!r}: {name}")
+        print(f"SAME {path.name!r}")
+        shutil.rmtree(single)
+        shutil.rmtree(output)
+
+manifest = json.loads((upload / "testset-sha256.json").read_text())
+actual = {}
+for path in sorted(source.rglob("*")):
+    if path.is_symlink():
+        raise SystemExit("A Test Set file was replaced by a symbolic link")
+    if path.is_file():
+        with path.open("rb") as stream:
+            actual[path.relative_to(source).as_posix()] = hashlib.file_digest(stream, "sha256").hexdigest()
+if actual != manifest:
+    raise SystemExit("Test Set filenames or contents changed")
+print("Test Set files unchanged")
+PY
 ```
 
-**Pass:** one `SAME` line per file, and `Test Set files unchanged`. Then run check 1 once exactly as `docs/live-checks.md` shows it, on the file you think the jury is most likely to pick: the before/after pair, or the file with the most findings.
+**Pass:** one `SAME` line per selected scan input (including the extensionless broken file with `--all-files`), and `Test Set files unchanged` for **every** supplied file. CSV parsing compares exact filename fields, not regular-expression grep matches. Then run check 1 once exactly as `docs/live-checks.md` shows it, on the file you think the jury is most likely to pick: the before/after pair, or the file with the most findings.
 
 ---
 
@@ -290,7 +371,7 @@ done
 | **The run crashes** | A Python traceback instead of `N files, M findings, …`, so `scores.csv` isn't written. | Find the file: run `tool analyze` on each file alone, as in step 11. Open a `prio:p0` bug with the traceback and fix the crash in a PR, so the file becomes a finding or an `ERROR`. Restart at step 1. **Never edit the CSVs by hand, and never leave a file out:** the jury's re-run of that file would then not match. |
 | **A readable file gives `ERROR`** | Step 6: the file looks like a complete nmap file. | Same as a crash: a `prio:p0` bug, a fix, then step 1. The parser's message in the near-miss report says where it stopped. |
 | **The two runs differ** | Step 5 doesn't print `DETERMINISTIC`. | Don't upload. That's a determinism bug (NFR-05) and the re-run check would fail. Open a `prio:p0` bug with both CSVs. |
-| **A file is skipped** | Step 7 lists `…: not analysed`, or the file count in step 5 is short. | `.xml` files only, at the top of the folder, not hidden. Unzip and flatten the Test Set into `$TS`, then repeat from step 4. A Test Set file without the `.xml` ending: add `--all-files` (step 7). Never rename a file: the file name is a CSV column. |
+| **A file is skipped** | Step 7 lists `…: not analysed`, or the file count in step 5 is short. | Check that every supplied file was copied in step 4. Keep scan inputs at the top level and their names unchanged. Set `ANALYZE_ARGS=(--all-files)` for a visible extensionless/non-XML scan input, then repeat analysis, comparison, screenshot and per-file reruns with that array. CSV/Markdown notes and hidden files are excluded by design; ask the organizers if they identify one as a required scan input. |
 | **A huge file is slow** | One file takes more than a few seconds. | Results are still right, so let it finish. The fix for files that repeat one IP thousands of times is #185 / PR #186. |
 | **`out/` was deleted** | `out/testset` is missing at the jury. | `$UP/testset/` holds the uploaded copy, and step 11 compares against it. |
 | **Upload form trouble** | The form refuses the files or closes. | Tell the organizers at once, with `$UP` as evidence: the CSVs, the checksums and the time. The form closes at 09:00 for everyone. |
