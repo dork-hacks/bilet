@@ -1,6 +1,8 @@
 # Lab manager: assets for the slides
 
 Screenshots of the **real** lab manager and bilet, captured on 8 Nov 2026 on `RSH-dork_unit`.
+The bilet pages (09–12) are rendered from the real lab captures `L1`/`L2`. `12` was retaken after #287,
+so its Romanian matches `main`. The others are in English, so #287 doesn't change them.
 The access code doesn't appear anywhere in this folder. Keep it that way: anyone on the
 hotspot, jury included, can reach the sign-in page.
 
@@ -22,7 +24,7 @@ All PNGs are 2x (retina), so they stay sharp on a 16:9 slide.
 | `09-bilet-home-before-25.png` / `09a-…-first-screen.png` | bilet's home on the default lab: 25, "Most dangerous device: Camera" | Before |
 | `10-bilet-home-after-55.png` / `10a-…-first-screen.png` | bilet after the two fixes: 55 | After |
 | `11-bilet-history-25-to-55.png` / `11a-…-first-screen.png` | History: "went up from 25 to 55", 2 problems fixed | Proof that fixing works |
-| `12-bilet-home-before-25-ro-phone.png` | bilet in Romanian on a phone | Built for parents and grandparents |
+| `12-bilet-home-before-25-ro-phone.png` / `12a-…-first-screen.png` | bilet in Romanian on a phone, with the polite "dumneavoastră" wording from #287 | Built for parents and grandparents |
 | `20-architecture.svg` / `.png` | How a click reaches a Pi, and the safety on every hop | Architecture |
 
 The `a` files are the first screen only (1440×900), so they fit a slide. The others are full
